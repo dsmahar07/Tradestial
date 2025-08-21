@@ -16,7 +16,20 @@ interface TradeDashboardCalendarProps {
   tradingDays?: TradingDay[]
 }
 
-export function TradeDashboardCalendar({ className, tradingDays = [] }: TradeDashboardCalendarProps) {
+// Sample trading data for demonstration
+const defaultTradingDays: TradingDay[] = [
+  { date: '2025-08-15', pnl: 450 },
+  { date: '2025-08-16', pnl: -200 },
+  { date: '2025-08-17', pnl: 780 },
+  { date: '2025-08-14', pnl: 320 },
+  { date: '2025-08-13', pnl: -150 },
+  { date: '2025-08-12', pnl: 600 },
+  { date: '2025-08-09', pnl: 250 },
+  { date: '2025-08-08', pnl: -400 },
+  { date: '2025-08-07', pnl: 890 },
+]
+
+export function TradeDashboardCalendar({ className, tradingDays = defaultTradingDays }: TradeDashboardCalendarProps) {
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -194,12 +207,21 @@ export function TradeDashboardCalendar({ className, tradingDays = [] }: TradeDas
                   isNegative && 'bg-red-50 dark:bg-red-900/20'
                 )}
               >
-                <span className={cn('text-xs', c.isCurrentMonth ? 'text-gray-600 dark:text-gray-400' : '')}>{c.date.getDate()}</span>
-                {typeof pnl === 'number' && (
-                  <span className={cn('absolute inset-x-0 bottom-2 text-center text-xs font-semibold', isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                    {pnl > 0 ? '+' : ''}${Math.abs(pnl)}
-                  </span>
-                )}
+                <div className="relative w-full h-full p-1">
+                  <span className={cn('absolute top-1 left-1 text-xs font-medium', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
+                  {typeof pnl === 'number' && (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={cn('text-sm font-bold', isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                          {pnl > 0 ? '+' : ''}${Math.abs(pnl)}
+                        </span>
+                      </div>
+                      <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 dark:text-gray-400">
+                        3 trades
+                      </span>
+                    </>
+                  )}
+                </div>
               </button>
             )
           })}
@@ -239,12 +261,21 @@ export function TradeDashboardCalendar({ className, tradingDays = [] }: TradeDas
                     isNegative && 'bg-red-50 dark:bg-red-900/20'
                   )}
                 >
-                  <span className={cn('text-xs', c.isCurrentMonth ? 'text-gray-600 dark:text-gray-400' : '')}>{c.date.getDate()}</span>
-                  {typeof pnl === 'number' && (
-                    <span className={cn('absolute inset-x-0 bottom-2 text-center text-xs font-semibold', isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                      {pnl > 0 ? '+' : ''}${Math.abs(pnl)}
-                    </span>
-                  )}
+                  <div className="relative w-full h-full p-2">
+                    <span className={cn('absolute top-2 left-2 text-sm font-medium', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
+                    {typeof pnl === 'number' && (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className={cn('text-base font-bold', isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                            {pnl > 0 ? '+' : ''}${Math.abs(pnl)}
+                          </span>
+                        </div>
+                        <span className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 dark:text-gray-400">
+                          3 trades
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </button>
               )
             })}

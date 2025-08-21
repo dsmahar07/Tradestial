@@ -1,7 +1,6 @@
 'use client'
 
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
-import { motion } from 'framer-motion'
+import { AreaChart, Area, ResponsiveContainer, Line, LineChart } from 'recharts'
 
 interface PnLTrendData {
   period: string
@@ -18,42 +17,42 @@ interface PnLTrendChartProps {
 export function PnLTrendChart({ 
   data, 
   color = '#ef4444', 
-  height = 60, 
+  height = 40, 
   animate = true 
 }: PnLTrendChartProps) {
-  const chartComponent = (
-    <div style={{ height: `${height}px` }} className="w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <XAxis 
-            dataKey="period" 
-            hide 
-          />
-          <YAxis hide />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke={color}
-            strokeWidth={2}
-            dot={false}
-            strokeDasharray="0"
-          />
-        </LineChart>
-      </ResponsiveContainer>
+  // Determine if trend is positive or negative for styling
+  const isPositive = data.length > 0 && data[data.length - 1].value > data[0].value
+  const trendColor = isPositive ? '#10b981' : '#ef4444'
+  const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`
+
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <div style={{ height: height + 10 }} className="w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart 
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={trendColor} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={trendColor} stopOpacity={0.05}/>
+              </linearGradient>
+            </defs>
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={trendColor}
+              strokeWidth={2.5}
+              fill={`url(#${gradientId})`}
+              dot={false}
+              activeDot={false}
+              animationDuration={animate ? 1500 : 0}
+              animationBegin={animate ? 300 : 0}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
-
-  if (animate) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        {chartComponent}
-      </motion.div>
-    )
-  }
-
-  return chartComponent
 }

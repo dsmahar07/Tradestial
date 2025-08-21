@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, MoreHorizontal, LucideIcon } from 'lucide-rea
 import { Button } from './button'
 import { cn } from '@/lib/utils'
 import { SemicircularGauge } from './semicircular-gauge'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, RadialBarChart, RadialBar, Tooltip } from 'recharts'
 
 interface GaugeData {
   name: string
@@ -30,6 +31,10 @@ interface AnalyticsCardProps {
   donutData?: GaugeData[]
   showHorizontalBars?: boolean
   horizontalBarsData?: GaugeData[]
+  showFullPieChart?: boolean
+  pieChartData?: GaugeData[]
+  showVerticalBars?: boolean
+  verticalBarsData?: GaugeData[]
 }
 
 export function AnalyticsCard({ 
@@ -49,7 +54,11 @@ export function AnalyticsCard({
   showDonutIndicator = false,
   donutData = [],
   showHorizontalBars = false,
-  horizontalBarsData = []
+  horizontalBarsData = [],
+  showFullPieChart = false,
+  pieChartData = [],
+  showVerticalBars = false,
+  verticalBarsData = []
 }: AnalyticsCardProps) {
   const isPositive = change > 0
   
@@ -94,65 +103,87 @@ export function AnalyticsCard({
           </div>
           
           {showSemicircularIndicator && gaugeData.length > 0 && (
-            <div className="absolute -top-2 right-0 scale-75 origin-top-right">
-              <SemicircularGauge 
-                data={gaugeData}
-                delay={delay}
-              />
+            <div className="absolute -top-2 right-0 scale-105 origin-top-right">
+              <div className="relative">
+                <ResponsiveContainer width={120} height={80}>
+                  <PieChart>
+                    <Pie
+                      data={gaugeData}
+                      cx={60}
+                      cy={60}
+                      startAngle={180}
+                      endAngle={0}
+                      innerRadius={25}
+                      outerRadius={50}
+                      fill="#8884d8"
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                      strokeWidth={0}
+                      cornerRadius={4}
+                      isAnimationActive={true}
+                      animationBegin={delay * 1000 + 300}
+                      animationDuration={1200}
+                    >
+                      {gaugeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, name) => [`${value}`, name]}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        fontSize: '12px'
+                      }}
+                      labelStyle={{ color: '#374151', fontWeight: '500' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
           
           {showDonutIndicator && donutData.length > 0 && (
-            <div className="absolute -top-2 right-0 scale-90 origin-top-right">
+            <div className="absolute -top-6 right-0 scale-90 origin-top-right">
               <div className="relative">
-                <svg width="170" height="90" viewBox="0 0 170 90" className="transform -rotate-90">
-                  {/* Background circle */}
-                  <circle
-                    cx="85"
-                    cy="45"
-                    r="35"
-                    stroke="currentColor"
-                    strokeWidth="12"
-                    fill="none"
-                    className="text-gray-200 dark:text-gray-700"
-                  />
-                  {/* Profit segment */}
-                  <motion.circle
-                    cx="85"
-                    cy="45"
-                    r="35"
-                    stroke={donutData[0]?.color || "#10b981"}
-                    strokeWidth="12"
-                    fill="none"
-                    strokeDasharray={`${219.9 * (donutData[0]?.value || 0) / 100} ${219.9}`}
-                    strokeLinecap="round"
-                    initial={{ strokeDasharray: `0 ${219.9}` }}
-                    animate={{ strokeDasharray: `${219.9 * (donutData[0]?.value || 0) / 100} ${219.9}` }}
-                    transition={{ duration: 1.2, delay: delay + 0.3, ease: "easeOut" }}
-                  />
-                  {/* Loss segment */}
-                  <motion.circle
-                    cx="85"
-                    cy="45"
-                    r="35"
-                    stroke={donutData[1]?.color || "#ef4444"}
-                    strokeWidth="12"
-                    fill="none"
-                    strokeDasharray={`${219.9 * (donutData[1]?.value || 0) / 100} ${219.9}`}
-                    strokeDashoffset={`-${219.9 * (donutData[0]?.value || 0) / 100}`}
-                    strokeLinecap="round"
-                    initial={{ strokeDasharray: `0 ${219.9}` }}
-                    animate={{ strokeDasharray: `${219.9 * (donutData[1]?.value || 0) / 100} ${219.9}` }}
-                    transition={{ duration: 1.2, delay: delay + 0.5, ease: "easeOut" }}
-                  />
-                </svg>
-                {/* Center text */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-sm font-medium" style={{ color: donutData[0]?.color || "#10b981" }}>
-                    {donutData[0]?.value || 0}%
-                  </span>
-                  <span className="text-xs text-gray-500">profit</span>
-                </div>
+                <ResponsiveContainer width={100} height={100}>
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      cx={50}
+                      cy={50}
+                      innerRadius={25}
+                      outerRadius={45}
+                      fill="#8884d8"
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                      strokeWidth={0}
+                      cornerRadius={4}
+                      isAnimationActive={true}
+                      animationBegin={delay * 1000 + 300}
+                      animationDuration={1200}
+                    >
+                      {donutData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, name) => [`${value}%`, name]}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        fontSize: '12px'
+                      }}
+                      labelStyle={{ color: '#374151', fontWeight: '500' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
@@ -173,13 +204,90 @@ export function AnalyticsCard({
                           ${bar.value}
                         </span>
                       </div>
-                      <motion.div 
-                        className="h-3 rounded-full"
-                        style={{ backgroundColor: bar.color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${barWidth}px` }}
-                        transition={{ duration: 1.2, delay: delay + 0.3 + (index * 0.2), ease: "easeOut" }}
+                      <div className="relative h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full rounded-full"
+                          style={{ backgroundColor: bar.color }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${barWidth}px` }}
+                          transition={{ duration: 1.2, delay: delay + 0.3 + (index * 0.2), ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {showFullPieChart && pieChartData.length > 0 && (
+            <div className="absolute -top-4 right-0 scale-90 origin-top-right">
+              <div className="relative w-24 h-24">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={40}
+                      fill="#8884d8"
+                      paddingAngle={8}
+                      dataKey="value"
+                      stroke="none"
+                      strokeWidth={0}
+                      isAnimationActive={true}
+                      animationBegin={delay * 1000 + 300}
+                      animationDuration={1200}
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, name) => [`${value}%`, name]}
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        fontSize: '12px'
+                      }}
+                      labelStyle={{ color: '#374151', fontWeight: '500' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {showVerticalBars && verticalBarsData.length > 0 && (
+            <div className="absolute top-2 right-2 scale-100 origin-top-right">
+              <div className="flex items-end space-x-2 h-12">
+                {verticalBarsData.map((bar, index) => {
+                  const maxValue = Math.max(...verticalBarsData.map(b => b.value));
+                  const barHeight = (bar.value / maxValue) * 40; // Max height 40px
+                  return (
+                    <div key={bar.name} className="flex flex-col items-center space-y-1">
+                      <motion.div
+                        className="w-4 rounded-t-sm bg-opacity-90 hover:bg-opacity-100 transition-opacity cursor-pointer"
+                        style={{ 
+                          backgroundColor: bar.color,
+                          height: `${barHeight}px`,
+                          minHeight: '8px' // Minimum visible height
+                        }}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${barHeight}px` }}
+                        transition={{ 
+                          duration: 1.2, 
+                          delay: delay + 0.3 + (index * 0.2), 
+                          ease: "easeOut" 
+                        }}
+                        title={`${bar.name}: ${bar.value}`} // Simple tooltip
                       />
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {bar.name}
+                      </span>
                     </div>
                   );
                 })}
@@ -187,20 +295,22 @@ export function AnalyticsCard({
             </div>
           )}
           
-          <div className="flex items-center space-x-2 text-xs">
-            <div className={cn(
-              "flex items-center space-x-1",
-              isPositive ? "text-green-400" : "text-red-400"
-            )}>
-              {isPositive ? (
-                <TrendingUp className="h-3 w-3" />
-              ) : (
-                <TrendingDown className="h-3 w-3" />
-              )}
-              <span>{Math.abs(change)}%</span>
+          {change !== 0 && (
+            <div className="flex items-center space-x-2 text-xs">
+              <div className={cn(
+                "flex items-center space-x-1",
+                isPositive ? "text-green-400" : "text-red-400"
+              )}>
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                <span>{Math.abs(change)}%</span>
+              </div>
+              <span className="text-gray-600 dark:text-gray-500">{changeLabel}</span>
             </div>
-            <span className="text-gray-600 dark:text-gray-500">{changeLabel}</span>
-          </div>
+          )}
           
           <div className="pt-2">
             <button className="text-xs text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center">

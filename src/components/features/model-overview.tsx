@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Button } from '@/components/ui/button'
-import { ModelPlaybooksTable } from '@/components/features/model-playbooks-table'
+import { ModelModelsTable } from '@/components/features/model-models-table'
 import { ModelMaker } from '@/components/features/model-maker'
 import { StrategyMarketplace } from '@/components/features/strategy-marketplace'
 import { Plus, TrendingUp, TrendingDown, Target, Activity, Store } from 'lucide-react'
@@ -65,7 +65,7 @@ const OverviewStatsCard = ({
 export function ModelOverview() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('playbooks')
+  const [activeTab, setActiveTab] = useState('models')
 
   const handleModelCreated = () => {
     setIsCreateOpen(false)
@@ -141,10 +141,10 @@ export function ModelOverview() {
         <div className="flex items-center justify-between">
           <Tabs.List className="flex items-center space-x-1 bg-gray-100 dark:bg-[#1f1f1f] p-1 rounded-lg">
             <Tabs.Trigger
-              value="playbooks"
+              value="models"
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                activeTab === 'playbooks' 
+                activeTab === 'models' 
                   ? "bg-white dark:bg-[#171717] text-gray-900 dark:text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
@@ -186,8 +186,8 @@ export function ModelOverview() {
         </div>
 
         {/* Tab Content */}
-        <Tabs.Content value="playbooks" className="mt-4">
-          <ModelPlaybooksTable />
+        <Tabs.Content value="models" className="mt-4">
+          <ModelModelsTable />
           
           {/* Pagination */}
           <div className="mt-4 flex items-center justify-center">

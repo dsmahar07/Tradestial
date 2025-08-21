@@ -4,7 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Info, Settings } from 'lucide-react'
 import { Button } from './button'
-import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts'
 import { useTheme } from '@/hooks/use-theme'
 
 const sampleTradeTimeData = [
@@ -48,7 +48,8 @@ const sampleTradeTimeData = [
 
 export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
   const { theme } = useTheme()
-  const isDark = theme === 'dark' || (theme === 'system' && typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+  // Detect dark mode using document class to avoid comparing against a 'system' literal when theme typing doesn't include it
+  const isDark = (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) || theme === 'dark'
 
   const formatYAxis = (value: number) => {
     if (value === 0) return '$0'
@@ -113,7 +114,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
       transition={{ duration: 0.5, delay: 1.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -139,10 +140,10 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
           </div>
         </div>
         
-        <div className="h-72">
+        <div className="h-[320px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              margin={{ top: 8, right: 12, left: 25, bottom: 24 }}
+              margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
             >
               <XAxis 
                 type="number"
@@ -150,42 +151,45 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                 name="time"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }}
-                height={20}
-                tickMargin={2}
+                tick={{ 
+                  fontSize: 12, 
+                  fill: '#9ca3af',
+                  fontWeight: 600
+                }}
+                className="dark:fill-gray-400"
+                height={25}
+                tickMargin={5}
                 tickFormatter={formatXAxis}
-                domain={[ (dataMin: number) => Math.floor(Math.min(minX, dataMin) - padX), (dataMax: number) => Math.ceil(Math.max(maxX, dataMax) + padX) ]}
-                ticks={hourlyTicks}
+                interval="preserveStartEnd"
               />
-              
+              {uniqueYTicks.map((y) => (
+                <ReferenceLine
+                  key={`grid-y-${y}`}
+                  y={y}
+                  stroke="var(--grid)"
+                  strokeDasharray="3 3"
+                  ifOverflow="extendDomain"
+                  style={{ shapeRendering: 'crispEdges' }}
+                />
+              ))}
               <YAxis 
                 type="number"
                 dataKey="y"
                 name="pnl"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }}
+                tick={{ 
+                  fontSize: 11, 
+                  fill: '#9ca3af'
+                }}
+                className="dark:fill-gray-400"
                 tickFormatter={formatYAxis}
                 domain={[ niceMinY, niceMaxY ]}
                 ticks={uniqueYTicks}
-                tickCount={uniqueYTicks.length}
-                padding={{ top: 4, bottom: 4 }}
-                width={30}
+                width={55}
               />
               
-              {/* Custom grid lines aligned to explicit Y ticks to avoid duplicates */}
-              {uniqueYTicks.map((y) => (
-                <line
-                  key={`grid-y-${y}`}
-                  x1={0}
-                  x2={1}
-                  y1={y}
-                  y2={y}
-                  stroke={isDark ? '#4b5563' : '#d1d5db'}
-                  strokeDasharray="2 2"
-                  strokeWidth={0.8}
-                />
-              ))}
+              
               
               <Tooltip cursor={false} content={({ active, payload }) => {
                 if (!active || !payload || !payload.length) return null

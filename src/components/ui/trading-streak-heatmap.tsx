@@ -1,14 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronDown, Flame } from 'lucide-react'
-import { Button } from './button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
+import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { useState } from 'react'
 
 interface DayData {
@@ -26,135 +19,86 @@ const seededRandom = (seed: number) => {
   return x - Math.floor(x)
 }
 
-// Generate monthly trading streak data with deterministic values
-const generateMonthData = (): DayData[] => {
-  // Use a fixed seed for consistent generation
-  const baseSeed = 12345
+// Generate monthly data for a given view date (includes leading/trailing placeholders)
+const generateMonthData = (viewDate: Date): DayData[] => {
+  const baseSeed = 12345 + viewDate.getFullYear() * 100 + viewDate.getMonth()
   let seedCounter = 0
-  
-  // Use fixed date for consistency (current month of 2024)
-  const currentYear = 2024
-  const currentMonth = 0 // January
-  const todayDate = 15 // Fixed to 15th
-  
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay()
-  
+
+  const year = viewDate.getFullYear()
+  const month = viewDate.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDay = new Date(year, month, 1).getDay() // 0=Sun..6=Sat
+
+  const today = new Date()
+  const isSameMonth = today.getFullYear() === year && today.getMonth() === month
+  const todayDate = isSameMonth ? today.getDate() : -1
+
   const data: DayData[] = []
-  
-  // Add empty cells for days before month starts
+
+  // Leading placeholders
   for (let i = 0; i < firstDay; i++) {
-    data.push({
-      date: 0,
-      trades: 0,
-      pnl: 0,
-      isToday: false,
-      isWeekend: false,
-      isEmpty: true
-    })
+    data.push({ date: 0, trades: 0, pnl: 0, isToday: false, isWeekend: false, isEmpty: true })
   }
-  
-  // Add actual days of the month
+
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(currentYear, currentMonth, day)
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const isToday = day === todayDate
-    const isFuture = day > todayDate
-    
+    const dateObj = new Date(year, month, day)
+    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6
+    const isToday = isSameMonth && day === todayDate
+    const isFuture = !isSameMonth ? false : day > todayDate
+
     let trades = 0
     let pnl = 0
-    
+
     if (!isFuture) {
       const seed1 = baseSeed + seedCounter++
       const seed2 = baseSeed + seedCounter++
       const seed3 = baseSeed + seedCounter++
-      
+
       if (!isWeekend) {
-        // Weekday trading activity
         const activity = seededRandom(seed1)
-        if (activity > 0.1) { // 90% chance of trading on weekdays
+        if (activity > 0.1) { // 90% chance of weekday trading
           trades = Math.floor(seededRandom(seed2) * 20) + 1
           pnl = (seededRandom(seed3) - 0.45) * 1000
         }
       } else {
-        // Weekend trading (less frequent)
         const activity = seededRandom(seed1)
-        if (activity > 0.7) { // 30% chance of trading on weekends
+        if (activity > 0.7) { // 30% chance of weekend trading
           trades = Math.floor(seededRandom(seed2) * 5) + 1
           pnl = (seededRandom(seed3) - 0.5) * 500
         }
       }
     }
-    
-    data.push({
-      date: day,
-      trades,
-      pnl: Math.round(pnl),
-      isToday,
-      isWeekend,
-      isEmpty: false
-    })
+
+    data.push({ date: day, trades, pnl: Math.round(pnl), isToday, isWeekend, isEmpty: false })
   }
-  
+
+  // Trailing placeholders to complete last week
+  const remainder = data.length % 7
+  if (remainder !== 0) {
+    for (let i = 0; i < 7 - remainder; i++) {
+      data.push({ date: 0, trades: 0, pnl: 0, isToday: false, isWeekend: false, isEmpty: true })
+    }
+  }
+
   return data
 }
 
-const monthData = generateMonthData()
-
-// Intensity based on absolute P&L magnitude (heatmap strength)
-const getPnlOpacity = (pnl: number): string => {
-  const a = Math.abs(pnl)
-  if (a === 0) return '20'
-  if (a < 200) return '30'
-  if (a < 500) return '50'
-  if (a < 1000) return '70'
-  return '90'
-}
-
-// Background color from profit/loss
-const getCellBg = (trades: number, pnl: number): string => {
-  if (trades === 0) return 'bg-gray-50 dark:bg-gray-800/50'
-  const opacity = getPnlOpacity(pnl)
-  return pnl >= 0 ? `bg-green-500/${opacity}` : `bg-red-500/${opacity}`
-}
-
-// Border color to ensure outlines are visible for traded days
-const getCellBorder = (trades: number, pnl: number): string => {
-  if (trades === 0) return 'border-gray-100 dark:border-gray-700/70'
-  return pnl >= 0 ? 'border-green-400 dark:border-green-700' : 'border-red-400 dark:border-red-700'
-}
+// removed heatmap helpers in favor of calendar-style display
 
 // const months = [
 //   'January', 'February', 'March', 'April', 'May', 'June',
 //   'July', 'August', 'September', 'October', 'November', 'December'
 // ]
 
-const timeRanges = ['This Month', 'Last Month', 'This Quarter', 'Custom']
-
 export function TradingStreakHeatmap() {
-  const [selectedTimeRange, setSelectedTimeRange] = useState('This Month')
-  const [hoveredDay, setHoveredDay] = useState<DayData | null>(null)
-  
-  const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  const totalTrades = monthData.reduce((sum, day) => sum + day.trades, 0)
-  const tradingDays = monthData.filter(day => !day.isEmpty && day.trades > 0).length
-  // const bestDay = monthData.reduce((best, curr) => curr.pnl > best.pnl ? curr : best, monthData[0])
-  const currentStreak = calculateCurrentStreak()
-  
-  function calculateCurrentStreak(): number {
-    let streak = 0
-    const today = new Date().getDate()
-    
-    for (let i = today; i >= 1; i--) {
-      const dayData = monthData.find(d => d.date === i)
-      if (dayData && dayData.trades > 0) {
-        streak++
-      } else {
-        break
-      }
-    }
-    return streak
-  }
+  const [viewDate, setViewDate] = useState<Date>(new Date())
+  const monthData = generateMonthData(viewDate)
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  const monthLabel = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  const goPrevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))
+  const goNextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))
 
   return (
     <motion.div
@@ -163,100 +107,66 @@ export function TradingStreakHeatmap() {
       transition={{ duration: 0.5, delay: 1.4 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '385px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trading Streak</h3>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-green-50 dark:bg-green-900/20 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-300">
-              <Flame className="w-3.5 h-3.5" /> {currentStreak} day{currentStreak === 1 ? '' : 's'}
-            </div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Heatmap</h3>
+            <Info className="h-4 w-4 text-gray-400" />
           </div>
-          <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-            <div className="hidden sm:flex items-center gap-2">
-              <span>Trading days</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{tradingDays}</span>
-              <span className="mx-1 text-gray-300">•</span>
-              <span>Total trades</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{totalTrades}</span>
+          <div className="flex items-center gap-2">
+            <button onClick={goPrevMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="min-w-[120px] text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
+              {monthLabel}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 px-2 py-1 h-7">
-                  <span className="text-xs">{selectedTimeRange.replace('This ', '').replace('Last ', '')}</span>
-                  <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-28">
-                {timeRanges.map((range) => (
-                  <DropdownMenuItem key={range} onClick={() => setSelectedTimeRange(range)} className={selectedTimeRange === range ? 'bg-gray-100 dark:bg-gray-800' : ''}>
-                    <span className="text-xs">{range}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <button onClick={goNextMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
-        {/* Heatmap */}
-        <div className="h-72 relative overflow-visible">
-          <div className="mb-2">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{currentMonth}</h4>
+        {/* Body */}
+        <div className="flex-1 relative flex flex-col">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {weekdays.map((d) => (
+              <div key={d} className="text-xs text-gray-600 dark:text-gray-300 text-center py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717]">
+                {d}
+              </div>
+            ))}
+          </div>
 
-            {/* Day headers */}
-            <div className="grid grid-cols-7 gap-1.5 mb-2">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                <div key={i} className="text-xs text-gray-500 dark:text-gray-400 text-center py-0.5">
-                  {day}
-                </div>
-              ))}
-            </div>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 grid-rows-6 gap-2 flex-1">
+            {monthData.map((day, idx) => {
+              if (day.isEmpty) {
+                return (
+                  <div key={idx} className="h-full w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717]" />
+                )
+              }
 
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1.5">
-              {monthData.map((day, index) => (
-                <div
-                  key={index}
-                  className={`
-                    relative h-8 sm:h-9 w-full rounded-md cursor-pointer transition-transform duration-150 border
-                    ${day.isEmpty ? 'invisible' : ''}
-                    ${getCellBg(day.trades, day.pnl)}
-                    ${getCellBorder(day.trades, day.pnl)}
-                    ${day.isToday ? 'ring-1 ring-blue-500' : 'hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-700'}
-                  `}
-                  onMouseEnter={() => !day.isEmpty && setHoveredDay(day)}
-                  onMouseLeave={() => setHoveredDay(null)}
-                >
-                  {!day.isEmpty && (
-                    <div className={`absolute left-1 top-1 text-[10px] sm:text-[11px] font-medium mix-blend-difference ${day.trades === 0 ? 'text-gray-800 dark:text-gray-200' : 'text-white'}`}>
+              const traded = day.trades > 0
+              const positive = day.pnl >= 0
+              const baseCell = 'relative h-full w-full rounded-md border flex items-center justify-center text-sm'
+              const colorCell = traded
+                ? positive
+                  ? 'bg-[#1FC16B]/15 border-[#1FC16B]/40 text-gray-900 dark:text-white dark:bg-[#1FC16B]/20 dark:border-[#1FC16B]/50'
+                  : 'bg-[#FB3748]/15 border-[#FB3748]/40 text-gray-900 dark:text-white dark:bg-[#FB3748]/20 dark:border-[#FB3748]/50'
+                : 'bg-gray-100 border-gray-200 text-gray-700 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-300'
+
+              return (
+                <div key={idx} className={`${baseCell} ${colorCell}`}>
+                  {!day.isToday && <span className="font-medium">{day.date}</span>}
+                  {day.isToday && (
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-semibold shadow">
                       {day.date}
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Tooltip */}
-          {hoveredDay && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-50 whitespace-nowrap pointer-events-none">
-              <div className="font-semibold mb-1">
-                {currentMonth.split(' ')[0]} {hoveredDay.date}, {currentMonth.split(' ')[1]}
-              </div>
-              <div className="flex items-center gap-3">
-                <div>Trades: <span className="font-medium">{hoveredDay.trades}</span></div>
-                <div className={hoveredDay.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                  P&L: ${hoveredDay.pnl.toLocaleString()}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Legend */}
-          <div className="absolute bottom-0 right-0 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-            <span>Loss</span>
-            <div className="h-2 w-28 rounded-full bg-gradient-to-r from-red-500 via-gray-300 to-green-500 dark:from-red-500/80 dark:via-gray-700 dark:to-green-500/80" />
-            <span>Profit</span>
+              )
+            })}
           </div>
         </div>
       </div>

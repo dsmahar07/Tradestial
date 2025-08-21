@@ -1,6 +1,5 @@
 'use client'
 
-import { ThemeToggle } from "@/components/ui"
 import { Button } from "@/components/ui/button"
 import { usePathname } from 'next/navigation'
 
@@ -44,10 +43,20 @@ export function DashboardHeader() {
           title: 'Gallery',
           description: 'Your trading charts and screenshots'
         }
+      case '/trades':
+        return {
+          title: 'Trades',
+          description: 'View and manage your trading history'
+        }
       case '/trades/tracker':
         return {
           title: 'Tracker',
           description: 'Detailed view of your trading performance'
+        }
+      case '/import-data':
+        return {
+          title: 'Import Trading Data',
+          description: 'Sync and import your trading data from various platforms'
         }
       case '/dashboard':
       default:
@@ -62,15 +71,9 @@ export function DashboardHeader() {
 
   return (
     <header className="bg-gray-50 dark:bg-[#1C1C1C] text-gray-900 dark:text-white px-6 py-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{description}</p>
-        </div>
-        
-        <div className="flex items-center justify-end">
-          <ThemeToggle />
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{description}</p>
       </div>
     </header>
   )

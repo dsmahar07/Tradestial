@@ -62,7 +62,7 @@ export const navigationConfig: NavigationSection[] = [
         href: '/analytics',
         badge: true,
         tooltip: 'Advanced analytics and reports',
-        isEnabled: false // Disabled since we removed analytics page
+        isEnabled: true
       },
       {
         id: 'daily-journal',
@@ -85,8 +85,8 @@ export const navigationConfig: NavigationSection[] = [
         id: 'trades',
         icon: ChartBarsIcon,
         label: 'Trades',
-        href: '/statistics',
-        tooltip: 'View trade statistics',
+        href: '/trades',
+        tooltip: 'View and manage your trades',
         isEnabled: true
       },
       {

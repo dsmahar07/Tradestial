@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/app/analytics/**/*",
+    "src/components/analytics/**/*",
+    "src/types/performance.ts",
+    "src/config/analytics-navigation.ts",
+    "src/services/trade-data.service.ts",
+    "src/hooks/use-page-title.tsx",
+    "src/components/layout/sidebar.tsx",
+    "src/components/layout/header.tsx",
+    "src/components/ui/analytics-tab-navigation.tsx",
+    "src/lib/utils.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "tradtrace-app"
+  ]
+}

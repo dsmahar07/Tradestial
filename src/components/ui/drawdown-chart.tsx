@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu'
-import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
 
 interface DrawdownData {
   date: string
@@ -65,6 +65,8 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
     return `-$${Math.abs(value)}`
   }
 
+  const yTicks = [0, -500, -1000, -1500, -2000, -2500, -3000]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -72,7 +74,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
       transition={{ duration: 0.5, delay: 1.6 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -107,16 +109,26 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
           </DropdownMenu>
         </div>
         
-        <div className="h-72 w-full outline-none focus:outline-none">
+        <div className="h-[300px] w-full outline-none focus:outline-none">
           <ResponsiveContainer width="100%" height="100%" className="focus:outline-none [&>*]:focus:outline-none">
             <ComposedChart
               data={sampleDrawdownData}
-              margin={{ top: 5, right: 15, left: 0, bottom: 25 }}
+              margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
             >
+              {yTicks.map((y) => (
+                <ReferenceLine
+                  key={`grid-y-${y}`}
+                  y={y}
+                  stroke="var(--grid)"
+                  strokeDasharray="3 3"
+                  ifOverflow="extendDomain"
+                  style={{ shapeRendering: 'crispEdges' }}
+                />
+              ))}
               <defs>
                 <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(239, 68, 68, 0.3)" />
-                  <stop offset="100%" stopColor="rgba(239, 68, 68, 0.1)" />
+                  <stop offset="0%" stopColor="#E93544" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#E93544" stopOpacity={0.1} />
                 </linearGradient>
               </defs>
               
@@ -124,7 +136,12 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 dataKey="formattedDate"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                tick={{ 
+                  fontSize: 12, 
+                  fill: '#9ca3af',
+                  fontWeight: 600
+                }}
+                className="dark:fill-gray-400"
                 height={25}
                 tickMargin={5}
                 tickFormatter={(value) => {
@@ -137,11 +154,15 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               <YAxis 
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#6b7280' }}
+                tick={{ 
+                  fontSize: 11, 
+                  fill: '#9ca3af'
+                }}
+                className="dark:fill-gray-400"
                 tickFormatter={formatYAxis}
                 domain={[-3000, 0]}
-                ticks={[0, -500, -1000, -1500, -2000, -2500, -3000]}
-                padding={{ top: 5, bottom: 5 }}
+                ticks={yTicks}
+                padding={{ top: 5, bottom: 0 }}
                 width={55}
               />
               
@@ -158,14 +179,14 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               <Line
                 type="monotone"
                 dataKey="drawdown"
-                stroke="#7c3aed"
+                stroke="#2547D0"
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
                 connectNulls={true}
                 activeDot={{
                   r: 6,
-                  fill: "#7c3aed",
+                  fill: "#2547D0",
                   stroke: "#fff",
                   strokeWidth: 2
                 }}

@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import { ChevronDown, Edit3, Share2 } from 'lucide-react'
+import { XMarkIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { MonthlyCalendar } from '@/components/ui/monthly-calendar'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import * as Dialog from '@radix-ui/react-dialog'
+import * as Checkbox from '@radix-ui/react-checkbox'
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -434,8 +437,74 @@ const processChartData = (data: TradeData[]) => {
   return processed
 }
 
+// Column configuration mapping
+const columnConfig = {
+  'average-entry': { label: 'Average Entry', getValue: (trade: any) => `$${trade.avgEntry}` },
+  'average-exit': { label: 'Average Exit', getValue: (trade: any) => `$${trade.avgExit}` },
+  'best-exit-pnl': { label: 'Best Exit P&L', getValue: (trade: any) => `$${trade.bestExitPnl}` },
+  'best-exit': { label: 'Best Exit (%)', getValue: (trade: any) => trade.bestExitPercent },
+  'best-exit-price': { label: 'Best Exit Price', getValue: (trade: any) => `$${trade.bestExitPrice}` },
+  'best-exit-time': { label: 'Best Exit Time', getValue: (trade: any) => trade.bestExitTime },
+  'close-time': { label: 'Close Time', getValue: (trade: any) => trade.closeTime },
+  'custom-tags': { label: 'Custom Tags', getValue: (trade: any) => trade.customTags },
+  'duration': { label: 'Duration', getValue: (trade: any) => trade.duration },
+  'gross-pnl': { label: 'Gross P&L', getValue: (trade: any) => `$${trade.grossPnl}` },
+  'instrument': { label: 'Instrument', getValue: (trade: any) => trade.instrument },
+  'mistakes': { label: 'Mistakes', getValue: (trade: any) => trade.mistakes },
+  'net-pnl': { label: 'Net P&L', getValue: (trade: any) => `$${trade.netPnl}` },
+  'net-roi': { label: 'Net ROI', getValue: (trade: any) => trade.netRoi },
+  'open-time': { label: 'Open Time', getValue: (trade: any) => trade.openTime },
+  'pips': { label: 'Pips', getValue: (trade: any) => trade.pips },
+  'model-points': { label: 'Model Points', getValue: (trade: any) => trade.modelPoints },
+  'price-mae': { label: 'Price MAE', getValue: (trade: any) => `$${trade.priceMae}` },
+  'price-mfe': { label: 'Price MFE', getValue: (trade: any) => `$${trade.priceMfe}` },
+  'position-mae': { label: 'Position MAE', getValue: (trade: any) => `${trade.positionMae}%` },
+  'position-mfe': { label: 'Position MFE', getValue: (trade: any) => `${trade.positionMfe}%` },
+  'r-multiple': { label: 'R Multiple', getValue: (trade: any) => trade.realizedRMultiple },
+  'return-per-pip': { label: 'Return Per Pip', getValue: (trade: any) => `$${trade.returnPerPip}` },
+  'reviewed': { label: 'Reviewed', getValue: (trade: any) => trade.reviewed ? 'Yes' : 'No' },
+  'side': { label: 'Side', getValue: (trade: any) => trade.side },
+  'tag': { label: 'Tag', getValue: (trade: any) => trade.tag },
+  'ticks': { label: 'Ticks', getValue: (trade: any) => trade.ticks },
+  'ticks-per-contract': { label: 'Ticks Per Contract', getValue: (trade: any) => trade.ticksPerContract },
+  'ticker': { label: 'Ticker', getValue: (trade: any) => trade.ticker },
+  'volume-score': { label: 'Volume Score', getValue: (trade: any) => trade.volumeScore }
+}
+
 export function DailyJournalContent() {
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
+  const [visibleColumns, setVisibleColumns] = useState({
+    'average-entry': true,
+    'average-exit': true,
+    'best-exit-pnl': true,
+    'best-exit': true,
+    'best-exit-price': true,
+    'best-exit-time': true,
+    'close-time': true,
+    'custom-tags': true,
+    'duration': true,
+    'gross-pnl': true,
+    'instrument': true,
+    'mistakes': true,
+    'net-pnl': true,
+    'net-roi': true,
+    'open-time': true,
+    'pips': true,
+    'model-points': true,
+    'price-mae': true,
+    'price-mfe': true,
+    'position-mae': true,
+    'position-mfe': true,
+    'r-multiple': true,
+    'return-per-pip': true,
+    'reviewed': true,
+    'side': true,
+    'tag': true,
+    'ticks': true,
+    'ticks-per-contract': true,
+    'ticker': true,
+    'volume-score': true
+  })
   const router = useRouter()
 
   const toggleTable = (cardId: string) => {
@@ -479,6 +548,11 @@ export function DailyJournalContent() {
 
   return (
     <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
+      {/* Page Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Journal</h1>
+      </div>
+      
       <div className="flex gap-8 max-w-none">
         {/* Left side - Trading cards */}
         <div className="flex-1 space-y-4 min-w-0">
@@ -708,194 +782,34 @@ export function DailyJournalContent() {
               {isTableExpanded && (
                 <div className="px-6 pb-6">
                   <div className="overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:dark:bg-gray-800 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                    <table className="w-full">
-                      <thead>
+                    <table className="w-full" style={{ minWidth: '1200px' }}>
+                      <thead className="bg-gray-50 dark:bg-[#171717] border-b border-gray-200 dark:border-[#2a2a2a]">
                         <tr>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Average entry
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Average exit
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Best exit P&L
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Best exit (%)
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Best exit Price
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Best exit Time
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Close time
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Custom_tags
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Duration
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Gross P&L
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Instrument
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Mistakes
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Net P&L
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Net ROI
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Open Time
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Pips
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Model Points
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Price MAE
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Price MFE
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Position MAE
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Position MFE
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            R Multiple
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Return Per Pip
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Reviewed
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Side
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Tag
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Ticks
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Ticks Per Contract
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Ticker
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                            Volume Score
-                          </th>
+                          {Object.entries(visibleColumns)
+                            .filter(([_, isVisible]) => isVisible)
+                            .map(([columnKey]) => {
+                              const config = columnConfig[columnKey as keyof typeof columnConfig]
+                              return (
+                                <th key={columnKey} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
+                                  {config?.label || columnKey.replace(/-/g, ' ')}
+                                </th>
+                              )
+                            })}
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="bg-white dark:bg-[#171717] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
                         {card.trades.map((trade, index) => (
-                          <tr key={index}>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.avgEntry}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.avgExit}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.bestExitPnl}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.bestExitPercent}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.bestExitPrice}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.bestExitTime}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.closeTime}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.customTags}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.duration}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.grossPnl}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.instrument}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.mistakes}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.netPnl}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.netRoi}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.openTime}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.pips}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.modelPoints}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.priceMae}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.priceMfe}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.positionMae}%
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.positionMfe}%
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.realizedRMultiple}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              ${trade.returnPerPip}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.reviewed ? 'Yes' : 'No'}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.side}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.tag}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.ticks}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.ticksPerContract}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.ticker}
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
-                              {trade.volumeScore}
-                            </td>
+                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer">
+                            {Object.entries(visibleColumns)
+                              .filter(([_, isVisible]) => isVisible)
+                              .map(([columnKey]) => {
+                                const config = columnConfig[columnKey as keyof typeof columnConfig]
+                                return (
+                                  <td key={columnKey} className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 min-w-[120px] whitespace-nowrap">
+                                    {config?.getValue(trade) || 'N/A'}
+                                  </td>
+                                )
+                              })}
                           </tr>
                         ))}
                       </tbody>

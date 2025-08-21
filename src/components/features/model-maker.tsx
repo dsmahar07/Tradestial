@@ -177,7 +177,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       return
     }
     
-    // Create the strategy object in the format expected by ModelPlaybooksTable
+    // Create the strategy object in the format expected by ModelModelsTable
     const strategy = {
       id: `strategy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: formData.name.trim(),
@@ -352,7 +352,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
           />
 
           {/* Form Content */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form id="model-form" onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Model Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Model Name *</label>
@@ -469,7 +469,8 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
               Cancel
             </Button>
             <Button
-              onClick={handleSubmit}
+              type="submit"
+              form="model-form"
               className="px-6 py-2 text-sm bg-black hover:bg-gray-800 text-white rounded-lg"
             >
               Create Model

@@ -21,7 +21,6 @@ import { Activity, LayoutGrid, Plus, LogOut, Moon } from 'lucide-react'
 import Image from 'next/image'
 import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
-import { ImportDialog } from '@/components/features/import-dialog'
 import { getEnabledNavigationItems } from '@/config/navigation'
 
 function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
@@ -50,7 +49,6 @@ function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
 
 export function Sidebar() {
   const isCollapsed = true // Permanently collapsed
-  const [importDialogOpen, setImportDialogOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
 
@@ -84,13 +82,14 @@ export function Sidebar() {
       <div className="px-4 pb-2">
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
-            <Button 
-              size="sm"
-              onClick={() => setImportDialogOpen(true)}
-              className="w-12 h-9 relative bg-[#3559E9] hover:bg-[#2947d1] text-white border-none shadow-sm overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none"
-            >
-              <Plus className="w-4 h-4 relative z-10" />
-            </Button>
+            <Link href="/import-data">
+              <Button 
+                size="sm"
+                className="w-12 h-9 relative bg-[#3559E9] hover:bg-[#2947d1] text-white border-none shadow-sm overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none"
+              >
+                <Plus className="w-4 h-4 relative z-10" />
+              </Button>
+            </Link>
           </Tooltip.Trigger>
           <Tooltip.Portal>
             <Tooltip.Content 
@@ -254,10 +253,6 @@ export function Sidebar() {
 
       </div>
 
-      <ImportDialog 
-        open={importDialogOpen} 
-        onOpenChange={setImportDialogOpen} 
-      />
     </Tooltip.Provider>
   )
 }

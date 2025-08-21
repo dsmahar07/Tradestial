@@ -1,5 +1,6 @@
 import { NetPnlIcon, OrdersIcon, VisitorsIcon, RefundIcon, StreakIcon, ExpectancyIcon } from './custom-icons'
 import { StreakDisplay } from './streak-display'
+import { DataStore } from '@/services/data-store.service'
 
 export interface AnalyticsCardConfig {
   title: string
@@ -18,90 +19,98 @@ export interface AnalyticsCardConfig {
   horizontalBarsData?: Array<{ name: string; value: number; color: string }>
   showCustomContent?: boolean
   customContent?: React.ReactNode
+  showVerticalBars?: boolean
+  verticalBarsData?: Array<{ name: string; value: number; color: string }>
 }
 
-export const analyticsCardsConfig: AnalyticsCardConfig[] = [
-  {
-    title: "NET PNL",
-    value: "$120,784.02",
-    change: 12.3,
-    changeLabel: "$145309 today",
-    delay: 0,
-    icon: NetPnlIcon,
-    customIcon: true,
-    valueColor: "#1FC16B"
-  },
-  {
-    title: "Winrate",
-    value: "57%",
-    change: 20.1,
-    changeLabel: "2,676 today",
-    delay: 0.1,
-    icon: OrdersIcon,
-    customIcon: true,
-    showSemicircularIndicator: true,
-    gaugeData: [
-      { name: 'Wins', value: 68, color: '#10b981' },
-      { name: 'Draws', value: 1, color: '#3b82f6' },
-      { name: 'Losses', value: 57, color: '#ef4444' }
-    ]
-  },
-  {
-    title: "Profit Factor",
-    value: "2.3:1",
-    change: 8.2,
-    changeLabel: "vs last month",
-    delay: 0.2,
-    icon: VisitorsIcon,
-    customIcon: true,
-    valueColor: "#10b981",
-    showDonutIndicator: true,
-    donutData: [
-      { name: 'Profit', value: 70, color: '#10b981' },
-      { name: 'Loss', value: 30, color: '#ef4444' }
-    ]
-  },
-  {
-    title: "Avg Win/Loss",
-    value: "2.04:1",
-    change: 1.9,
-    changeLabel: "vs last month",
-    delay: 0.3,
-    icon: RefundIcon,
-    customIcon: true,
-    showHorizontalBars: true,
-    horizontalBarsData: [
-      { name: 'Avg Win', value: 1000, color: '#10b981' },
-      { name: 'Avg Loss', value: 789, color: '#ef4444' }
-    ]
-  },
-  {
-    title: "Current streak",
-    value: "1",
-    change: 0,
-    changeLabel: "2 days",
-    delay: 0.4,
-    icon: StreakIcon,
-    customIcon: true,
-    valueColor: "#10b981",
-    showCustomContent: true,
-    customContent: (
-      <StreakDisplay 
-        streakDays={1}
-        streakDaysLabel="2 days"
-        streakTrades={1}
-        streakTradesLabel="4 trades"
-      />
-    )
-  },
-  {
-    title: "Trade expectancy",
-    value: "$218.48",
-    change: 0,
-    changeLabel: "",
-    delay: 0.5,
-    icon: ExpectancyIcon,
-    customIcon: true,
-    valueColor: "#10b981"
-  }
-]
+// Get real-time data from DataStore
+export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
+  const kpis = DataStore.calculateDashboardKPIs()
+  const metrics = DataStore.calculateMetrics()
+  const currentStreak = kpis.currentStreak
+  
+  return [
+    {
+      title: "NET PNL",
+      value: kpis.netPnl.formatted,
+      change: 0,
+      changeLabel: "",
+      delay: 0,
+      icon: NetPnlIcon,
+      customIcon: true,
+      valueColor: kpis.netPnl.isPositive ? "#1FC16B" : "#ef4444"
+    },
+    {
+      title: "Winrate",
+      value: kpis.winRate.formatted,
+      change: 0,
+      changeLabel: "",
+      delay: 0.1,
+      icon: OrdersIcon,
+      customIcon: true,
+      showSemicircularIndicator: true,
+      gaugeData: [
+        { name: 'Wins', value: metrics.winningTrades, color: '#10b981' },
+        { name: 'Breakeven', value: 0, color: '#F6B51E' }, // Placeholder - would need breakeven calculation
+        { name: 'Losses', value: metrics.losingTrades, color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Profit Factor",
+      value: kpis.profitFactor.formatted,
+      change: 0,
+      changeLabel: "",
+      delay: 0.2,
+      icon: VisitorsIcon,
+      customIcon: true,
+      valueColor: kpis.profitFactor.isPositive ? "#10b981" : "#ef4444",
+      showDonutIndicator: true,
+      donutData: [
+        { name: 'Profit', value: Math.round((metrics.totalWinAmount / (metrics.totalWinAmount + metrics.totalLossAmount)) * 100), color: '#10b981' },
+        { name: 'Loss', value: Math.round((metrics.totalLossAmount / (metrics.totalWinAmount + metrics.totalLossAmount)) * 100), color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Avg Win/Loss",
+      value: kpis.avgWinLoss.formatted,
+      change: 0,
+      changeLabel: "",
+      delay: 0.3,
+      icon: RefundIcon,
+      customIcon: true,
+      showHorizontalBars: true,
+      horizontalBarsData: [
+        { name: 'Avg Win', value: Math.round(metrics.avgWinAmount), color: '#10b981' },
+        { name: 'Avg Loss', value: Math.round(metrics.avgLossAmount), color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Current streak",
+      value: currentStreak.value.toString(),
+      change: 0,
+      changeLabel: `${currentStreak.type} streak`,
+      delay: 0.4,
+      icon: StreakIcon,
+      customIcon: true,
+      valueColor: currentStreak.type === 'win' ? "#10b981" : "#ef4444",
+      showVerticalBars: true,
+      verticalBarsData: [
+        { name: 'Win', value: currentStreak.type === 'win' ? currentStreak.value : 0, color: '#10b981' },
+        { name: 'Loss', value: currentStreak.type === 'loss' ? currentStreak.value : 0, color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Trade expectancy",
+      value: kpis.tradeExpectancy.formatted,
+      change: 0,
+      changeLabel: "",
+      delay: 0.5,
+      icon: ExpectancyIcon,
+      customIcon: true,
+      valueColor: kpis.tradeExpectancy.value >= 0 ? "#10b981" : "#ef4444"
+    }
+  ]
+}
+
+// Legacy export for components that haven't been updated yet
+export const analyticsCardsConfig: AnalyticsCardConfig[] = getAnalyticsCardsConfig()

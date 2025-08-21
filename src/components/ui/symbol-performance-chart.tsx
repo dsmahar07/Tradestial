@@ -260,10 +260,10 @@ export function SymbolPerformanceChart() {
                 tickLine={false}
                 tick={{ 
                   fontSize: 12, 
-                  fill: '#6b7280',
+                  fill: '#9ca3af',
                   fontWeight: 600
                 }}
-                className="dark:fill-gray-300"
+                className="dark:fill-gray-400"
               />
               <YAxis
                 axisLine={false}

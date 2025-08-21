@@ -1,0 +1,48 @@
+/* Smooth scrollbar styles */
+.smooth-scrollbar {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.smooth-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.smooth-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.smooth-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.smooth-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark mode styles */
+.dark .smooth-scrollbar::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .smooth-scrollbar::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .smooth-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Firefox */
+@-moz-document url-prefix() {
+  .smooth-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #6b7280 #374151;
+  }
+}

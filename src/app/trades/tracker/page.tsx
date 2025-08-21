@@ -31,6 +31,9 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { TradeDataService, Trade, RunningPnlPoint } from '@/services/trade-data.service'
 import { chartColorPalette } from '@/config/theme'
+import { useTagData } from '@/hooks/use-tag-data'
+import { useTradeMetadata } from '@/hooks/use-trade-metadata'
+import { StatsWidget } from '@/components/ui/stats-widget'
 
 // Old hardcoded data removed - now using TradeDataService
 
@@ -55,20 +58,60 @@ const executionData = [
 
 export default function TrackerPage() {
   const router = useRouter()
+  const params = useParams()
+  const { categories, tags, addTag, removeTag, updateCategory } = useTagData()
+  const { getTradeMetadata, setTradeMetadata, setTradeRating, setTradeLevels, addTradeTag, removeTradeTag, setTradeNotes } = useTradeMetadata()
   const [trade, setTrade] = useState<Trade | null>(null)
   const [runningPnlData, setRunningPnlData] = useState<RunningPnlPoint[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
+  // Function to clean trade object from review properties
+  const cleanTradeObject = (tradeObj: Trade) => {
+    const cleanTrade = { ...tradeObj }
+    
+    // Remove all properties that contain "review" in the name (case insensitive)
+    Object.keys(cleanTrade).forEach(key => {
+      if (key.toLowerCase().includes('review')) {
+        delete (cleanTrade as any)[key]
+      }
+    })
+    
+    return cleanTrade
+  }
+
   // Load trade data on mount
   useEffect(() => {
     const loadTrade = async () => {
     try {
       const trades = await TradeDataService.getAllTrades()
-      const firstTrade = trades[0] // Use first trade as default
-      const pnlData = await TradeDataService.getRunningPnlData(firstTrade.id)
+      const tradeId = params.id || params.tradeId // Check for trade ID in URL params
+      
+      // Find specific trade if ID provided, otherwise use first trade
+      const selectedTrade = tradeId 
+        ? trades.find(t => t.id === tradeId) || trades[0] 
+        : trades[0]
+        
+      const pnlData = await TradeDataService.getRunningPnlData(selectedTrade.id)
       const processedData = TradeDataService.processRunningPnlData(pnlData)
       
-      setTrade(firstTrade)
+      // Clean the trade object of any review properties
+      const cleanTrade = cleanTradeObject(selectedTrade)
+      
+      // Load metadata for this trade and initialize state
+      const metadata = getTradeMetadata(selectedTrade.id)
+      console.log(`Loading metadata for trade ${selectedTrade.id}:`, metadata)
+      if (metadata) {
+        setRating(metadata.rating || 5)
+        setProfitTarget(metadata.profitTarget || '')
+        setStopLoss(metadata.stopLoss || '')
+      } else {
+        // Set defaults for new trades
+        setRating(5)
+        setProfitTarget('')
+        setStopLoss('')
+      }
+      
+      setTrade(cleanTrade)
       setRunningPnlData(processedData)
     } catch (error) {
       console.error('Error loading trade:', error)
@@ -78,25 +121,107 @@ export default function TrackerPage() {
     }
     
     loadTrade()
-  }, [])
+  }, [params])
   const [activeMainTab, setActiveMainTab] = useState('stats')
   const [activeContentTab, setActiveContentTab] = useState('notes')
   const [activeNotesTab, setActiveNotesTab] = useState('trade-note')
-  const [isReviewed, setIsReviewed] = useState(false)
   const [rating, setRating] = useState(5)
   const [profitTarget, setProfitTarget] = useState('')
   const [stopLoss, setStopLoss] = useState('')
+
+  // Create handlers that save to metadata service
+  const handleRatingChange = (newRating: number) => {
+    setRating(newRating)
+    if (trade) {
+      setTradeRating(trade.id, newRating)
+      console.log(`Saved rating ${newRating} for trade ${trade.id}`)
+    }
+  }
+
+  const handleProfitTargetChange = (newTarget: string) => {
+    setProfitTarget(newTarget)
+    if (trade) {
+      setTradeLevels(trade.id, newTarget, stopLoss)
+      console.log(`Saved profit target ${newTarget} for trade ${trade.id}`)
+    }
+  }
+
+  const handleStopLossChange = (newStopLoss: string) => {
+    setStopLoss(newStopLoss)
+    if (trade) {
+      setTradeLevels(trade.id, profitTarget, newStopLoss)
+      console.log(`Saved stop loss ${newStopLoss} for trade ${trade.id}`)
+    }
+  }
+
+  // Helper function to safely parse currency values
+  const parseCurrency = (value: any): number => {
+    if (typeof value === 'number') return value
+    if (typeof value === 'string') {
+      return parseFloat(value.replace(/[$,]/g, ''))
+    }
+    return NaN
+  }
+
+  // Calculate trading metrics based on profit target and stop loss
+  const calculateTradingMetrics = () => {
+    if (!trade || !profitTarget || !stopLoss) {
+      return {
+        initialTarget: '--',
+        tradeRisk: '--',
+        plannedRMultiple: '--',
+        realizedRMultiple: '--'
+      }
+    }
+
+    const avgEntry = parseCurrency(trade.entryPrice)
+    const targetPrice = parseFloat(profitTarget)
+    const stopPrice = parseFloat(stopLoss)
+    const avgExit = parseCurrency(trade.exitPrice)
+    const netPnl = parseCurrency(trade.netPnl)
+
+    console.log('Trade data:', {
+      entryPrice: trade.entryPrice,
+      exitPrice: trade.exitPrice,
+      netPnl: trade.netPnl,
+      parsedEntry: avgEntry,
+      parsedExit: avgExit,
+      parsedPnl: netPnl
+    })
+
+    if (isNaN(avgEntry) || isNaN(targetPrice) || isNaN(stopPrice)) {
+      return {
+        initialTarget: '--',
+        tradeRisk: '--',
+        plannedRMultiple: '--',
+        realizedRMultiple: '--'
+      }
+    }
+
+    // Initial Target = Profit Target - Average Entry
+    const initialTarget = targetPrice - avgEntry
+
+    // Trade Risk = Average Entry - Stop Loss  
+    const tradeRisk = avgEntry - stopPrice
+
+    // Planned R-Multiple = Initial Target / Trade Risk
+    const plannedRMultiple = tradeRisk !== 0 ? initialTarget / tradeRisk : 0
+
+    // Realized R-Multiple = Net P&L / Trade Risk
+    const realizedRMultiple = tradeRisk !== 0 && !isNaN(netPnl) ? netPnl / Math.abs(tradeRisk) : 0
+
+    return {
+      initialTarget: initialTarget >= 0 ? `$${initialTarget.toFixed(2)}` : `-$${Math.abs(initialTarget).toFixed(2)}`,
+      tradeRisk: `$${Math.abs(tradeRisk).toFixed(2)}`,
+      plannedRMultiple: `${plannedRMultiple.toFixed(2)}R`,
+      realizedRMultiple: `${realizedRMultiple.toFixed(2)}R`
+    }
+  }
+
+  const tradingMetrics = calculateTradingMetrics()
   const [tradeNoteContent, setTradeNoteContent] = useState('')
   const [dailyJournalContent, setDailyJournalContent] = useState('')
-  const [mistakesCategory, setMistakesCategory] = useState({ name: 'Mistakes', color: '#ef4444' })
-  const [customTagsCategory, setCustomTagsCategory] = useState({ name: 'Custom Tags', color: '#10b981' })
   const [showColorPicker, setShowColorPicker] = useState<'mistakes' | 'custom' | null>(null)
-  const [mistakesTags, setMistakesTags] = useState<string[]>([])
-  const [customTags, setCustomTags] = useState<string[]>([])
-  const [selectedMistakesTag, setSelectedMistakesTag] = useState('')
-  const [selectedCustomTag, setSelectedCustomTag] = useState('')
-  const [appliedMistakesTags, setAppliedMistakesTags] = useState<string[]>([])
-  const [appliedCustomTags, setAppliedCustomTags] = useState<string[]>([])
   const [attachments, setAttachments] = useState<Array<{id: string, name: string, type: string, size: number, url: string}>>([])
   const [viewingImage, setViewingImage] = useState<string | null>(null)
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
@@ -138,41 +263,6 @@ export default function TrackerPage() {
     router.back()
   }
 
-  const addMistakesTag = (tag: string) => {
-    if (tag.trim()) {
-      // Add to available tags if not already there
-      if (!mistakesTags.includes(tag.trim())) {
-        setMistakesTags([...mistakesTags, tag.trim()])
-      }
-      // Add to applied tags if not already applied
-      if (!appliedMistakesTags.includes(tag.trim())) {
-        setAppliedMistakesTags([...appliedMistakesTags, tag.trim()])
-      }
-      setSelectedMistakesTag('')
-    }
-  }
-
-  const addCustomTag = (tag: string) => {
-    if (tag.trim()) {
-      // Add to available tags if not already there
-      if (!customTags.includes(tag.trim())) {
-        setCustomTags([...customTags, tag.trim()])
-      }
-      // Add to applied tags if not already applied
-      if (!appliedCustomTags.includes(tag.trim())) {
-        setAppliedCustomTags([...appliedCustomTags, tag.trim()])
-      }
-      setSelectedCustomTag('')
-    }
-  }
-
-  const removeMistakesTag = (tag: string) => {
-    setAppliedMistakesTags(appliedMistakesTags.filter(t => t !== tag))
-  }
-
-  const removeCustomTag = (tag: string) => {
-    setAppliedCustomTags(appliedCustomTags.filter(t => t !== tag))
-  }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
@@ -345,14 +435,6 @@ export default function TrackerPage() {
 
             {/* Right side */}
             <div className="flex items-center space-x-3">
-              <Button
-                variant={isReviewed ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setIsReviewed(!isReviewed)}
-              >
-                Mark as reviewed
-              </Button>
-
               <Button size="sm" className="bg-[#6366f1] hover:bg-[#5856eb] text-white">
                 Replay
               </Button>
@@ -395,474 +477,22 @@ export default function TrackerPage() {
         <div className="bg-white dark:bg-[#171717] rounded-lg flex-shrink-0 h-fit" style={{width: '376px'}}>
           <div className="p-4">
             {activeMainTab === 'stats' && (
-              <>
-                {/* Stats Content */}
-            {/* Net P&L with teal left border */}
-            <div className="mb-6 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-r"></div>
-              <div className="pl-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Net P&L</div>
-                <div className="text-2xl font-bold" style={{color: '#14b8a6'}}>
-                  $2,025
-                </div>
-              </div>
-            </div>
-
-            {/* Trade Metrics */}
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500 dark:text-gray-400">Side</span>
-                <span className="font-bold" style={{color: '#14b8a6'}}>LONG</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Contracts traded</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">1</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Points</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">101.25</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Ticks</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">405.0</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Ticks Per Contract</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">405.0</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Commissions & Fees</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">$0</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Net ROI</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">0.43%</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Gross P&L</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">$2,025</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Adjusted Cost</span>
-                <span className="font-bold text-gray-600 dark:text-gray-300">$474,440</span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Model</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200 bg-white dark:bg-gray-800">
-                      <span className="font-bold text-gray-600 dark:text-gray-300">ICT 2022 Model</span>
-                      <span className="ml-1 text-blue-500">🔗</span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 p-1">
-                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer">
-                      <span className="text-blue-500">🔗</span>
-                      View Model Details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer">
-                      <span className="text-gray-500">📊</span>
-                      Change Model
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer">
-                      <span className="text-gray-500">➕</span>
-                      Create New Model
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              {/* Zella Scale */}
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Score</span>
-                <div className="relative h-1.5 w-24 bg-gray-200 dark:bg-gray-700 rounded-full">
-                  <div className="absolute left-0 top-0 h-full w-3/4 bg-teal-500 rounded-full"></div>
-                </div>
-              </div>
-
-              {/* Price MAE / MFE */}
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Price MAE / MFE</span>
-                <div className="flex items-center gap-1 text-xs font-bold">
-                  <span className="text-red-600 dark:text-red-400">$23,937</span>
-                  <span className="text-gray-400">/</span>
-                  <span style={{color: '#14b8a6'}}>$23,967.25</span>
-                </div>
-              </div>
-
-              {/* Running P&L */}
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Running P&L</span>
-                <div className="h-8 w-24">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={runningPnlData.slice(-8)}>
-                      <defs>
-                        <linearGradient id="miniPnlGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.6}/>
-                          <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#4C25A7"
-                        strokeWidth={1.5}
-                        fill="url(#miniPnlGradient)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Trade Rating */}
-              <div className="flex justify-between items-center py-1">
-                <span className="font-semibold" style={{color: '#7F85AF'}}>Trade Rating</span>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const starNumber = i + 1
-                    const isFullActive = starNumber <= rating
-                    const isHalfActive = starNumber - 0.5 <= rating && rating < starNumber
-                    
-                    // Color and glow based on rating level
-                    const getStarColor = (isActive: boolean) => {
-                      if (!isActive) return '#d1d5db' // Gray for inactive
-                      if (rating <= 2) return '#ef4444' // Red for low rating
-                      if (rating === 3) return '#f59e0b' // Yellow for medium rating
-                      if (rating === 4) return '#10b981' // Green for good rating
-                      return '#fbbf24' // Golden for excellent rating
-                    }
-                    
-                    const getStarGlow = (isActive: boolean) => {
-                      if (!isActive) return 'none'
-                      if (rating <= 2) return '0 0 12px rgba(239, 68, 68, 0.8)' // Red glow
-                      if (rating === 3) return '0 0 12px rgba(245, 158, 11, 0.8)' // Yellow glow
-                      if (rating === 4) return '0 0 12px rgba(16, 185, 129, 0.8)' // Green glow
-                      return '0 0 16px rgba(251, 191, 36, 1)' // Golden glow for 5 stars
-                    }
-                    
-                    return (
-                      <div key={i} className="relative">
-                        <svg 
-                          className="w-6 h-6 cursor-pointer transition-all duration-500 ease-out transform hover:scale-110" 
-                          style={{ 
-                            color: '#d1d5db',
-                            stroke: '#d1d5db',
-                            strokeWidth: 1
-                          }}
-                          fill="transparent"
-                          viewBox="0 0 24 24"
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect()
-                            const x = e.clientX - rect.left
-                            const isLeftHalf = x < rect.width / 2
-                            setRating(isLeftHalf ? starNumber - 0.5 : starNumber)
-                          }}
-                        >
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                        
-                        {/* Half star fill */}
-                        {isHalfActive && (
-                          <svg 
-                            className="absolute inset-0 w-6 h-6 pointer-events-none transition-all duration-500 ease-out" 
-                            style={{ 
-                              color: getStarColor(true),
-                              filter: `drop-shadow(${getStarGlow(true)})`
-                            }}
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <defs>
-                              <clipPath id={`half-${i}`}>
-                                <rect x="0" y="0" width="12" height="24" />
-                              </clipPath>
-                            </defs>
-                            <path 
-                              d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" 
-                              clipPath={`url(#half-${i})`}
-                            />
-                          </svg>
-                        )}
-                        
-                        {/* Full star fill */}
-                        {isFullActive && (
-                          <svg 
-                            className="absolute inset-0 w-6 h-6 pointer-events-none transition-all duration-500 ease-out" 
-                            style={{ 
-                              color: getStarColor(true),
-                              filter: `drop-shadow(${getStarGlow(true)})`
-                            }}
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                          </svg>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Profit Target */}
-              <div className="flex justify-between items-center py-1">
-                <label className="font-semibold" style={{color: '#7F85AF'}}>Profit Target</label>
-                <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs w-32 focus-within:border-[#5B2CC9] focus-within:ring-1 focus-within:ring-[#5B2CC9] transition-all duration-200">
-                  <span className="mr-1 text-gray-500">$</span>
-                  <input
-                    value={profitTarget}
-                    onChange={(e) => setProfitTarget(e.target.value)}
-                    placeholder="0.00"
-                    className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400"
-                  />
-                </div>
-              </div>
-
-              {/* Stop Loss */}
-              <div className="flex justify-between items-center py-1">
-                <label className="font-semibold" style={{color: '#7F85AF'}}>Stop Loss</label>
-                <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs w-32 focus-within:border-[#5B2CC9] focus-within:ring-1 focus-within:ring-[#5B2CC9] transition-all duration-200">
-                  <span className="mr-1 text-gray-500">$</span>
-                  <input
-                    value={stopLoss}
-                    onChange={(e) => setStopLoss(e.target.value)}
-                    placeholder="0.00"
-                    className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400"
-                  />
-                </div>
-              </div>
-
-              {/* Additional metrics */}
-              <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Initial Target</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">--</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Trade Risk</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">--</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Planned R-Multiple</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">--</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Realized R-Multiple</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">--</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Average Entry</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">$23,722</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Average Exit</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">$23,823.25</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Entry Time</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">19:48:37</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-1">
-                  <span className="font-semibold" style={{color: '#7F85AF'}}>Exit Time</span>
-                  <span className="font-bold text-gray-600 dark:text-gray-300">20:40:37</span>
-                </div>
-              </div>
-
-              {/* Tags Section */}
-              <div className="pt-3 space-y-2">
-                {/* Mistakes Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4" style={{color: mistakesCategory.color}} viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM8.5 11.5L12 15l7.5-7.5L18 6l-6 6-2.5-2.5L8.5 11.5z" opacity="0.3"/>
-                    </svg>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">{mistakesCategory.name}</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ml-auto transition-colors">
-                          <span className="text-base font-bold">⋯</span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 p-1">
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            const newName = prompt('Enter new name:', mistakesCategory.name)
-                            if (newName) setMistakesCategory({...mistakesCategory, name: newName})
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
-                        >
-                          <PencilIcon className="w-4 h-4 text-gray-500" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setShowColorPicker('mistakes')}
-                          className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
-                        >
-                          <SwatchIcon className="w-4 h-4 text-gray-500" />
-                          Change Color
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md cursor-pointer text-red-600 dark:text-red-400">
-                          <TrashIcon className="w-4 h-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="relative">
-                    <input
-                      list="mistakes-tags"
-                      type="text"
-                      value={selectedMistakesTag}
-                      onChange={(e) => setSelectedMistakesTag(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          addMistakesTag(selectedMistakesTag)
-                        }
-                      }}
-                      placeholder="Select tag"
-                      className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200"
-                    />
-                    <datalist id="mistakes-tags">
-                      {mistakesTags.map((tag) => (
-                        <option key={tag} value={tag} />
-                      ))}
-                    </datalist>
-                    {appliedMistakesTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {appliedMistakesTags.map((tag, index) => {
-                          const tagColor = chartColorPalette[index % chartColorPalette.length]
-                          
-                          return (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-md text-white font-medium shadow-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none"
-                              style={{ backgroundColor: tagColor }}
-                            >
-                              <span className="relative z-10">{tag}</span>
-                              <button
-                                onClick={() => removeMistakesTag(tag)}
-                                className="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-colors relative z-10"
-                              >
-                                <span className="text-xs">×</span>
-                              </button>
-                            </span>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Custom Tags Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <svg className="w-4 h-4" style={{color: customTagsCategory.color}} viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2l-4.37.84zM12 9c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zM6 15.5v-1c0-1.33 2.67-2 4-2s4 .67 4 2v1H6z"/>
-                    </svg>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">{customTagsCategory.name}</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ml-auto transition-colors">
-                          <span className="text-base font-bold">⋯</span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 p-1">
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            const newName = prompt('Enter new name:', customTagsCategory.name)
-                            if (newName) setCustomTagsCategory({...customTagsCategory, name: newName})
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
-                        >
-                          <PencilIcon className="w-4 h-4 text-gray-500" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setShowColorPicker('custom')}
-                          className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
-                        >
-                          <SwatchIcon className="w-4 h-4 text-gray-500" />
-                          Change Color
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md cursor-pointer text-red-600 dark:text-red-400">
-                          <TrashIcon className="w-4 h-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="relative">
-                    <input
-                      list="custom-tags"
-                      type="text"
-                      value={selectedCustomTag}
-                      onChange={(e) => setSelectedCustomTag(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          addCustomTag(selectedCustomTag)
-                        }
-                      }}
-                      placeholder="Select tag"
-                      className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200"
-                    />
-                    <datalist id="custom-tags">
-                      {customTags.map((tag) => (
-                        <option key={tag} value={tag} />
-                      ))}
-                    </datalist>
-                    {appliedCustomTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {appliedCustomTags.map((tag, index) => {
-                          const tagColor = chartColorPalette[index % chartColorPalette.length]
-                          
-                          return (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-md text-white font-medium shadow-sm relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none"
-                              style={{ backgroundColor: tagColor }}
-                            >
-                              <span className="relative z-10">{tag}</span>
-                              <button
-                                onClick={() => removeCustomTag(tag)}
-                                className="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-colors relative z-10"
-                              >
-                                <span className="text-xs">×</span>
-                              </button>
-                            </span>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer Links */}
-                <div className="flex items-center justify-between pt-2 text-xs">
-                  <button className="text-blue-600 dark:text-blue-400 hover:underline">Add new category</button>
-                  <button className="text-gray-500 dark:text-gray-400 hover:underline">Manage tags</button>
-                </div>
-              </div>
-            </div>
-            </>
+              <StatsWidget
+                trade={trade}
+                runningPnlData={runningPnlData}
+                categories={categories}
+                tags={tags}
+                profitTarget={profitTarget}
+                stopLoss={stopLoss}
+                rating={rating}
+                onProfitTargetChange={handleProfitTargetChange}
+                onStopLossChange={handleStopLossChange}
+                onRatingChange={handleRatingChange}
+                onAddTag={addTag}
+                onRemoveTag={removeTag}
+                onUpdateCategory={updateCategory}
+                onShowColorPicker={setShowColorPicker}
+              />
             )}
 
             {activeMainTab === 'attachments' && (
@@ -1301,8 +931,8 @@ export default function TrackerPage() {
       {showColorPicker === 'mistakes' && (
         <ColorPicker
           type="mistakes"
-          currentColor={mistakesCategory.color}
-          onColorSelect={(color) => setMistakesCategory({...mistakesCategory, color})}
+          currentColor={categories.find(c => c.id === 'mistakes')?.color || '#ef4444'}
+          onColorSelect={(color) => updateCategory('mistakes', { color })}
           onClose={() => setShowColorPicker(null)}
         />
       )}
@@ -1310,8 +940,8 @@ export default function TrackerPage() {
       {showColorPicker === 'custom' && (
         <ColorPicker
           type="custom"
-          currentColor={customTagsCategory.color}
-          onColorSelect={(color) => setCustomTagsCategory({...customTagsCategory, color})}
+          currentColor={categories.find(c => c.id === 'custom')?.color || '#10b981'}
+          onColorSelect={(color) => updateCategory('custom', { color })}
           onClose={() => setShowColorPicker(null)}
         />
       )}

@@ -102,8 +102,8 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 className={cn(
                                     "text-xs px-3 py-1 h-7",
                                     selectedTab === 'winRate'
-                                        ? "bg-white dark:bg-gray-700 shadow-sm"
-                                        : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        ? "bg-white dark:bg-[#171717] shadow-sm text-gray-900 dark:text-white"
+                                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                                 )}
                             >
                                 Win rate
@@ -115,8 +115,8 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 className={cn(
                                     "text-xs px-3 py-1 h-7",
                                     selectedTab === 'pnl'
-                                        ? "bg-white dark:bg-gray-700 shadow-sm"
-                                        : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        ? "bg-white dark:bg-[#171717] shadow-sm text-gray-900 dark:text-white"
+                                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                                 )}
                             >
                                 P&L
@@ -128,8 +128,8 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 className={cn(
                                     "text-xs px-3 py-1 h-7",
                                     selectedTab === 'trades'
-                                        ? "bg-white dark:bg-gray-700 shadow-sm"
-                                        : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        ? "bg-white dark:bg-[#171717] shadow-sm text-gray-900 dark:text-white"
+                                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                                 )}
                             >
                                 Trades
@@ -142,18 +142,18 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => navigateYear('prev')}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </Button>
-                            <span className="font-medium text-sm min-w-[3rem] text-center">
+                            <span className="font-medium text-sm min-w-[3rem] text-center text-gray-900 dark:text-white">
                                 {selectedYear}
                             </span>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => navigateYear('next')}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </Button>

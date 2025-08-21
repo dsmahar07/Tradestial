@@ -3,14 +3,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Edit, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { RulesModal } from '@/components/ui/rules-modal'
 import { ProgressTrackerHeatmap } from '@/components/ui/progress-tracker-heatmap'
 
 interface TradingRule {
   id: string
   name: string
   enabled: boolean
-  type: 'trading_hours' | 'start_day' | 'link_playbook' | 'stop_loss' | 'max_loss_trade' | 'max_loss_day'
+  type: 'trading_hours' | 'start_day' | 'link_model' | 'stop_loss' | 'max_loss_trade' | 'max_loss_day'
   config?: any
 }
 
@@ -33,7 +32,6 @@ interface Rule {
 }
 
 export function ProgressTrackerContent() {
-  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false)
   
   // State for rules from modal
   const [tradingDays, setTradingDays] = useState(['Mo', 'Tu', 'We', 'Th', 'Fr'])
@@ -54,9 +52,9 @@ export function ProgressTrackerContent() {
     },
     {
       id: '3',
-      name: 'Link trades to playbook',
+      name: 'Link trades to model',
       enabled: true,
-      type: 'link_playbook'
+      type: 'link_model'
     },
     {
       id: '4',
@@ -118,7 +116,7 @@ export function ProgressTrackerContent() {
           case 'start_day':
             condition = rule.config?.time || '08:30'
             break
-          case 'link_playbook':
+          case 'link_model':
           case 'stop_loss':
             condition = '100%'
             break
@@ -184,7 +182,7 @@ export function ProgressTrackerContent() {
         case 'start_day':
           condition = rule.config?.time || '08:30'
           break
-        case 'link_playbook':
+        case 'link_model':
         case 'stop_loss':
           condition = '100%'
           break
@@ -276,24 +274,8 @@ export function ProgressTrackerContent() {
     }
   }
 
-  // Handle rules update from modal
-  const handleRulesUpdate = (newTradingRules: TradingRule[], newManualRules: ManualRule[], newTradingDays: string[]) => {
-    console.log('Updating rules:', { newTradingRules, newManualRules, newTradingDays })
-    setTradingRules(newTradingRules)
-    setManualRules(newManualRules)
-    setTradingDays(newTradingDays)
-  }
   
   return (
-    <>
-      <RulesModal 
-        isOpen={isRulesModalOpen} 
-        onClose={() => setIsRulesModalOpen(false)}
-        onUpdate={handleRulesUpdate}
-        initialTradingRules={tradingRules}
-        initialManualRules={manualRules}
-        initialTradingDays={tradingDays}
-      />
     <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
       <div className="max-w-7xl mx-auto space-y-6">
         
@@ -386,110 +368,7 @@ export function ProgressTrackerContent() {
           
         </div>
         
-        {/* Today's Active Rules Section */}
-        {isTradingDay && (
-          <div className="bg-white dark:bg-[#171717] rounded-lg">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Today's Rules</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Complete your daily rules to maintain your streak
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {progressMetrics.completed} of {progressMetrics.total} completed
-                </span>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400"
-                  disabled={progressMetrics.percentage !== 100 || isDayFinished}
-                  onClick={finishMyDay}
-                >
-                  {isDayFinished ? '✅ Day Completed' : 'Finish My Day'}
-                </Button>
-              </div>
-            </div>
-            
-            {isDayFinished && (
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mx-6">
-                <div className="flex items-center space-x-2">
-                  <div className="text-green-600 dark:text-green-400">🎉</div>
-                  <div>
-                    <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                      Day completed successfully!
-                    </div>
-                    <div className="text-xs text-green-600 dark:text-green-400">
-                      All rules have been locked for today. Great job maintaining your discipline!
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="p-6 space-y-4">
-              {activeRules.map((rule) => (
-                <div key={rule.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <button
-                    onClick={() => toggleRuleCompletion(rule.id)}
-                    disabled={isDayFinished}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                      rule.completed 
-                        ? 'bg-green-500 border-green-500 text-white' 
-                        : isDayFinished
-                        ? 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-green-400 cursor-pointer'
-                    }`}
-                  >
-                    {rule.completed && (
-                      <CheckCircle2 className="w-3 h-3" />
-                    )}
-                  </button>
-                  
-                  <div className="flex-1">
-                    <div className={`font-medium ${
-                      rule.completed 
-                        ? 'text-gray-500 dark:text-gray-400 line-through' 
-                        : 'text-gray-900 dark:text-white'
-                    }`}>
-                      {rule.name}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {rule.condition !== '–' && rule.condition}
-                    </div>
-                  </div>
-                  
-                  {rule.completed && (
-                    <div className="text-green-500">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                  )}
-                </div>
-              ))}
-              
-              {activeRules.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    No rules active for today. Enjoy your day off! 🎉
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         
-        {!isTradingDay && (
-          <div className="bg-white dark:bg-[#171717] rounded-lg p-6">
-            <div className="text-center py-8">
-              <div className="text-4xl mb-3">📴</div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Non-Trading Day
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Today is not a trading day according to your schedule. Rules are not active.
-              </p>
-            </div>
-          </div>
-        )}
         
         {/* Current Rules Table */}
         <div className="bg-white dark:bg-[#171717] rounded-lg">
@@ -499,7 +378,6 @@ export function ProgressTrackerContent() {
               variant="outline" 
               size="sm"
               className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
-              onClick={() => setIsRulesModalOpen(true)}
             >
               <Edit className="w-4 h-4 mr-2" />
               Edit rules
@@ -580,6 +458,5 @@ export function ProgressTrackerContent() {
         
       </div>
     </main>
-    </>
   )
 }

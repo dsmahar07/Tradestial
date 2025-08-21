@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts'
 
 interface GaugeData {
   name: string
@@ -12,9 +12,10 @@ interface SemicircularGaugeProps {
   data: GaugeData[]
   delay?: number
   className?: string
+  size?: number
 }
 
-export function SemicircularGauge({ data, delay = 0, className = "" }: SemicircularGaugeProps) {
+export function SemicircularGauge({ data, delay = 0, className = "", size = 100 }: SemicircularGaugeProps) {
   // Safety check
   if (!data || data.length === 0) {
     return null
@@ -22,80 +23,76 @@ export function SemicircularGauge({ data, delay = 0, className = "" }: Semicircu
 
   // Calculate total and percentages
   const total = data.reduce((sum, item) => sum + item.value, 0)
-  const radius = 75
-  const strokeWidth = 22
-  const circumference = Math.PI * radius // Half circle circumference
+  const winPercentage = total > 0 ? (data[0]?.value / total) * 100 : 0
+  const lossPercentage = total > 0 ? (data[2]?.value / total) * 100 : 0
   
-  // Calculate stroke offsets for each segment
-  let cumulativeOffset = 0
-  const segments = data.map((item) => {
-    const percentage = item.value / total
-    const dashLength = circumference * percentage
-    const segment = {
-      ...item,
-      dashLength,
-      dashOffset: cumulativeOffset
+  const chartData = [
+    {
+      name: 'wins',
+      value: winPercentage,
+      fill: '#10b981'
+    },
+    {
+      name: 'losses', 
+      value: lossPercentage,
+      fill: '#ef4444'
     }
-    cumulativeOffset += dashLength
-    return segment
-  })
+  ]
 
   return (
-    <div className={`flex flex-col items-center ${className}`}>
-      {/* Semicircular Gauge */}
-      <div className="relative">
-        <svg width="170" height="90" viewBox="0 0 170 90" className="overflow-visible">
-          {/* Background semicircle */}
-          <path
-            d="M 15,82 A 70,70 0 0,1 155,82"
-            stroke="#e5e7eb"
-            strokeWidth={strokeWidth}
-            fill="none"
-            className="dark:stroke-gray-700"
-          />
-          
-          {/* Data segments */}
-          {segments.map((segment, index) => (
-            <motion.path
-              key={segment.name}
-              d="M 15,82 A 70,70 0 0,1 155,82"
-              stroke={segment.color}
-              strokeWidth={strokeWidth}
-              fill="none"
-              strokeDasharray={`${segment.dashLength} ${circumference}`}
-              strokeDashoffset={-segment.dashOffset}
-              strokeLinecap="round"
-              initial={{ strokeDasharray: `0 ${circumference}` }}
-              animate={{ strokeDasharray: `${segment.dashLength} ${circumference}` }}
-              transition={{ 
-                duration: 1.2, 
-                delay: delay + 0.2 + (index * 0.1), 
-                ease: "easeOut" 
-              }}
-            />
-          ))}
-        </svg>
+    <div className="w-full h-full flex items-center space-x-3 px-1">
+      {/* Content on left */}
+      <div className="flex-1 flex flex-col justify-center space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Wins</span>
+          </div>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">
+            {data[0]?.value || 0}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">Losses</span>
+          </div>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">
+            {data[2]?.value || 0}
+          </span>
+        </div>
       </div>
-      
-      {/* Data Labels */}
-      <div className="flex space-x-1 mt-1">
-        {data.map((item, index) => (
-          <motion.div
-            key={item.name}
-            className="px-1.5 py-0.5 rounded-md text-center"
-            style={{ backgroundColor: `${item.color}20` }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: delay + 0.3 + (index * 0.1) }}
+
+      {/* Chart on right */}
+      <div className="flex items-center justify-center" style={{ width: size + 30, height: size + 30 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <RadialBarChart 
+            cx="50%" 
+            cy="45%" 
+            innerRadius={30}
+            outerRadius={45}
+            data={chartData}
+            startAngle={180}
+            endAngle={0}
+            margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
           >
-            <span 
-              className="text-xs font-medium"
-              style={{ color: item.color }}
-            >
-              {item.value}
-            </span>
-          </motion.div>
-        ))}
+            <RadialBar
+              dataKey="value"
+              cornerRadius={6}
+              stroke="none"
+              animationBegin={delay}
+              animationDuration={1200}
+              background={{ fill: '#e5e7eb' }}
+            />
+          </RadialBarChart>
+        </ResponsiveContainer>
+        
+        {/* Center percentage */}
+        <div className="absolute flex items-center justify-center">
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
+            {winPercentage.toFixed(0)}%
+          </div>
+        </div>
       </div>
     </div>
   )

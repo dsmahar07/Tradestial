@@ -11,9 +11,9 @@ import {
 } from './dropdown-menu'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
 
-// Sample PnL data points
+// Sample PnL data points - consistent 30-minute intervals
 const rawData = [
-  { time: '9:30', value: -500 },
+  { time: '09:30', value: -500 },
   { time: '10:00', value: -300 },
   { time: '10:30', value: -100 },
   { time: '11:00', value: 200 },
@@ -197,11 +197,11 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
       </div>
       
       {/* Chart */}
-      <div className="h-72 w-full">
+      <div className="h-[300px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 5, right: 15, left: 0, bottom: 15 }}
+            margin={{ top: 20, right: 15, left: 0, bottom: 20 }}
           >
             <defs>
               {/* Green gradient for positive areas */}
@@ -220,19 +220,33 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               dataKey="time" 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ 
+                fontSize: 12, 
+                fill: '#9ca3af',
+                fontWeight: 600
+              }}
+              className="dark:fill-gray-400"
+              padding={{ left: 0, right: 0 }}
               height={25}
               tickMargin={5}
+              tickFormatter={(value) => value}
+              interval={2}
             />
             <YAxis 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tick={{ 
+                fontSize: 11, 
+                fill: '#9ca3af'
+              }}
+              className="dark:fill-gray-400"
               tickFormatter={(value) => {
                 if (value === 0) return '$0';
                 return `$${(value/1000).toFixed(1)}k`;
               }}
-              width={55}
+              width={96}
+              tickMargin={8}
+              padding={{ top: 0, bottom: 0 }}
             />
             
             <Tooltip

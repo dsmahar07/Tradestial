@@ -38,15 +38,14 @@ const generateCalendarData = (): ProgressData[] => {
       
       if (isPast && !isToday) {
         const seed = day + month * 31
-        const random = Math.sin(seed) * 10000
-        const normalizedRandom = random - Math.floor(random)
+        const random = (seed * 9301 + 49297) % 233280 / 233280 // Faster pseudo-random
         
         const isWeekend = date.getDay() === 0 || date.getDay() === 6
         const activityChance = isWeekend ? 0.3 : 0.7
         
-        if (normalizedRandom < activityChance) {
-          total = Math.floor(normalizedRandom * 7) + 3
-          completed = Math.floor(normalizedRandom * total * 1.2)
+        if (random < activityChance) {
+          total = Math.floor(random * 7) + 3
+          completed = Math.floor(random * total * 1.2)
           completed = Math.min(completed, total)
           score = total > 0 ? Math.round((completed / total) * 100) : 0
         }
@@ -83,34 +82,13 @@ export function ProgressTrackerHeatmap({
   const firstRowCellsRef = useRef<HTMLDivElement | null>(null)
   const [cellSize, setCellSize] = useState<number>(16)
 
-  // Dynamically compute cell size to fit 12 columns without wrapping or scroll
+  // Simplified cell size calculation - removed ResizeObserver for better performance
   useEffect(() => {
-    const container = gridAreaRef.current
-    if (!container) return
-
     const computeSize = () => {
-      const containerWidth = container.clientWidth
-      // Each row has: left day label (w-8) + gap (approx 8px) + left padding pl-2 (~8px)
-      // We measure the usable width by subtracting the label block width and gaps between cells
-      const dayLabelWidth = 32 // w-8 ~ 32px
-      const leftGap = 8 // gap between label and grid ~ gap-2
-      const leftPadding = 8 // pl-2
-      const gapBetweenCells = 6 // gap-1.5 ~ 6px
-      const columns = 12
-      const totalGaps = (columns - 1) * gapBetweenCells
-      const usable = Math.max(0, containerWidth - dayLabelWidth - leftGap - leftPadding)
-      const idealCell = Math.floor((usable - totalGaps) / columns)
-
-      // Constrain to a sensible range so it also fits vertically in h-72
-      const clamped = Math.max(12, Math.min(24, idealCell))
-      setCellSize(clamped)
+      // Use a fixed, responsive cell size instead of dynamic calculation
+      setCellSize(16) // Default optimal size
     }
-
     computeSize()
-
-    const ro = new ResizeObserver(() => computeSize())
-    ro.observe(container)
-    return () => ro.disconnect()
   }, [])
   
   // Get today's data - use real data from props
@@ -129,7 +107,7 @@ export function ProgressTrackerHeatmap({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 1.6 }}
+      transition={{ duration: 0.3, delay: 0 }}
       className="focus:outline-none"
     >
       <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>

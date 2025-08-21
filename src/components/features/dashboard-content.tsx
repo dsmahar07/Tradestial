@@ -1,18 +1,18 @@
 'use client'
 
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, useEffect } from 'react'
 import { AnalyticsCard } from '@/components/ui/optimized'
 import { TradeDashboardCalendar } from '@/components/ui/trade-dashboard-calendar'
 import { JournalDatePicker } from '@/components/ui/journal-date-picker'
 import { ChartSkeleton } from '@/components/ui/chart-skeleton'
-import { analyticsCardsConfig } from '@/components/ui/analytics-cards-config'
+import { getAnalyticsCardsConfig, AnalyticsCardConfig } from '@/components/ui/analytics-cards-config'
+import { DataStore } from '@/services/data-store.service'
 import { useRouter } from 'next/navigation'
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
 const CumulativePnlChart = lazy(() => import('@/components/ui/cumulative-pnl-chart').then(m => ({ default: m.CumulativePnlChart })))
 const MetricsOverTimeChart = lazy(() => import('@/components/ui/metrics-over-time-chart').then(m => ({ default: m.MetricsOverTimeChart })))
-const TraderPerformanceRadar = lazy(() => import('@/components/ui/trader-performance-radar').then(m => ({ default: m.TraderPerformanceRadar })))
 const RecentTradesTable = lazy(() => import('@/components/ui/recent-trades-table').then(m => ({ default: m.RecentTradesTable })))
 const SymbolPerformanceChart = lazy(() => import('@/components/ui/symbol-performance-chart').then(m => ({ default: m.SymbolPerformanceChart })))
 const CumulativePnlBar = lazy(() => import('@/components/ui/cumulative-pnl-bar').then(m => ({ default: m.CumulativePnlBar })))
@@ -22,11 +22,23 @@ const DrawdownChart = lazy(() => import('@/components/ui/drawdown-chart').then(m
 const TradeTimePerformance = lazy(() => import('@/components/ui/trade-time-performance').then(m => ({ default: m.TradeTimePerformance })))
 const YearlyCalendar = lazy(() => import('@/components/ui/yearly-calendar').then(m => ({ default: m.YearlyCalendar })))
 const ReportChart = lazy(() => import('@/components/ui/report-chart').then(m => ({ default: m.ReportChart })))
+const AccountBalanceChart = lazy(() => import('@/components/ui/account-balance-chart').then(m => ({ default: m.AccountBalanceChart })))
+const AdvanceRadar = lazy(() => import('@/components/ui/AdvanceRadar').then(m => ({ default: m.default })))
 
 
 export function DashboardContent() {
   const [isNavigating, setIsNavigating] = useState(false)
+  const [analyticsCards, setAnalyticsCards] = useState<AnalyticsCardConfig[]>(getAnalyticsCardsConfig())
   const router = useRouter()
+
+  // Subscribe to data changes and update analytics cards
+  useEffect(() => {
+    const unsubscribe = DataStore.subscribe(() => {
+      setAnalyticsCards(getAnalyticsCardsConfig())
+    })
+
+    return unsubscribe
+  }, [])
 
   const handleDateSelect = (date: Date) => {
     setIsNavigating(true)
@@ -53,7 +65,7 @@ export function DashboardContent() {
 
         {/* Analytics Cards Row - Load immediately */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {analyticsCardsConfig.map((cardConfig, index) => (
+          {analyticsCards.map((cardConfig, index) => (
             <AnalyticsCard
               key={cardConfig.title}
               {...cardConfig}
@@ -83,10 +95,10 @@ export function DashboardContent() {
               <SymbolPerformanceChart />
             </Suspense>
             <Suspense fallback={<ChartSkeleton />}>
-              <TraderPerformanceRadar />
+              <AdvanceRadar />
             </Suspense>
             <Suspense fallback={<ChartSkeleton />}>
-              <MetricsOverTimeChart />
+              <AccountBalanceChart />
             </Suspense>
           </div>
           
@@ -138,6 +150,7 @@ export function DashboardContent() {
               <YearlyCalendar />
             </Suspense>
           </div>
+          
         </div>
       </div>
     </main>

@@ -1,43 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app:*)",
-      "Bash(mkdir:*)",
-      "Bash(ls:*)",
-      "Bash(rmdir:*)",
-      "Bash(cmd /c \"echo y | npx create-next-app@latest tradtrace-app --typescript --tailwind --eslint --app --src-dir --import-alias @/*\")",
-      "Bash(npm init:*)",
-      "Bash(npm install:*)",
-      "Bash(npx tailwindcss init:*)",
-      "Bash(mv:*)",
-      "Bash(npm run dev:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(npm run clean:*)",
-      "Bash(curl:*)",
-      "Bash(npm run build:*)",
-      "Bash(npm run type-check:*)",
-      "Bash(pkill:*)",
       "Bash(rm:*)",
-      "WebFetch(domain:intercom.help)",
-      "Bash(find:*)",
-      "Bash(cat:*)",
       "Bash(git checkout:*)",
-      "Bash(grep:*)",
-      "Bash(powershell:*)",
-      "Bash(cp:*)",
-      "Bash(copy:*)",
-      "Bash(git config:*)",
+      "Bash(npm install:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)",
-      "Bash(git push:*)",
-      "Bash(git remote remove:*)",
-      "Bash(npm run lint:*)",
-      "mcp__ide__getDiagnostics",
-      "Bash(sed:*)",
-      "Bash(npx tsc:*)",
-      "Bash(node:*)"
+      "Bash(git add:*)"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "ask": []
   }
 }

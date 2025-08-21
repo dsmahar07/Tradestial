@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 
 // Sample report data
 const reportData = [
@@ -93,31 +93,29 @@ export const ReportChart = React.memo(function ReportChart() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
         </div>
       </div>
       
       {/* Chart */}
-      <div className="h-80 w-full">
+      <div className="h-[300px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={reportData}
-            margin={{ top: 15, right: 5, left: 5, bottom: 35 }}
+            margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
           >
             {/* Left Y-Axis for percentage */}
             <YAxis 
               yAxisId="percent"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tick={{ 
+                fontSize: 11, 
+                fill: '#9ca3af'
+              }}
+              className="dark:fill-gray-400"
               tickFormatter={(value) => `${value}%`}
               domain={[0, 120]}
-              width={50}
+              width={55}
             />
             
             {/* Right Y-Axis for dollar amounts */}
@@ -126,17 +124,27 @@ export const ReportChart = React.memo(function ReportChart() {
               orientation="right"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: '#6b7280' }}
+              tick={{ 
+                fontSize: 11, 
+                fill: '#9ca3af'
+              }}
+              className="dark:fill-gray-400"
               tickFormatter={(value) => `$${Math.abs(value / 1000).toFixed(1)}k`}
               domain={[-2000, 5000]}
-              width={50}
+              width={55}
             />
             
             <XAxis 
               dataKey="date" 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
+              tick={{ 
+                fontSize: 12, 
+                fill: '#9ca3af',
+                fontWeight: 600
+              }}
+              className="dark:fill-gray-400"
+              padding={{ left: 0, right: 0 }}
               height={25}
               tickMargin={5}
               interval="preserveStartEnd"
@@ -181,22 +189,6 @@ export const ReportChart = React.memo(function ReportChart() {
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 mt-3">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">Win %</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">Avg win</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">Avg loss</span>
-        </div>
       </div>
     </div>
   )

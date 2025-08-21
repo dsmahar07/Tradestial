@@ -106,8 +106,8 @@ export function TradeStats({ trade }: TradeStatsProps) {
             <div className="text-gray-500 dark:text-gray-400">Adjusted Cost</div>
             <div className="font-medium">{formatCurrency(trade.adjustedCost)}</div>
 
-            <div className="text-gray-500 dark:text-gray-400">Playbook</div>
-            <div className="font-medium">{trade.playbook}</div>
+            <div className="text-gray-500 dark:text-gray-400">Model</div>
+            <div className="font-medium">{trade.model}</div>
 
             <div className="text-gray-500 dark:text-gray-400">Zella Scale</div>
             <div className="flex items-center space-x-2">

@@ -11,6 +11,7 @@ import {
 } from './dropdown-menu'
 import { BudgetIncomeIcon, BudgetExpensesIcon, BudgetScheduledIcon, PNLOverviewIcon } from './custom-icons'
 import { useState } from 'react'
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
 
 interface PNLData {
   month: string
@@ -57,7 +58,6 @@ const pnlDataSets = {
 }
 
 export function PnlOverviewChart() {
-  const [hoveredBar, setHoveredBar] = useState<{index: number, type: string, value: number} | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<'Last Year' | 'This Year' | 'Last Month'>('Last Year')
   
   // Get current data based on selected period
@@ -133,73 +133,78 @@ export function PnlOverviewChart() {
         </div>
 
         {/* Chart Container */}
-        <div className="relative overflow-visible">
-          <div className="flex h-72">
-            {/* Y-axis labels */}
-            <div className="flex flex-col justify-between h-56 py-2 pr-4 text-right">
-              <span className="text-xs text-gray-600 dark:text-gray-400">$60K</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400">$45K</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400">$30K</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400">$15K</span>
-              <span className="text-xs text-gray-600 dark:text-gray-400">$0</span>
-            </div>
-            
-            {/* Chart bars */}
-            <div className="flex items-end justify-center space-x-6 flex-1 px-4 relative">
-              {currentData.map((item, index) => {
-                const maxValue = Math.max(...currentData.map(d => Math.max(d.peakProfit, d.peakLoss, d.bookedPnl)))
-                const maxHeight = 180
-                const peakProfitHeight = (item.peakProfit / maxValue) * maxHeight
-                const peakLossHeight = (item.peakLoss / maxValue) * maxHeight
-                const bookedPnlHeight = (item.bookedPnl / maxValue) * maxHeight
-                
-                return (
-                  <div key={index} className="flex flex-col items-center space-y-2 relative">
-                    <div className="flex items-end space-x-1 h-48">
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: peakProfitHeight }}
-                        transition={{ duration: 1.2, delay: index * 0.1 }}
-                        className="w-4 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-sm shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ height: `${peakProfitHeight}px` }}
-                        onMouseEnter={() => setHoveredBar({index, type: 'Peak Profit', value: item.peakProfit})}
-                        onMouseLeave={() => setHoveredBar(null)}
-                      />
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: peakLossHeight }}
-                        transition={{ duration: 1.2, delay: index * 0.1 + 0.2 }}
-                        className="w-4 bg-gradient-to-t from-red-500 to-red-400 rounded-t-sm shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ height: `${peakLossHeight}px` }}
-                        onMouseEnter={() => setHoveredBar({index, type: 'Peak Loss', value: item.peakLoss})}
-                        onMouseLeave={() => setHoveredBar(null)}
-                      />
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: bookedPnlHeight }}
-                        transition={{ duration: 1.2, delay: index * 0.1 + 0.4 }}
-                        className="w-4 rounded-t-sm shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ height: `${bookedPnlHeight}px`, backgroundColor: '#3559E9' }}
-                        onMouseEnter={() => setHoveredBar({index, type: 'Booked PNL', value: item.bookedPnl})}
-                        onMouseLeave={() => setHoveredBar(null)}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {item.month}
-                    </span>
-                    
-                    {/* Tooltip */}
-                    {hoveredBar && hoveredBar.index === index && (
-                      <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs px-2 py-1 rounded shadow-lg border border-gray-200 dark:border-gray-600 whitespace-nowrap z-10">
-                        {hoveredBar.type}: ${hoveredBar.value}K
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white dark:border-t-gray-800"></div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={currentData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              barGap={4}
+              barCategoryGap="20%"
+            >
+              <XAxis 
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 600 }}
+                className="dark:fill-gray-400"
+              />
+              <YAxis 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#9ca3af' }}
+                className="dark:fill-gray-400"
+                tickFormatter={(value) => `$${value}K`}
+              />
+              <Tooltip
+                formatter={(value, name) => [`$${value}K`, name]}
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  fontSize: '12px'
+                }}
+                labelStyle={{ color: '#374151', fontWeight: '500' }}
+              />
+              <Bar 
+                dataKey="peakProfit" 
+                fill="url(#emeraldGradient)"
+                name="Peak Profit"
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={0}
+                animationDuration={1200}
+              />
+              <Bar 
+                dataKey="peakLoss" 
+                fill="url(#redGradient)"
+                name="Peak Loss"
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={200}
+                animationDuration={1200}
+              />
+              <Bar 
+                dataKey="bookedPnl" 
+                fill="#3559E9"
+                name="Booked PNL"
+                radius={[4, 4, 0, 0]}
+                isAnimationActive={true}
+                animationBegin={400}
+                animationDuration={1200}
+              />
+              <defs>
+                <linearGradient id="emeraldGradient" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#10b981" />
+                  <stop offset="100%" stopColor="#34d399" />
+                </linearGradient>
+                <linearGradient id="redGradient" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#ef4444" />
+                  <stop offset="100%" stopColor="#f87171" />
+                </linearGradient>
+              </defs>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </motion.div>
