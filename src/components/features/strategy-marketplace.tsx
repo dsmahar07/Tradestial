@@ -144,8 +144,8 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
       setSharedStrategies(getSharedStrategies())
     }
     
-    window.addEventListener('tradtrace:shared-strategies-updated', handleUpdate)
-    return () => window.removeEventListener('tradtrace:shared-strategies-updated', handleUpdate)
+    window.addEventListener('tradestial:shared-strategies-updated', handleUpdate)
+    return () => window.removeEventListener('tradestial:shared-strategies-updated', handleUpdate)
   }, [])
 
   // Convert shared strategies to marketplace format

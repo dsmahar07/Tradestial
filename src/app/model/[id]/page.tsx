@@ -30,15 +30,15 @@ interface StrategyModel {
   image?: string
 }
 
-const STRATEGIES_KEY = 'tradtrace:strategies'
-const ASSIGNMENTS_KEY = 'tradtrace:strategy-assignments'
+const STRATEGIES_KEY = 'tradestial:strategies'
+const ASSIGNMENTS_KEY = 'tradestial:strategy-assignments'
 
 function readStrategies(): StrategyModel[] {
   try { const raw = localStorage.getItem(STRATEGIES_KEY); return raw ? JSON.parse(raw) : [] } catch { return [] }
 }
 
 function writeStrategies(next: StrategyModel[]) {
-  try { localStorage.setItem(STRATEGIES_KEY, JSON.stringify(next)); window.dispatchEvent(new Event('tradtrace:strategies-updated')) } catch {}
+  try { localStorage.setItem(STRATEGIES_KEY, JSON.stringify(next)); window.dispatchEvent(new Event('tradestial:strategies-updated')) } catch {}
 }
 
 function readAssignments(): Record<string, string[]> {
@@ -71,9 +71,9 @@ export default function StrategyDetailPage() {
     setAssignments(readAssignments())
     setTrades(getImportedTrades() || [])
     const onUpdated = () => setStrategies(readStrategies())
-    window.addEventListener('tradtrace:strategies-updated', onUpdated as EventListener)
+    window.addEventListener('tradestial:strategies-updated', onUpdated as EventListener)
     window.addEventListener('storage', onUpdated)
-    return () => { window.removeEventListener('tradtrace:strategies-updated', onUpdated as EventListener); window.removeEventListener('storage', onUpdated) }
+    return () => { window.removeEventListener('tradestial:strategies-updated', onUpdated as EventListener); window.removeEventListener('storage', onUpdated) }
   }, [])
 
   const assignedTrades = useMemo(() => {
@@ -239,8 +239,8 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function StrategyNotes({ strategyId }: { strategyId: string }) {
   // Multi-note system scoped to a strategy
-  const KEY = `tradtrace:strategy-notes:${strategyId}`
-  const LEGACY_KEY = `tradtrace:strategy-note:${strategyId}`
+  const KEY = `tradestial:strategy-notes:${strategyId}`
+  const LEGACY_KEY = `tradestial:strategy-note:${strategyId}`
   const [notes, setNotes] = useState<Note[]>([])
   const [selectedId, setSelectedId] = useState<string>('')
 

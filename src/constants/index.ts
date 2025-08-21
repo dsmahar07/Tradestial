@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  name: "Tradtrace 2.0",
+  name: "Tradestial",
   description: "A modern trading application built with Next.js",
   version: "2.0.0",
 } as const

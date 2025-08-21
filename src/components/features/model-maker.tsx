@@ -191,14 +191,14 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
 
     try {
       // Get existing strategies from localStorage
-      const existingStrategiesRaw = localStorage.getItem('tradtrace:strategies')
+      const existingStrategiesRaw = localStorage.getItem('tradestial:strategies')
       const existingStrategies = existingStrategiesRaw ? JSON.parse(existingStrategiesRaw) : []
       
       // Add new strategy to the beginning of the list
       const updatedStrategies = [strategy, ...existingStrategies]
       
       // Save back to localStorage
-      localStorage.setItem('tradtrace:strategies', JSON.stringify(updatedStrategies))
+      localStorage.setItem('tradestial:strategies', JSON.stringify(updatedStrategies))
       
       console.log('Trading Model created:', strategy)
       

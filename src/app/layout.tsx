@@ -5,8 +5,8 @@ import { PerformanceMonitor } from '@/components/features/performance-monitor'
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Tradtrace',
-    default: 'Tradtrace - Trading Analytics Platform',
+    template: '%s | Tradestial',
+    default: 'Tradestial - Trading Analytics Platform',
   },
   description: 'A modern trading application built with Next.js',
 }
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Favicon - Using original Tradtrace logo with slight radius */}
+        {/* Favicon - Using original Tradestial logo with slight radius */}
         <link rel="icon" href="/favicon.ico?v=4" />
         <link rel="shortcut icon" href="/favicon.ico?v=4" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-slight-radius.png?v=4" />
@@ -45,7 +45,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('tradtrace-ui-theme');
+                  var theme = localStorage.getItem('tradestial-ui-theme');
                   
                   // Clear any existing theme classes first
                   document.documentElement.classList.remove('light', 'dark');
@@ -56,14 +56,14 @@ export default function RootLayout({
                     // Default to light (including when theme is null/undefined)
                     document.documentElement.classList.add('light');
                     if (!theme) {
-                      localStorage.setItem('tradtrace-ui-theme', 'light');
+                      localStorage.setItem('tradestial-ui-theme', 'light');
                     }
                   }
                 } catch (e) {
                   // Fallback to light theme
                   document.documentElement.classList.remove('light', 'dark');
                   document.documentElement.classList.add('light');
-                  localStorage.setItem('tradtrace-ui-theme', 'light');
+                  localStorage.setItem('tradestial-ui-theme', 'light');
                 }
               })();
             `,
@@ -73,7 +73,7 @@ export default function RootLayout({
       <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground" suppressHydrationWarning>
         <ThemeProvider
           defaultTheme="light"
-          storageKey="tradtrace-ui-theme"
+          storageKey="tradestial-ui-theme"
         >
           <PerformanceMonitor />
           <div className="min-h-screen w-full">

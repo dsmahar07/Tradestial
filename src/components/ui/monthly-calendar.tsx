@@ -143,12 +143,12 @@ export function MonthlyCalendar({ className, onDateSelect, tradingDays = [] }: M
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
           Trade Calendar
         </h1>
-        {/* Custom Tradtrace Logo */}
+        {/* Custom Tradestial Logo */}
         <div className="flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
           <div className="w-7 h-7 relative">
             <Image
               src="/new-tradtrace-logo.png"
-              alt="Tradtrace Logo"
+              alt="Tradestial Logo"
               width={28}
               height={28}
               className="object-contain"

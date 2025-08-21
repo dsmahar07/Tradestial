@@ -176,12 +176,12 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                 <FileText className="w-4 h-4 mr-2" />
                 {isNoteMode ? 'Hide note' : 'View note'}
               </Button>
-              {/* Custom Tradtrace Logo */}
+              {/* Custom Tradestial Logo */}
               <div className="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <div className="w-6 h-6 relative">
                   <Image
                     src="/new-tradtrace-logo.png"
-                    alt="Tradtrace Logo"
+                    alt="Tradestial Logo"
                     width={24}
                     height={24}
                     className="object-contain"

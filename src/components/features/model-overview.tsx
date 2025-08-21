@@ -70,7 +70,7 @@ export function ModelOverview() {
   const handleModelCreated = () => {
     setIsCreateOpen(false)
     // Trigger refresh of the table
-    window.dispatchEvent(new CustomEvent('tradtrace:strategies-updated'))
+    window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
   }
 
   return (

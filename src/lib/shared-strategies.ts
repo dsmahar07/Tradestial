@@ -16,7 +16,7 @@ export interface SharedStrategy {
   originalId: string
 }
 
-const SHARED_STRATEGIES_KEY = 'tradtrace:shared-strategies'
+const SHARED_STRATEGIES_KEY = 'tradestial:shared-strategies'
 
 export function getSharedStrategies(): SharedStrategy[] {
   try {
@@ -36,7 +36,7 @@ export function addSharedStrategy(strategy: SharedStrategy): void {
     localStorage.setItem(SHARED_STRATEGIES_KEY, JSON.stringify(updated))
     
     // Trigger marketplace refresh
-    window.dispatchEvent(new CustomEvent('tradtrace:shared-strategies-updated'))
+    window.dispatchEvent(new CustomEvent('tradestial:shared-strategies-updated'))
   } catch (error) {
     console.error('Failed to save shared strategy:', error)
   }
@@ -49,7 +49,7 @@ export function removeSharedStrategy(id: string): void {
     localStorage.setItem(SHARED_STRATEGIES_KEY, JSON.stringify(updated))
     
     // Trigger marketplace refresh
-    window.dispatchEvent(new CustomEvent('tradtrace:shared-strategies-updated'))
+    window.dispatchEvent(new CustomEvent('tradestial:shared-strategies-updated'))
   } catch (error) {
     console.error('Failed to remove shared strategy:', error)
   }

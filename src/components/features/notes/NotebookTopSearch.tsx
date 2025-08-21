@@ -29,12 +29,12 @@ export function NotebookTopSearch() {
           </Button>
         </div>
         
-        {/* Tradtrace Logo on the right */}
+        {/* Tradestial Logo on the right */}
         <div className="flex items-center">
           <div className="w-10 h-10 relative">
             <Image
               src="/new-tradtrace-logo.png"
-              alt="Tradtrace Logo"
+              alt="Tradestial Logo"
               width={40}
               height={40}
               className="object-contain"

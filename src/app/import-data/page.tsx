@@ -571,7 +571,7 @@ export default function ImportDataPage() {
                 <div className="w-10 h-10 flex items-center justify-center">
                   <Image
                     src="/new-tradtrace-logo.png"
-                    alt="Tradtrace Logo"
+                    alt="Tradestial Logo"
                     width={32}
                     height={32}
                     className="object-contain"

@@ -27,7 +27,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 export function ThemeProvider({
   children,
   defaultTheme = 'light',
-  storageKey = 'tradtrace-ui-theme',
+  storageKey = 'tradestial-ui-theme',
   ...props
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme)

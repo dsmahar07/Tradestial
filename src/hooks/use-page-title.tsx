@@ -4,6 +4,6 @@ import { useEffect } from 'react'
 
 export function usePageTitle(title: string) {
   useEffect(() => {
-    document.title = title || 'Tradtrace - Trading Analytics Platform'
+    document.title = title || 'Tradestial - Trading Analytics Platform'
   }, [title])
 }

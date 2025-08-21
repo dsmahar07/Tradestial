@@ -70,7 +70,7 @@ export function Sidebar() {
         <div className="w-8 h-8 relative">
           <Image
             src="/new-tradtrace-logo.png"
-            alt="Tradtrace Logo"
+            alt="Tradestial Logo"
             width={32}
             height={32}
             className="object-contain"
@@ -186,7 +186,7 @@ export function Sidebar() {
               <div className="flex-1">
                 <div className="text-sm font-semibold text-gray-900 dark:text-white">Alex Chen</div>
                 <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  alex@tradtrace.com
+                  alex@tradestial.com
                 </div>
               </div>
               <Badge.Root variant="light" color="green" size="medium">

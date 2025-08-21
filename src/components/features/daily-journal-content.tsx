@@ -599,7 +599,7 @@ export function DailyJournalContent() {
                       <div className="w-6 h-6 relative">
                         <Image
                           src="/new-tradtrace-logo.png"
-                          alt="Tradtrace Logo"
+                          alt="Tradestial Logo"
                           width={24}
                           height={24}
                           className="object-contain"

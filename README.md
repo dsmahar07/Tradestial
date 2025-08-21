@@ -1,4 +1,4 @@
-# Tradtrace 2.0
+# Tradestial
 
 A modern, fully-featured Next.js application built with TypeScript, Tailwind CSS, Radix UI, Framer Motion, and comprehensive tooling.
 

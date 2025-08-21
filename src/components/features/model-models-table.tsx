@@ -29,8 +29,8 @@ type StrategyStats = {
   expectancy: number
 }
 
-const STRATEGIES_KEY = 'tradtrace:strategies'
-const ASSIGNMENTS_KEY = 'tradtrace:strategy-assignments'
+const STRATEGIES_KEY = 'tradestial:strategies'
+const ASSIGNMENTS_KEY = 'tradestial:strategy-assignments'
 
 function readStrategies(): Strategy[] {
   try {
@@ -136,8 +136,8 @@ export function ModelModelsTable() {
         localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(updatedAssignments))
         
         // Clean up associated notes
-        localStorage.removeItem(`tradtrace:strategy-notes:${strategyId}`)
-        localStorage.removeItem(`tradtrace:strategy-note:${strategyId}`) // Legacy key
+        localStorage.removeItem(`tradestial:strategy-notes:${strategyId}`)
+        localStorage.removeItem(`tradestial:strategy-note:${strategyId}`) // Legacy key
         
         // Update state
         setStrategies(updatedStrategies)
@@ -146,7 +146,7 @@ export function ModelModelsTable() {
         console.log('State updated, dispatching refresh event')
         
         // Trigger refresh event
-        window.dispatchEvent(new CustomEvent('tradtrace:strategies-updated'))
+        window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
         
         // Force a page refresh if the event doesn't work
         setTimeout(() => {
@@ -175,7 +175,7 @@ export function ModelModelsTable() {
       setStrategies(updatedStrategies)
       
       // Trigger refresh event
-      window.dispatchEvent(new CustomEvent('tradtrace:strategies-updated'))
+      window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
     } catch (error) {
       console.error('Failed to duplicate strategy:', error)
       alert('Failed to duplicate model. Please try again.')
@@ -204,10 +204,10 @@ export function ModelModelsTable() {
       setStrategies(readStrategies())
       setAssignments(readAssignments())
     }
-    window.addEventListener('tradtrace:strategies-updated', refresh as EventListener)
+    window.addEventListener('tradestial:strategies-updated', refresh as EventListener)
     window.addEventListener('storage', refresh)
     return () => {
-      window.removeEventListener('tradtrace:strategies-updated', refresh as EventListener)
+      window.removeEventListener('tradestial:strategies-updated', refresh as EventListener)
       window.removeEventListener('storage', refresh)
     }
   }, [])
@@ -524,7 +524,7 @@ export function ModelModelsTable() {
                   console.log('=== DELETE DEBUGGING ===')
                   console.log('Delete clicked for ID:', openDropdownId)
                   console.log('Current strategies in state:', strategies)
-                  console.log('Strategies from localStorage:', localStorage.getItem('tradtrace:strategies'))
+                  console.log('Strategies from localStorage:', localStorage.getItem('tradestial:strategies'))
                   
                   // Debug all localStorage keys
                   console.log('All localStorage keys:', Object.keys(localStorage))
@@ -538,7 +538,7 @@ export function ModelModelsTable() {
                   console.log('Proceeding with immediate deletion')
                   
                   // Get fresh data from localStorage
-                  const rawData = localStorage.getItem('tradtrace:strategies')
+                  const rawData = localStorage.getItem('tradestial:strategies')
                   console.log('Raw localStorage data:', rawData)
                   
                   const currentStrategies = rawData ? JSON.parse(rawData) : []
@@ -553,9 +553,9 @@ export function ModelModelsTable() {
                   console.log('Strategies removed:', currentStrategies.length - updatedStrategies.length)
                   
                   // Save back to localStorage
-                  localStorage.setItem('tradtrace:strategies', JSON.stringify(updatedStrategies))
+                  localStorage.setItem('tradestial:strategies', JSON.stringify(updatedStrategies))
                   console.log('Saved to localStorage, verifying...')
-                  console.log('Verification - localStorage now contains:', localStorage.getItem('tradtrace:strategies'))
+                  console.log('Verification - localStorage now contains:', localStorage.getItem('tradestial:strategies'))
                   
                   // Update React state
                   setStrategies(updatedStrategies)
@@ -565,10 +565,10 @@ export function ModelModelsTable() {
                   const updatedAssignments = { ...assignments }
                   delete updatedAssignments[openDropdownId]
                   setAssignments(updatedAssignments)
-                  localStorage.setItem('tradtrace:strategy-assignments', JSON.stringify(updatedAssignments))
+                  localStorage.setItem('tradestial:strategy-assignments', JSON.stringify(updatedAssignments))
                   
                   // Trigger refresh event for other components
-                  window.dispatchEvent(new CustomEvent('tradtrace:strategies-updated'))
+                  window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
                   console.log('Delete completed without reload')
                   setOpenDropdownId(null)
                 }}
