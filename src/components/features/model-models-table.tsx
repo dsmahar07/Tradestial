@@ -285,7 +285,7 @@ export function ModelModelsTable() {
 
   if (strategies.length === 0) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 border border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400">
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 border border-gray-200 dark:border-[#2a2a2a] text-sm text-gray-500 dark:text-gray-400">
         No models yet. Create one to see stats.
       </div>
     )
@@ -298,7 +298,7 @@ export function ModelModelsTable() {
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#2a2a2a] overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -384,7 +384,7 @@ export function ModelModelsTable() {
             {rows.map(({ strategy, stats }) => (
               <tr
                 key={strategy.id}
-                className="border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#1b1b1b] cursor-pointer"
+                className="border-t border-gray-100 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#1b1b1b] cursor-pointer"
                 onClick={() => window.location.href = `/model/${strategy.id}`}
               >
                 <td className="px-4 py-3">
@@ -462,7 +462,7 @@ export function ModelModelsTable() {
       {/* Portal Dropdown */}
       {mounted && openDropdownId && dropdownPosition && createPortal(
         <div 
-          className="fixed min-w-[160px] bg-white dark:bg-gray-900 rounded-lg p-1 shadow-2xl border border-gray-200 dark:border-gray-700"
+          className="fixed min-w-[160px] bg-white dark:bg-[#171717] rounded-lg p-1 shadow-2xl border border-gray-200 dark:border-[#2a2a2a]"
           style={{
             zIndex: 999999,
             top: dropdownPosition.top,

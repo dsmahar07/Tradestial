@@ -115,13 +115,13 @@ export function TradingStreakHeatmap() {
             <Info className="h-4 w-4 text-gray-400" />
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={goPrevMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+            <button onClick={goPrevMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="min-w-[120px] text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
               {monthLabel}
             </div>
-            <button onClick={goNextMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+            <button onClick={goNextMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -132,7 +132,7 @@ export function TradingStreakHeatmap() {
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-2 mb-2">
             {weekdays.map((d) => (
-              <div key={d} className="text-xs text-gray-600 dark:text-gray-300 text-center py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717]">
+              <div key={d} className="text-xs text-gray-600 dark:text-gray-300 text-center py-1 rounded-md border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717]">
                 {d}
               </div>
             ))}
@@ -143,27 +143,22 @@ export function TradingStreakHeatmap() {
             {monthData.map((day, idx) => {
               if (day.isEmpty) {
                 return (
-                  <div key={idx} className="h-full w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717]" />
+                  <div key={idx} className="h-full w-full rounded-md border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717]" />
                 )
               }
 
               const traded = day.trades > 0
               const positive = day.pnl >= 0
-              const baseCell = 'relative h-full w-full rounded-md border flex items-center justify-center text-sm'
+              const baseCell = 'relative h-full w-full rounded-md border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center p-2'
               const colorCell = traded
                 ? positive
-                  ? 'bg-[#1FC16B]/15 border-[#1FC16B]/40 text-gray-900 dark:text-white dark:bg-[#1FC16B]/20 dark:border-[#1FC16B]/50'
-                  : 'bg-[#FB3748]/15 border-[#FB3748]/40 text-gray-900 dark:text-white dark:bg-[#FB3748]/20 dark:border-[#FB3748]/50'
-                : 'bg-gray-100 border-gray-200 text-gray-700 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-300'
+                  ? 'shadow-[inset_0_0_20px_-8px_rgba(31,193,107,0.8)] text-gray-900 dark:text-white'
+                  : 'shadow-[inset_0_0_20px_-8px_rgba(255,77,59,0.7)] text-gray-900 dark:text-white'
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
 
               return (
                 <div key={idx} className={`${baseCell} ${colorCell}`}>
-                  {!day.isToday && <span className="font-medium">{day.date}</span>}
-                  {day.isToday && (
-                    <div className="absolute left-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-semibold shadow">
-                      {day.date}
-                    </div>
-                  )}
+                  <span className={`text-xs ${day.isToday ? "font-normal" : "font-medium"}`}>{day.date}</span>
                 </div>
               )
             })}

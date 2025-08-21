@@ -69,7 +69,7 @@ export function PnlOverviewChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.4 }}
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--tooltip-bg:white] dark:[--tooltip-bg:#171717] [--tooltip-border:#e5e7eb] dark:[--tooltip-border:#2a2a2a] [--tooltip-text:#374151] dark:[--tooltip-text:white]" style={{ height: '385px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2">
@@ -99,7 +99,7 @@ export function PnlOverviewChart() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
                 >
                   <span>{selectedPeriod}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -107,7 +107,7 @@ export function PnlOverviewChart() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-600 shadow-lg min-w-[120px]"
+                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
               >
                 <DropdownMenuItem 
                   className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
@@ -158,13 +158,14 @@ export function PnlOverviewChart() {
               <Tooltip
                 formatter={(value, name) => [`$${value}K`, name]}
                 contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'var(--tooltip-bg, white)',
+                  border: '1px solid var(--tooltip-border, #e5e7eb)',
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  fontSize: '12px'
+                  fontSize: '12px',
+                  color: 'var(--tooltip-text, #374151)'
                 }}
-                labelStyle={{ color: '#374151', fontWeight: '500' }}
+                labelStyle={{ color: 'var(--tooltip-text, #374151)', fontWeight: '500' }}
               />
               <Bar 
                 dataKey="peakProfit" 

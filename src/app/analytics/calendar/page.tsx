@@ -75,13 +75,13 @@ export default function CalendarPage() {
 
   // Get border color based on P&L using configuration
   const getBorderColor = (pnl: number, hasData: boolean = true) => {
-    if (!hasData) return 'border border-gray-200 dark:border-gray-700'
+    if (!hasData) return 'border border-gray-200 dark:border-[#2a2a2a]'
     
     if (pnl > PNL_THRESHOLDS.highProfit) return 'border border-emerald-500'
     if (pnl > PNL_THRESHOLDS.mediumProfit) return 'border border-emerald-400'
     if (pnl > PNL_THRESHOLDS.lowProfit) return 'border border-emerald-300'
     if (pnl > PNL_THRESHOLDS.breakeven) return 'border border-emerald-200'
-    if (pnl === PNL_THRESHOLDS.breakeven) return 'border border-gray-300 dark:border-gray-600'
+    if (pnl === PNL_THRESHOLDS.breakeven) return 'border border-gray-300 dark:border-[#2a2a2a]'
     if (pnl > PNL_THRESHOLDS.lowLoss) return 'border border-rose-200'
     if (pnl > PNL_THRESHOLDS.mediumLoss) return 'border border-rose-300'
     if (pnl > PNL_THRESHOLDS.highLoss) return 'border border-rose-400'
@@ -184,7 +184,7 @@ export default function CalendarPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-gray-800">
+        <div className="bg-white dark:bg-[#171717]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -307,7 +307,7 @@ export default function CalendarPage() {
                             "aspect-square flex items-center justify-center text-xs font-medium rounded relative group cursor-pointer transition-all duration-150 bg-white dark:bg-[#171717]",
                             dayData
                               ? `${getBorderColor(dayData.pnl, dayData.hasData)} ${getTextColor(dayData.pnl, dayData.hasData)} hover:opacity-80`
-                              : "border border-gray-100 dark:border-gray-800"
+                              : "border border-gray-100 dark:border-[#2a2a2a]"
                           )}
                           title={dayData 
                             ? dayData.hasData 
@@ -330,7 +330,7 @@ export default function CalendarPage() {
                     </div>
 
                     {/* Month Summary */}
-                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 dark:text-gray-400">
                           {monthSummary.tradingDays}d
@@ -370,7 +370,7 @@ export default function CalendarPage() {
                       <span className="text-xs text-gray-600 dark:text-gray-400">${PNL_THRESHOLDS.lowLoss}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-gray-300 dark:border-gray-600"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-gray-300 dark:border-[#2a2a2a]"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">${PNL_THRESHOLDS.breakeven}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -387,13 +387,13 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3 pt-2 border-t border-gray-100 dark:border-[#2a2a2a]">
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                     <span className="text-xs text-gray-600 dark:text-gray-400">Trading activity</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-gray-200 dark:border-gray-700"></div>
+                    <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-gray-200 dark:border-[#2a2a2a]"></div>
                     <span className="text-xs text-gray-600 dark:text-gray-400">No trades</span>
                   </div>
                 </div>

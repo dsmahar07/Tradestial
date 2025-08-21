@@ -179,7 +179,7 @@ export function RecentTradesTable() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
                 >
                   <span>{selectedTimeRange}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -204,7 +204,7 @@ export function RecentTradesTable() {
         <div className="overflow-x-auto flex-1 min-h-0">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
+              <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
                 <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Symbol
                 </th>
@@ -319,7 +319,7 @@ export function RecentTradesTable() {
         )}
 
         {/* Summary Footer */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-[#2a2a2a]">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-lg font-semibold text-green-600 dark:text-green-400">

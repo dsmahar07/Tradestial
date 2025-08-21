@@ -117,7 +117,7 @@ export function CumulativePnlBar() {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600">
+        <div className="bg-white dark:bg-[#171717] p-3 rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a]">
           <p className="font-medium text-gray-900 dark:text-white mb-1">
             {data.period} - {data.name}
           </p>
@@ -170,7 +170,7 @@ export function CumulativePnlBar() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
+                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
                 >
                   <span className="text-xs">{selectedMetric.split(' ')[0]}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />
@@ -194,7 +194,7 @@ export function CumulativePnlBar() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
+                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
                 >
                   <span className="text-xs">{selectedTimeRange.replace('Last ', '').replace(' Days', 'D').replace('This ', '').replace('All ', '')}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />

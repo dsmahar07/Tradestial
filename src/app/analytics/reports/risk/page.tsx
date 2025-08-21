@@ -316,7 +316,7 @@ export default function RiskPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-gray-800">
+        <div className="bg-white dark:bg-[#171717]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -356,7 +356,7 @@ export default function RiskPage() {
                 <div className="relative" ref={topMenuRef}>
                   <button
                     onClick={() => setTopMenuOpen((o) => !o)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] justify-between"
                     aria-label="Select Top N"
                     aria-expanded={topMenuOpen}
                     aria-haspopup="true"
@@ -384,7 +384,7 @@ export default function RiskPage() {
                 <div className="relative" ref={metricMenuRef}>
                   <button
                     onClick={() => setMetricMenuOpen((o) => !o)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                     aria-label="Select P&L metric"
                     aria-expanded={metricMenuOpen}
                     aria-haspopup="true"
@@ -545,13 +545,13 @@ export default function RiskPage() {
 
             {/* Summary Table */}
             <div className="bg-white dark:bg-[#171717] rounded-lg">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Summary</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
                       <th className="text-left py-3 px-6 text-sm font-medium text-gray-600 dark:text-gray-400">
                         {activeSubTab === 'volumes' ? 'Volumes' : activeSubTab === 'position-sizes' ? 'Position sizes' : 'R multiples'}
                       </th>
@@ -594,20 +594,20 @@ export default function RiskPage() {
 
             {/* Cross Analysis */}
             <div className="bg-white dark:bg-[#171717] rounded-lg">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cross analysis</h2>
                   <div className="flex items-center gap-4">
-                    <select className="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
                       <option>Top 10 symbols</option>
                     </select>
-                    <select className="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
                       <option>Win rate</option>
                     </select>
-                    <select className="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
                       <option>P&L</option>
                     </select>
-                    <select className="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
                       <option>Trades</option>
                     </select>
                   </div>

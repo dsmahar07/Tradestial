@@ -149,15 +149,15 @@ export function TradeDashboardCalendar({ className, tradingDays = defaultTrading
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-9 w-9">
+          <button onClick={handlePrevMonth} className="p-2 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
             <ChevronLeft className="h-4 w-4" />
-          </Button>
+          </button>
           <div className="text-lg font-semibold text-gray-900 dark:text-white min-w-[140px]">
             {monthNames[currentMonth]} {currentYear}
           </div>
-          <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-9 w-9">
+          <button onClick={handleNextMonth} className="p-2 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
             <ChevronRight className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
         <div className="flex items-center gap-3">
           <div
@@ -200,7 +200,7 @@ export function TradeDashboardCalendar({ className, tradingDays = defaultTrading
                 disabled={!c.isCurrentMonth}
                 className={cn(
                   'relative h-20 sm:h-24 w-full rounded-xl border text-sm flex items-start justify-start p-2',
-                  c.isCurrentMonth ? 'border-gray-200 dark:border-gray-700' : 'border-gray-100 dark:border-gray-800',
+                  c.isCurrentMonth ? 'border-gray-200 dark:border-[#2a2a2a]' : 'border-gray-100 dark:border-[#2a2a2a]',
                   !c.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-600 cursor-default',
                   c.isToday && 'ring-1 ring-gray-400/50',
                   isPositive && 'bg-green-50 dark:bg-green-900/20',
@@ -254,7 +254,7 @@ export function TradeDashboardCalendar({ className, tradingDays = defaultTrading
                   disabled={!c.isCurrentMonth}
                   className={cn(
                     'relative h-24 w-full rounded-xl border text-sm flex items-start justify-start p-2',
-                    c.isCurrentMonth ? 'border-gray-200 dark:border-gray-700' : 'border-gray-100 dark:border-gray-800',
+                    c.isCurrentMonth ? 'border-gray-200 dark:border-[#2a2a2a]' : 'border-gray-100 dark:border-[#2a2a2a]',
                     !c.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-600 cursor-default',
                     c.isToday && 'ring-1 ring-gray-400/50',
                     isPositive && 'bg-green-50 dark:bg-green-900/20',
@@ -280,7 +280,7 @@ export function TradeDashboardCalendar({ className, tradingDays = defaultTrading
               )
             })}
             {/* Week summary cell */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 h-24 px-3 py-2 flex items-center justify-between">
+            <div className="rounded-xl border border-gray-200 dark:border-[#2a2a2a] h-24 px-3 py-2 flex items-center justify-between">
               <div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Week {i + 1}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{weeklyStats[i]?.days ?? 0} {(weeklyStats[i]?.days ?? 0) === 1 ? 'day' : 'days'}</div>

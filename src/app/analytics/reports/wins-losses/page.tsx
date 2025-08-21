@@ -219,7 +219,7 @@ export default function WinsLossesPage() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-gray-800">
+        <div className="bg-white dark:bg-[#171717]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -237,7 +237,7 @@ export default function WinsLossesPage() {
               <div className="relative" ref={metricMenuRef}>
                 <button
                   onClick={() => setMetricMenuOpen(o => !o)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                   aria-label="Select P&L metric"
                   aria-expanded={metricMenuOpen}
                   aria-haspopup="true"
@@ -440,7 +440,7 @@ export default function WinsLossesPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Wins Stats */}
                   <section className="bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
-                    <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between">
                         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Wins ({stats.meta.winsCount} Trades Matched)</h2>
                       </div>
@@ -460,7 +460,7 @@ export default function WinsLossesPage() {
 
                   {/* Losses Stats */}
                   <section className="bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
-                    <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between">
                         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Losses ({stats.meta.lossesCount} Trades Matched)</h2>
                       </div>

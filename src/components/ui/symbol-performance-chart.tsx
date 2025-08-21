@@ -139,7 +139,7 @@ export function SymbolPerformanceChart() {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600">
+        <div className="bg-white dark:bg-[#171717] p-3 rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a]">
           <p className="font-medium text-gray-900 dark:text-white mb-1">
             {data.symbol} - {data.name}
           </p>
@@ -196,7 +196,7 @@ export function SymbolPerformanceChart() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
                 >
                   <span>{selectedMetric}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -220,7 +220,7 @@ export function SymbolPerformanceChart() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
                 >
                   <span>{selectedTimeRange}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />

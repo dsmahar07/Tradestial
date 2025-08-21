@@ -468,7 +468,7 @@ export function PerformanceChart({
       
       return (
         <div 
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm"
+          className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm"
           role="tooltip"
           aria-label={`Chart data for ${periodLabel}`}
         >
@@ -658,7 +658,7 @@ export function PerformanceChart({
                         {/* Color Picker */}
                         <div className="flex items-center gap-2">
                           <div 
-                            className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex-shrink-0" 
+                            className="w-6 h-6 rounded border border-gray-300 dark:border-[#2a2a2a] flex-shrink-0" 
                             style={{ backgroundColor: getChartColor(metric, index) }}
                             aria-label={`Current color for ${metric}`}
                           />
@@ -700,7 +700,7 @@ export function PerformanceChart({
                     ))}
 
                     {/* Reset Button */}
-                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="pt-3 border-t border-gray-200 dark:border-[#2a2a2a]">
                       <button
                         onClick={resetToDefault}
                         className="text-sm text-blue-500 hover:text-blue-600 transition-colors"
@@ -724,7 +724,7 @@ export function PerformanceChart({
                       metric: !prev.metric || activeMetricIndex !== index 
                     }))
                   }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] max-w-[180px] lg:max-w-[220px] justify-between"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] max-w-[180px] lg:max-w-[220px] justify-between"
                   style={{
                     borderLeftWidth: '3px',
                     borderLeftColor: getChartColor(metric, index)
@@ -926,7 +926,7 @@ export function PerformanceChart({
             <div className="relative" ref={timeframeDropdownRef}>
               <button
                 onClick={() => toggleDropdown('timeframe')}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[80px] justify-between"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[80px] justify-between"
                 aria-label="Select timeframe"
                 aria-expanded={dropdownStates.timeframe}
                 aria-haspopup="true"

@@ -211,7 +211,7 @@ export default function SymbolsPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-gray-800">
+        <div className="bg-white dark:bg-[#171717]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -252,7 +252,7 @@ export default function SymbolsPage() {
                 <div className="relative" ref={topMenuRef}>
                   <button
                     onClick={() => setOpenMenu(openMenu === 'top' ? null : 'top')}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[110px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[110px] justify-between"
                     aria-expanded={openMenu === 'top'}
                     aria-haspopup="true"
                   >
@@ -279,7 +279,7 @@ export default function SymbolsPage() {
                 <div className="relative" ref={pnlMenuRef}>
                   <button
                     onClick={() => setOpenMenu(openMenu === 'pnl' ? null : 'pnl')}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                     aria-expanded={openMenu === 'pnl'}
                     aria-haspopup="true"
                   >
@@ -403,7 +403,7 @@ export default function SymbolsPage() {
 
             {/* Summary */}
             <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Summary</div>
                 <div className="text-xs text-gray-500">Settings</div>
               </div>
@@ -439,7 +439,7 @@ export default function SymbolsPage() {
 
             {/* Cross analysis */}
             <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm mt-6">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Cross analysis</div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">Month</span>

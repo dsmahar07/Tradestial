@@ -98,7 +98,7 @@ export default function StrategyDetailPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader />
           <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[#1C1C1C] p-6">
-            <div className="bg-white dark:bg-[#171717] rounded-xl p-6 border border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400">
+            <div className="bg-white dark:bg-[#171717] rounded-xl p-6 border border-gray-200 dark:border-[#2a2a2a] text-sm text-gray-500 dark:text-gray-400">
               Strategy not found. <Link href="/model" className="text-[#3559E9]">Back to list</Link>
             </div>
           </main>
@@ -115,7 +115,7 @@ export default function StrategyDetailPage() {
         <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C] p-6">
           <div className="max-w-7xl mx-auto space-y-4">
           {/* Header card */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl p-4 border border-gray-200 dark:border-gray-800">
+          <div className="bg-white dark:bg-[#171717] rounded-xl p-4 border border-gray-200 dark:border-[#2a2a2a]">
             <div className="flex items-center gap-4">
               <div className="h-24 w-40 rounded-lg overflow-hidden flex items-center justify-center">
                 {strategy.image ? (
@@ -163,8 +163,8 @@ export default function StrategyDetailPage() {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-gray-800">
-            <div className="px-4 pt-3 border-b border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#2a2a2a]">
+            <div className="px-4 pt-3 border-b border-gray-100 dark:border-[#2a2a2a]">
               <div className="flex gap-4 text-sm">
                 {(['stats','rules','trades','backtesting','notes'] as const).map(t => (
                   <button key={t} onClick={() => setTab(t)} className={`pb-3 -mb-px border-b-2 ${tab===t?'border-[#6366f1] text-gray-900 dark:text-white':'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>{t[0].toUpperCase()+t.slice(1)}</button>
@@ -198,7 +198,7 @@ export default function StrategyDetailPage() {
                         </thead>
                         <tbody>
                           {assignedTrades.map((t:any) => (
-                            <tr key={t.id} className="border-t border-gray-100 dark:border-gray-800">
+                            <tr key={t.id} className="border-t border-gray-100 dark:border-[#2a2a2a]">
                               <td className="px-2 py-2">{t.id}</td>
                               <td className="px-2 py-2">{t.symbol || '-'}</td>
                               <td className={`px-2 py-2 ${t.pnl>=0?'text-emerald-600':'text-red-600'}`}>{currency(t.pnl)}</td>
@@ -314,9 +314,9 @@ function StrategyNotes({ strategyId }: { strategyId: string }) {
   const selected = notes.find(n => n.id === selectedId) || null
 
   return (
-    <div className="flex h-[72vh] bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+    <div className="flex h-[72vh] bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#2a2a2a] overflow-hidden">
       {/* Sidebar */}
-      <div className="w-60 border-r border-gray-200 dark:border-gray-800 p-3 flex flex-col">
+      <div className="w-60 border-r border-gray-200 dark:border-[#2a2a2a] p-3 flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">Notes</div>
           <Button size="sm" className="h-7 px-2 text-xs bg-[#3559E9] hover:bg-[#2947d1] text-white" onClick={addNote}>Add note</Button>

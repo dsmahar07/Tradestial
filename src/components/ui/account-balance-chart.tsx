@@ -87,7 +87,7 @@ export function AccountBalanceChart({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm">
+      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
         <div className="font-medium text-gray-900 dark:text-gray-100 mb-2 text-xs">{label}</div>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center justify-between mb-1 last:mb-0">
@@ -129,13 +129,13 @@ export function AccountBalanceChart({
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               {selectedTimeRange}
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700">
+          <DropdownMenuContent align="end" className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]">
             {timeRanges.map((range) => (
               <DropdownMenuItem
                 key={range}

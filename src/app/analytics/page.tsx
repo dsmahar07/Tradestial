@@ -26,7 +26,7 @@ export default function AnalyticsPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-gray-800">
+        <div className="bg-white dark:bg-[#171717]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig}
             onTabChange={handleTabChange}
