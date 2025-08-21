@@ -359,7 +359,7 @@ export default function TrackerPage() {
     onClose: () => void
   }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-[#171717] rounded-lg p-6 shadow-xl max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">Choose Color</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -375,7 +375,7 @@ export default function TrackerPage() {
                 onClose()
               }}
               className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${
-                currentColor === color ? 'border-gray-800 dark:border-white scale-110' : 'border-gray-200 dark:border-gray-600'
+                currentColor === color ? 'border-gray-800 dark:border-white scale-110' : 'border-gray-200 dark:border-[#2a2a2a]'
               }`}
               style={{ backgroundColor: color }}
             />
@@ -387,7 +387,7 @@ export default function TrackerPage() {
             type="color"
             value={currentColor}
             onChange={(e) => onColorSelect(e.target.value)}
-            className="w-10 h-8 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
+            className="w-10 h-8 border border-gray-300 dark:border-[#2a2a2a] rounded cursor-pointer"
           />
         </div>
       </div>
@@ -403,7 +403,7 @@ export default function TrackerPage() {
         
         <div className="flex-1 bg-gray-50 dark:bg-[#1C1C1C] flex flex-col">
       {/* Header */}
-      <div className="bg-white dark:bg-[#171717] border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="bg-white dark:bg-[#171717] border-b border-gray-200 dark:border-[#2a2a2a] flex-shrink-0">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Left side */}
@@ -416,10 +416,10 @@ export default function TrackerPage() {
               </button>
               
               <div className="flex items-center space-x-2">
-                <button className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                <button className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                   <ChevronLeftIcon className="w-4 h-4" />
                 </button>
-                <button className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                <button className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                   <ChevronRightIcon className="w-4 h-4" />
                 </button>
               </div>
@@ -498,7 +498,7 @@ export default function TrackerPage() {
             {activeMainTab === 'attachments' && (
               <div className="space-y-6">
                 {/* Attachments Header */}
-                <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                <div className="border-b border-gray-200 dark:border-[#2a2a2a] pb-4">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Attachments</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Add files, images, and documents to this trade</p>
                 </div>
@@ -529,10 +529,10 @@ export default function TrackerPage() {
                           >
                             {/* Image Preview */}
                             {attachment.type.startsWith('image/') ? (
-                              <div className={`relative group bg-white dark:bg-gray-800 rounded-lg border p-3 transition-all duration-200 ${
+                              <div className={`relative group bg-white dark:bg-[#171717] rounded-lg border p-3 transition-all duration-200 ${
                                 isDraggedOver 
                                   ? 'border-blue-400 dark:border-blue-500 shadow-lg' 
-                                  : 'border-gray-200 dark:border-gray-700'
+                                  : 'border-gray-200 dark:border-[#2a2a2a]'
                               } ${
                                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
                               }`}>
@@ -552,7 +552,7 @@ export default function TrackerPage() {
                                 
                                 {/* Action buttons overlay */}
                                 <div className="absolute top-5 right-5 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  <button className="w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                                  <button className="w-8 h-8 bg-white dark:bg-[#171717] rounded-full shadow-sm border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
@@ -562,7 +562,7 @@ export default function TrackerPage() {
                                       e.stopPropagation()
                                       removeAttachment(attachment.id)
                                     }}
-                                    className="w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
+                                    className="w-8 h-8 bg-white dark:bg-[#171717] rounded-full shadow-sm border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -572,10 +572,10 @@ export default function TrackerPage() {
                               </div>
                             ) : (
                               /* Non-image files */
-                              <div className={`flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border transition-all duration-200 ${
+                              <div className={`flex items-center gap-3 p-3 bg-white dark:bg-[#171717] rounded-lg border transition-all duration-200 ${
                                 isDraggedOver 
                                   ? 'border-blue-400 dark:border-blue-500 shadow-lg' 
-                                  : 'border-gray-200 dark:border-gray-700'
+                                  : 'border-gray-200 dark:border-[#2a2a2a]'
                               } ${
                                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
                               }`}>
@@ -622,7 +622,7 @@ export default function TrackerPage() {
                 {/* File Upload Area - Separate section */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Add New Files</h4>
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                  <div className="border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-lg p-6 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                     <input
                       type="file"
                       id="file-upload"
@@ -655,7 +655,7 @@ export default function TrackerPage() {
         <div className="flex-1 flex flex-col min-w-0">
           <div className="bg-white dark:bg-[#171717] rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
             {/* Content Tabs */}
-            <div className="border-b border-gray-200 dark:border-gray-700 px-6">
+            <div className="border-b border-gray-200 dark:border-[#2a2a2a] px-6">
               <div className="flex space-x-8">
                 {contentTabs.map((tab) => (
                   <button
@@ -679,7 +679,7 @@ export default function TrackerPage() {
             {activeContentTab === 'notes' && (
               <div className="h-full flex flex-col">
                 {/* Notes Header */}
-                <div className="border-b border-gray-200 dark:border-gray-700 p-4">
+                <div className="border-b border-gray-200 dark:border-[#2a2a2a] p-4">
                   <div className="flex items-center space-x-4 mb-4">
                     <button
                       onClick={() => setActiveNotesTab('trade-note')}
@@ -853,7 +853,7 @@ export default function TrackerPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
                         <th className="text-left py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Date/Time (US/Eastern)
                         </th>

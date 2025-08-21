@@ -124,7 +124,7 @@ export function ConfirmationModal({ isOpen, options, onClose }: ConfirmationModa
                              <Button
                  variant="outline"
                  onClick={handleCancel}
-                 className="flex-1 border-gray-300 dark:border-gray-600 cursor-pointer"
+                 className="flex-1 border-gray-300 dark:border-[#2a2a2a] cursor-pointer"
                >
                 {options.cancelText || 'Cancel'}
               </Button>

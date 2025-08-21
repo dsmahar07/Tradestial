@@ -220,7 +220,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                         <Type className="w-4 h-4 text-gray-500" /> {fontFamily}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
+                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {['Arial','Inter','Times New Roman','Courier New'].map(f => (
                         <DropdownMenuItem key={f} onClick={() => applyFontFamily(f)} className="cursor-pointer">
                           {f}
@@ -236,7 +236,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                         {FONT_SIZES[fontSizeIndex]}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
+                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {FONT_SIZES.map((s, idx) => (
                         <DropdownMenuItem key={s} onClick={() => applyFontSize(idx)} className="cursor-pointer">
                           {s}
@@ -261,9 +261,9 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                         <Palette className="w-4 h-4 text-gray-500" /> Text
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700">
+                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a]">
                       {['#000000','#1F2937','#4B5563','#6B7280','#9CA3AF','#111827','#10b981','#ef4444','#f59e0b','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#22c55e','#eab308'].map(c => (
-                        <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-gray-700" style={{ backgroundColor: c }} onClick={() => exec('foreColor', c)} />
+                        <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => exec('foreColor', c)} />
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -275,9 +275,9 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                         <Palette className="w-4 h-4 text-yellow-500" /> Highlight
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700">
+                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a]">
                       {['#fff59d','#fde68a','#fef08a','#fde047','#facc15','#fde68a80','#fff176','#ffd54f','#ffecb3','#fff9c4','#fff3e0','#ffe0b2','#fecaca','#dcfce7','#dbeafe','#f5d0fe'].map(c => (
-                        <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-gray-700" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} />
+                        <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} />
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -316,7 +316,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                     <DropdownMenuTrigger asChild>
                       <button className="ml-1 h-8 px-2 inline-flex items-center rounded-md bg-white dark:bg-[#131313] text-xs text-gray-700 dark:text-gray-300">Paragraph</button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
+                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {[
                         { label: 'Paragraph', value: 'p' },
                         { label: 'H1', value: 'h1' },
@@ -372,7 +372,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                       if (!active || !payload || !payload.length) return null
                       const p = payload[0].payload as ChartPoint
                       return (
-                        <div className="bg-white dark:bg-gray-800 border rounded-md px-2 py-1 text-xs shadow">
+                        <div className="bg-white dark:bg-[#171717] border rounded-md px-2 py-1 text-xs shadow">
                           <div className="font-medium mb-0.5">{p.time}</div>
                           <div className={cn(p.value >= 0 ? 'text-green-600' : 'text-red-600')}>{`${p.value >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(p.value))}`}</div>
                         </div>
@@ -399,7 +399,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                   </div>
                 </div>
                 {/* Column 2 */}
-                <div className="border-l border-gray-200 dark:border-gray-700 pl-6">
+                <div className="border-l border-gray-200 dark:border-[#2a2a2a] pl-6">
                   <div className="space-y-6">
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Winners</div>
@@ -412,7 +412,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                   </div>
                 </div>
                 {/* Column 3 */}
-                <div className="border-l border-gray-200 dark:border-gray-700 pl-6">
+                <div className="border-l border-gray-200 dark:border-[#2a2a2a] pl-6">
                   <div className="space-y-6">
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Gross P&L</div>
@@ -427,7 +427,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                   </div>
                 </div>
                 {/* Column 4 */}
-                <div className="border-l border-gray-200 dark:border-gray-700 pl-6 pr-3 min-w-[210px]">
+                <div className="border-l border-gray-200 dark:border-[#2a2a2a] pl-6 pr-3 min-w-[210px]">
                   <div className="space-y-6">
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Commissions</div>
@@ -447,7 +447,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400">
+                <tr className="border-b border-gray-200 dark:border-[#2a2a2a] text-gray-600 dark:text-gray-400">
                   {['Average entry','Best exit P&L','Best exit (%)','Best exit Price','Best exit Time','Close time','Custom_tags','Average exit'].map((h) => (
                     <th key={h} className="text-left py-2 px-3 whitespace-nowrap">{h}</th>
                   ))}
@@ -455,7 +455,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
               </thead>
               <tbody>
                 {[0,1].map((i) => (
-                  <tr key={i} className="border-b border-gray-100 dark:border-gray-800">
+                  <tr key={i} className="border-b border-gray-100 dark:border-[#2a2a2a]">
                     <td className="py-2 px-3">$23,61{7 + i}.25</td>
                     <td className="py-2 px-3">{i === 0 ? '-' : '$0'}</td>
                     <td className="py-2 px-3">-</td>

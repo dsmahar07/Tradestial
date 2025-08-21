@@ -593,7 +593,7 @@ export default function ImportDataPage() {
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800",
+                        "border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800",
                         selectedFilters.length > 0 && "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300"
                       )}
                     >
@@ -609,7 +609,7 @@ export default function ImportDataPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="start" 
-                    className="w-56 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+                    className="w-56 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]"
                   >
                     {filterOptions.map((option) => (
                       <DropdownMenuItem
@@ -638,7 +638,7 @@ export default function ImportDataPage() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600">
+                <Button variant="outline" size="sm" className="border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300">
                   View Connections
                 </Button>
                 <Button 
@@ -664,7 +664,7 @@ export default function ImportDataPage() {
                         placeholder="Search brokers..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
                   </CardContent>
@@ -687,7 +687,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 transition-all cursor-pointer group"
+                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 transition-all cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -722,7 +722,7 @@ export default function ImportDataPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full border-gray-300 dark:border-gray-600 group-hover:border-purple-300 dark:group-hover:border-purple-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300 group-hover:border-purple-300 dark:group-hover:border-purple-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
                             >
                               <Upload className="w-4 h-4 mr-2" />
                               Import
@@ -751,7 +751,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 transition-all cursor-pointer group"
+                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 transition-all cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -786,7 +786,7 @@ export default function ImportDataPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full border-gray-300 dark:border-gray-600 group-hover:border-purple-300 dark:group-hover:border-purple-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300 group-hover:border-purple-300 dark:group-hover:border-purple-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
                             >
                               <Upload className="w-4 h-4 mr-2" />
                               Import
@@ -861,7 +861,7 @@ export default function ImportDataPage() {
                         "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
                         isProcessing 
                           ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20" 
-                          : "border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500"
+                          : "border-gray-300 dark:border-[#2a2a2a] hover:border-purple-400 dark:hover:border-purple-500"
                       )}
                       onDrop={handleFileDrop}
                       onDragOver={handleDragOver}
@@ -1000,19 +1000,19 @@ export default function ImportDataPage() {
                     <CardContent>
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                          <div className="text-center p-4 bg-white dark:bg-[#171717] rounded-lg">
                             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                               {importState.importResults.trades.length}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">Trades Imported</div>
                           </div>
-                          <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                          <div className="text-center p-4 bg-white dark:bg-[#171717] rounded-lg">
                             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                               {importState.importResults.warnings.length}
                             </div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">Warnings</div>
                           </div>
-                          <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
+                          <div className="text-center p-4 bg-white dark:bg-[#171717] rounded-lg">
                             <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                               0
                             </div>

@@ -456,7 +456,7 @@ export default function TradesPage() {
             <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full" style={{ minWidth: '1200px' }}>
-                <thead className="bg-white dark:bg-[#171717] border-b-2 border-gray-300 dark:border-gray-600">
+                <thead className="bg-white dark:bg-[#171717] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
                   <tr>
                     <th className="w-12 px-4 py-3 text-left">
                       <Checkbox.Root
@@ -996,7 +996,7 @@ export default function TradesPage() {
                         .slice(columnIndex * categoriesPerColumn, (columnIndex + 1) * categoriesPerColumn)
                         .map(([categoryName, columns]) => (
                           <div key={categoryName} className="space-y-1">
-                            <h3 className="text-xs font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-0.5">
+                            <h3 className="text-xs font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-[#2a2a2a] pb-0.5">
                               {categoryName}
                             </h3>
                             <div className="space-y-0.5">

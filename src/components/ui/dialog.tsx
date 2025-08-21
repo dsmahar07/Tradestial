@@ -41,7 +41,7 @@ const DialogContent = React.forwardRef<
           transition
           ref={ref}
           className={cn(
-            'relative w-full max-w-md transform-gpu will-change-transform overflow-visible rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl data-[enter]:scale-100 data-[enter]:opacity-100 data-[leave]:opacity-0 data-[leave]:scale-95 data-[enter]:duration-250 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in',
+            'relative w-full max-w-md transform-gpu will-change-transform overflow-visible rounded-2xl bg-white dark:bg-[#171717] p-6 text-left align-middle shadow-xl data-[enter]:scale-100 data-[enter]:opacity-100 data-[leave]:opacity-0 data-[leave]:scale-95 data-[enter]:duration-250 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in',
             className
           )}
           {...props}
