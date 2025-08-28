@@ -20,6 +20,8 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { Trade } from '@/services/trade-data.service'
 import { DataStore } from '@/services/data-store.service'
+import { CSVImportService } from '@/services/csv-import.service'
+import * as FileUpload from '@/components/ui/file-upload'
 
 interface Broker {
   id: string
@@ -426,29 +428,28 @@ export default function ImportDataPage() {
     try {
       console.log('📊 Starting broker-specific CSV processing...')
       
-      // Read file content
-      const fileContent = await file.text()
-      console.log('📄 File content loaded, size:', fileContent.length, 'characters')
-      console.log('📄 File preview (first 500 chars):', fileContent.substring(0, 500))
+      // Use the CSV import service to process the file
+      const result = await CSVImportService.importCSV(
+        file,
+        importState.selectedBroker?.id
+      )
       
-      // TODO: Implement broker detection and CSV processing system
-      // This will be built to detect specific broker formats and process accordingly
+      console.log('📄 Import result:', result)
+
+      if (result.success && result.trades.length > 0) {
+        // Save trades to DataStore
+        await DataStore.addTrades(result.trades)
+      }
       
       setImportState(prev => ({
         ...prev,
         uploadedFile: file,
         step: 'results',
         importResults: {
-          success: false,
-          trades: [],
-          errors: ['CSV processing system is being rebuilt with broker-specific detection.'],
-          warnings: [
-            'We are building a new system that will:',
-            '• Automatically detect your broker from CSV format',
-            '• Process broker-specific CSV structures', 
-            '• Handle all major trading platforms',
-            'Please provide your broker CSV files for training the system.'
-          ]
+          success: result.success,
+          trades: result.trades,
+          errors: result.errors,
+          warnings: result.warnings
         }
       }))
       
@@ -687,7 +688,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 transition-all cursor-pointer group"
+                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -707,7 +708,7 @@ export default function ImportDataPage() {
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">
                                     {broker.name}
                                   </h4>
                                 </div>
@@ -722,7 +723,7 @@ export default function ImportDataPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300 group-hover:border-purple-300 dark:group-hover:border-purple-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300"
                             >
                               <Upload className="w-4 h-4 mr-2" />
                               Import
@@ -751,7 +752,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-500 transition-all cursor-pointer group"
+                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -771,7 +772,7 @@ export default function ImportDataPage() {
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">
                                     {broker.name}
                                   </h4>
                                 </div>
@@ -786,7 +787,7 @@ export default function ImportDataPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300 group-hover:border-purple-300 dark:group-hover:border-purple-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300"
                             >
                               <Upload className="w-4 h-4 mr-2" />
                               Import
@@ -856,96 +857,60 @@ export default function ImportDataPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
+                    <FileUpload.Root
                       className={cn(
-                        "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-                        isProcessing 
-                          ? "border-blue-300 bg-blue-50 dark:bg-blue-900/20" 
-                          : "border-gray-300 dark:border-[#2a2a2a] hover:border-purple-400 dark:hover:border-purple-500"
+                        isProcessing && "border-blue-300 bg-blue-50 dark:bg-blue-900/20"
                       )}
+                      htmlFor="file-upload"
                       onDrop={handleFileDrop}
                       onDragOver={handleDragOver}
                       onDragEnter={handleDragOver}
                       onClick={() => !isProcessing && document.getElementById('file-upload')?.click()}
                     >
-                      <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-                        {isProcessing ? (
-                          <Clock className="w-8 h-8 text-blue-500 animate-spin" />
-                        ) : (
-                          <FileText className="w-8 h-8 text-gray-400" />
+                      {isProcessing ? (
+                        <Clock className="w-8 h-8 text-blue-500 animate-spin" />
+                      ) : (
+                        <FileUpload.Icon 
+                          as="svg"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-8 h-8"
+                        >
+                          <path d="M12 12.5858L16.2426 16.8284L14.8284 18.2426L13 16.415V22H11V16.413L9.17157 18.2426L7.75736 16.8284L12 12.5858ZM12 2C15.5934 2 18.5544 4.70761 18.9541 8.19395C21.2858 8.83154 23 10.9656 23 13.5C23 16.3688 20.8036 18.7246 18.0006 18.9776L18.0009 16.9644C19.6966 16.7214 21 15.2629 21 13.5C21 11.567 19.433 10 17.5 10C17.2912 10 17.0867 10.0183 16.8887 10.054C16.9616 9.7142 17 9.36158 17 9C17 6.23858 14.7614 4 12 4C9.23858 4 7 6.23858 7 9C7 9.36158 7.03838 9.7142 7.11205 10.0533C6.91331 10.0183 6.70879 10 6.5 10C4.567 10 3 11.567 3 13.5C3 15.2003 4.21241 16.6174 5.81986 16.934L6.00005 16.9646L6.00039 18.9776C3.19696 18.7252 1 16.3692 1 13.5C1 10.9656 2.71424 8.83154 5.04648 8.19411C5.44561 4.70761 8.40661 2 12 2Z"></path>
+                        </FileUpload.Icon>
+                      )}
+                      
+                      <div className="text-center">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                          {isProcessing ? 'Processing your CSV...' : 'Drop your CSV file here'}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                          {isProcessing ? 'Extracting trade data intelligently' : 'or click to browse files'}
+                        </p>
+                        
+                        {!isProcessing && (
+                          <>
+                            <input
+                              type="file"
+                              accept=".csv,text/csv"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                              id="file-upload"
+                              multiple={false}
+                            />
+                            <FileUpload.Button>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Choose CSV File
+                            </FileUpload.Button>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                              Supports: .csv files up to 10MB
+                            </p>
+                          </>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        {isProcessing ? 'Processing your CSV...' : 'Drop your CSV file here'}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        {isProcessing ? 'Extracting trade data intelligently' : 'or click to browse files'}
-                      </p>
-                      
-                      {!isProcessing && (
-                        <>
-                          <input
-                            type="file"
-                            accept=".csv,text/csv"
-                            onChange={handleFileUpload}
-                            className="hidden"
-                            id="file-upload"
-                            multiple={false}
-                          />
-                          <Button 
-                            type="button"
-                            className="bg-purple-600 hover:bg-purple-700 text-white pointer-events-none"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Choose CSV File
-                          </Button>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            Supports: .csv files up to 10MB
-                          </p>
-                        </>
-                      )}
-                    </div>
+                    </FileUpload.Root>
 
-                    {/* Smart Detection Info */}
-                    <Alert className="mt-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Our smart detection system will automatically identify your broker's CSV format and map the fields. 
-                        If auto-detection fails, you'll be guided through manual field mapping.
-                      </AlertDescription>
-                    </Alert>
-                  </CardContent>
-                </Card>
-
-                {/* Advanced Features */}
-                <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
-                  <CardHeader>
-                    <CardTitle>Advanced Import Features</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                        <h4 className="font-semibold text-green-800 dark:text-green-200">Smart Detection</h4>
-                        <p className="text-sm text-green-600 dark:text-green-400">
-                          Automatic broker format detection
-                        </p>
-                      </div>
-                      <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <FileText className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                        <h4 className="font-semibold text-blue-800 dark:text-blue-200">Intelligent Extraction</h4>
-                        <p className="text-sm text-blue-600 dark:text-blue-400">
-                          Human-level understanding of data patterns
-                        </p>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                        <Upload className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                        <h4 className="font-semibold text-purple-800 dark:text-purple-200">Zero Configuration</h4>
-                        <p className="text-sm text-purple-600 dark:text-purple-400">
-                          No manual field mapping ever needed
-                        </p>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
