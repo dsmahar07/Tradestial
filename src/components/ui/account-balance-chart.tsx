@@ -152,21 +152,21 @@ export function AccountBalanceChart({
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-purple-600"></div>
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#5B2CC9' }}></div>
           <span className="text-sm text-gray-600 dark:text-gray-300">Account Balance</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FB3748' }}></div>
           <span className="text-sm text-gray-600 dark:text-gray-300">Deposits / Withdrawals</span>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="h-[280px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
+      <div className="h-[280px] overflow-visible w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
-            margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
+            margin={{ top: 20, right: 16, left: 16, bottom: 25 }}
           >
             <CartesianGrid stroke="var(--grid)" strokeDasharray="3 3" vertical={false} style={{ shapeRendering: 'crispEdges' }} />
             <XAxis 
@@ -206,26 +206,30 @@ export function AccountBalanceChart({
             />
             {/* Zero baseline reference (same brightness as grid) */}
             <ReferenceLine y={0} stroke="var(--grid)" strokeDasharray="3 3" strokeWidth={1} style={{ shapeRendering: 'crispEdges' }} />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={false} />
             <Line
               type="linear"
               dataKey="accountBalance"
-              stroke="#8b5cf6"
+              stroke="#5B2CC9"
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
-              strokeLinecap="butt"
-              activeDot={{ r: 4, fill: '#8b5cf6' }}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ shapeRendering: 'geometricPrecision', vectorEffect: 'non-scaling-stroke' } as React.CSSProperties}
+              activeDot={{ r: 4, fill: '#5B2CC9' }}
             />
             <Line
               type="linear"
               dataKey="depositsWithdrawals"
-              stroke="#ef4444"
+              stroke="#FB3748"
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
-              strokeLinecap="butt"
-              activeDot={{ r: 4, fill: '#ef4444' }}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ shapeRendering: 'geometricPrecision', vectorEffect: 'non-scaling-stroke' } as React.CSSProperties}
+              activeDot={{ r: 4, fill: '#FB3748' }}
             />
           </LineChart>
         </ResponsiveContainer>

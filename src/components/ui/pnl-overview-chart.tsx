@@ -10,8 +10,11 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 import { BudgetIncomeIcon, BudgetExpensesIcon, BudgetScheduledIcon, PNLOverviewIcon } from './custom-icons'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
+import { parseLocalDate, getMonth, getYear } from '@/utils/date-utils'
 
 interface PNLData {
   month: string
@@ -20,48 +23,104 @@ interface PNLData {
   bookedPnl: number
 }
 
-const pnlDataSets = {
-  'Last Year': [
-    { month: 'J', peakProfit: 45, peakLoss: 15, bookedPnl: 30 },
-    { month: 'F', peakProfit: 38, peakLoss: 12, bookedPnl: 26 },
-    { month: 'M', peakProfit: 52, peakLoss: 18, bookedPnl: 34 },
-    { month: 'A', peakProfit: 35, peakLoss: 22, bookedPnl: 13 },
-    { month: 'M', peakProfit: 48, peakLoss: 8, bookedPnl: 40 },
-    { month: 'J', peakProfit: 55, peakLoss: 20, bookedPnl: 35 },
-    { month: 'J', peakProfit: 42, peakLoss: 16, bookedPnl: 26 },
-    { month: 'A', peakProfit: 49, peakLoss: 14, bookedPnl: 35 },
-    { month: 'S', peakProfit: 38, peakLoss: 18, bookedPnl: 20 },
-    { month: 'O', peakProfit: 46, peakLoss: 12, bookedPnl: 34 },
-    { month: 'N', peakProfit: 51, peakLoss: 19, bookedPnl: 32 },
-    { month: 'D', peakProfit: 58, peakLoss: 15, bookedPnl: 43 },
-  ],
-  'This Year': [
-    { month: 'J', peakProfit: 62, peakLoss: 18, bookedPnl: 44 },
-    { month: 'F', peakProfit: 55, peakLoss: 25, bookedPnl: 30 },
-    { month: 'M', peakProfit: 48, peakLoss: 15, bookedPnl: 33 },
-    { month: 'A', peakProfit: 71, peakLoss: 28, bookedPnl: 43 },
-    { month: 'M', peakProfit: 59, peakLoss: 22, bookedPnl: 37 },
-    { month: 'J', peakProfit: 65, peakLoss: 19, bookedPnl: 46 },
-    { month: 'J', peakProfit: 53, peakLoss: 24, bookedPnl: 29 },
-    { month: 'A', peakProfit: 67, peakLoss: 16, bookedPnl: 51 },
-    { month: 'S', peakProfit: 44, peakLoss: 21, bookedPnl: 23 },
-    { month: 'O', peakProfit: 58, peakLoss: 17, bookedPnl: 41 },
-    { month: 'N', peakProfit: 63, peakLoss: 26, bookedPnl: 37 },
-    { month: 'D', peakProfit: 69, peakLoss: 20, bookedPnl: 49 },
-  ],
-  'Last Month': [
-    { month: 'W1', peakProfit: 15, peakLoss: 8, bookedPnl: 7 },
-    { month: 'W2', peakProfit: 22, peakLoss: 12, bookedPnl: 10 },
-    { month: 'W3', peakProfit: 18, peakLoss: 6, bookedPnl: 12 },
-    { month: 'W4', peakProfit: 25, peakLoss: 14, bookedPnl: 11 },
-  ]
-}
 
 export function PnlOverviewChart() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'Last Year' | 'This Year' | 'Last Month'>('Last Year')
-  
-  // Get current data based on selected period
-  const currentData = pnlDataSets[selectedPeriod]
+  const [selectedPeriod, setSelectedPeriod] = useState<'Last Year' | 'This Year' | 'Last Month'>('This Year')
+  const [trades, setTrades] = useState<Trade[]>([])
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    setTrades(DataStore.getAllTrades())
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+    return unsubscribe
+  }, [])
+
+  // Generate real PnL data from trades
+  const realPnlData = useMemo(() => {
+    if (!trades.length) return []
+
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+
+    // Filter trades based on selected period
+    const filteredTrades = trades.filter(trade => {
+      const tradeDate = parseLocalDate(trade.closeDate || trade.openDate)
+      const tradeYear = getYear(tradeDate)
+      const tradeMonth = getMonth(tradeDate)
+
+      switch (selectedPeriod) {
+        case 'Last Year':
+          return tradeYear === currentYear - 1
+        case 'This Year':
+          return tradeYear === currentYear
+        case 'Last Month':
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+          return tradeYear === lastMonthYear && tradeMonth === lastMonth
+        default:
+          return tradeYear === currentYear
+      }
+    })
+
+    // Group by month
+    const monthlyData = new Map<string, { wins: number, losses: number, total: number }>()
+    const monthNames = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+
+    // Initialize all months with 0
+    monthNames.forEach(month => {
+      monthlyData.set(month, { wins: 0, losses: 0, total: 0 })
+    })
+
+    // Process trades
+    filteredTrades.forEach(trade => {
+      const tradeDate = parseLocalDate(trade.closeDate || trade.openDate)
+      const monthIndex = getMonth(tradeDate)
+      const monthKey = monthNames[monthIndex]
+      const monthStats = monthlyData.get(monthKey)!
+
+      monthStats.total += trade.netPnl
+      if (trade.netPnl > 0) {
+        monthStats.wins += trade.netPnl
+      } else {
+        monthStats.losses += Math.abs(trade.netPnl)
+      }
+    })
+
+    // Convert to chart format
+    return Array.from(monthlyData.entries()).map(([month, stats]) => ({
+      month,
+      peakProfit: Math.max(0, stats.wins),
+      peakLoss: Math.max(0, stats.losses), 
+      bookedPnl: Math.max(0, stats.total)
+    }))
+  }, [trades, selectedPeriod])
+
+  // Get current data (real or empty)
+  const currentData = realPnlData.length > 0 ? realPnlData : []
+
+  if (!trades.length) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="bg-white dark:bg-[#171717] rounded-xl p-6 h-96"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">P&L Overview</h3>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            <div>No P&L data available</div>
+            <div className="text-sm mt-1">Import your CSV to see monthly performance</div>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
   
   return (
     <motion.div
@@ -153,10 +212,26 @@ export function PnlOverviewChart() {
                 tickLine={false}
                 tick={{ fontSize: 12, fill: '#9ca3af' }}
                 className="dark:fill-gray-400"
-                tickFormatter={(value) => `$${value}K`}
+                tickFormatter={(value) => {
+                  if (value === 0) return '$0'
+                  if (Math.abs(value) >= 1000) {
+                    return `$${(value / 1000).toFixed(1)}k`
+                  }
+                  return `$${value}`
+                }}
               />
               <Tooltip
-                formatter={(value, name) => [`$${value}K`, name]}
+                formatter={(value: number, name) => {
+                  let formattedValue: string
+                  if (value === 0) {
+                    formattedValue = '$0'
+                  } else if (Math.abs(value) >= 1000) {
+                    formattedValue = `$${(value / 1000).toFixed(1)}k`
+                  } else {
+                    formattedValue = `$${value.toLocaleString()}`
+                  }
+                  return [formattedValue, name]
+                }}
                 contentStyle={{
                   backgroundColor: 'var(--tooltip-bg, white)',
                   border: '1px solid var(--tooltip-border, #e5e7eb)',

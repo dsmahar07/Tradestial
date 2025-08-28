@@ -7,8 +7,9 @@ import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { useAnalytics } from '@/hooks/use-analytics'
 import { cn } from '@/lib/utils'
-import { TradeDataService, type Trade } from '@/services/trade-data.service'
+import type { Trade } from '@/services/trade-data.service'
 import type { ChartDataPoint } from '@/types/performance'
 import {
   ResponsiveContainer,
@@ -23,104 +24,87 @@ import {
 export default function WinsLossesPage() {
   usePageTitle('Analytics - Wins vs Losses')
 
+  // Get real trade data
+  const { trades, loading, error } = useAnalytics()
+
   // UI controls
   const [pnlMetric, setPnlMetric] = useState<'NET P&L' | 'GROSS P&L'>('NET P&L')
   const [metricMenuOpen, setMetricMenuOpen] = useState(false)
   const metricMenuRef = useRef<HTMLDivElement>(null)
 
-  // Data state
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [trades, setTrades] = useState<Trade[]>([])
+  // Calculate cumulative series from real trades
+  const { winsCumulativeSeries, lossesCumulativeSeries } = useMemo(() => {
+    if (!trades?.length) {
+      return { winsCumulativeSeries: [], lossesCumulativeSeries: [] }
+    }
 
-  // Derived series
-  const [winsCumulativeSeries, setWinsCumulativeSeries] = useState<ChartDataPoint[]>([])
-  const [lossesCumulativeSeries, setLossesCumulativeSeries] = useState<ChartDataPoint[]>([])
+    // Group trades by day and calculate cumulative
+    const dailyWins = new Map<string, number>()
+    const dailyLosses = new Map<string, number>()
 
-  // Load trades
-  useEffect(() => {
-    let isMounted = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const all = await TradeDataService.getAllTrades()
-        if (!isMounted) return
-        setTrades(all)
-        setError(null)
-      } catch (e) {
-        if (!isMounted) return
-        setError('Failed to load trades')
-      } finally {
-        if (isMounted) setLoading(false)
+    trades.forEach(trade => {
+      const pnl = pnlMetric === 'NET P&L' ? trade.netPnl : (trade.grossPnl || trade.netPnl)
+      const date = toISODate(safeDate(trade.closeDate || trade.openDate))
+
+      if (pnl > 0) {
+        dailyWins.set(date, (dailyWins.get(date) || 0) + pnl)
+      } else if (pnl < 0) {
+        dailyLosses.set(date, (dailyLosses.get(date) || 0) + Math.abs(pnl))
       }
-    })()
-    return () => { isMounted = false }
-  }, [])
+    })
+
+    // Create sorted date array and build cumulative series
+    const allDays = Array.from(new Set([...dailyWins.keys(), ...dailyLosses.keys()]))
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+
+    const winsSeries: ChartDataPoint[] = []
+    const lossesSeries: ChartDataPoint[] = []
+    let cumulativeWins = 0
+    let cumulativeLosses = 0
+
+    allDays.forEach(date => {
+      cumulativeWins += dailyWins.get(date) || 0
+      cumulativeLosses += dailyLosses.get(date) || 0
+      
+      winsSeries.push({ date, value: fmt(cumulativeWins) })
+      lossesSeries.push({ date, value: fmt(cumulativeLosses) })
+    })
+
+    return {
+      winsCumulativeSeries: winsSeries,
+      lossesCumulativeSeries: lossesSeries
+    }
+  }, [trades, pnlMetric])
 
   // Helpers
   const toISODate = (d: Date) => d.toISOString().slice(0, 10)
   const safeDate = (s: string) => new Date(s)
   const fmt = (n: number) => Number((n ?? 0).toFixed(2))
-  const pnlOf = (t: Trade) => (pnlMetric === 'GROSS P&L' ? (t.grossPnl ?? t.netPnl ?? 0) : (t.netPnl ?? 0))
-
-  // Build daily cumulative series for wins and losses
-  useEffect(() => {
-    if (!trades.length) {
-      setWinsCumulativeSeries([])
-      setLossesCumulativeSeries([])
-      return
-    }
-
-    const byDayWins = new Map<string, number>()
-    const byDayLosses = new Map<string, number>()
-
-    for (const t of trades) {
-      const d = toISODate(safeDate(t.closeDate || t.openDate))
-      const v = pnlOf(t)
-      if (t.status === 'WIN') byDayWins.set(d, (byDayWins.get(d) || 0) + v)
-      if (t.status === 'LOSS') byDayLosses.set(d, (byDayLosses.get(d) || 0) + v)
-    }
-
-    const allDays = Array.from(new Set([...byDayWins.keys(), ...byDayLosses.keys()]))
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-
-    const dailyWins = allDays.map((d) => byDayWins.get(d) || 0)
-    const dailyLosses = allDays.map((d) => byDayLosses.get(d) || 0)
-
-    // Cumulative
-    const winsCum: number[] = []
-    const lossesCum: number[] = []
-    let w = 0
-    let l = 0
-    for (let i = 0; i < allDays.length; i++) {
-      w += dailyWins[i]
-      l += dailyLosses[i]
-      winsCum.push(fmt(w))
-      lossesCum.push(fmt(l))
-    }
-
-    const toSeries = (vals: number[]): ChartDataPoint[] =>
-      allDays.map((d, i) => ({ date: d, value: fmt(vals[i] || 0) }))
-
-    setWinsCumulativeSeries(toSeries(winsCum))
-    setLossesCumulativeSeries(toSeries(lossesCum))
-  }, [trades, pnlMetric])
+  const pnlOf = (t: Trade) => (pnlMetric === 'NET P&L' ? (t.netPnl ?? 0) : (t.grossPnl ?? t.netPnl ?? 0))
 
   // Stats per side
   type StatRow = { label: string; value: string }
 
   const stats = useMemo(() => {
+    if (!trades?.length) return { wins: [], losses: [], maxConsecutiveWins: 0, maxConsecutiveLosses: 0 }
+
     const sortedByTime = [...trades].sort((a, b) => new Date(a.openDate).getTime() - new Date(b.openDate).getTime())
+    
     // Max consecutive wins/losses across the full sequence
     let maxWins = 0, maxLosses = 0, curWins = 0, curLosses = 0
     for (const t of sortedByTime) {
-      if (t.status === 'WIN') { curWins += 1; curLosses = 0 } else { curLosses += 1; curWins = 0 }
+      const pnl = pnlOf(t)
+      if (pnl > 0) { 
+        curWins += 1; curLosses = 0 
+      } else if (pnl < 0) { 
+        curLosses += 1; curWins = 0 
+      }
       maxWins = Math.max(maxWins, curWins)
       maxLosses = Math.max(maxLosses, curLosses)
     }
 
-    const wins = trades.filter(t => t.status === 'WIN')
-    const losses = trades.filter(t => t.status === 'LOSS')
+    const wins = trades.filter(t => pnlOf(t) > 0)
+    const losses = trades.filter(t => pnlOf(t) < 0)
 
     const sum = (arr: Trade[], fn: (t: Trade) => number) => arr.reduce((s, t) => s + fn(t), 0)
 

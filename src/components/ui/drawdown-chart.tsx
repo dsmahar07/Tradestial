@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronDown, Info } from 'lucide-react'
 import { Button } from './button'
@@ -10,7 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu'
-import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
+import { parseLocalDate } from '@/utils/date-utils'
 
 interface DrawdownData {
   date: string
@@ -18,54 +21,164 @@ interface DrawdownData {
   formattedDate: string
 }
 
-const sampleDrawdownData: DrawdownData[] = [
-  { date: '06/17/25', drawdown: -100, formattedDate: '06/17/25' },
-  { date: '06/18/25', drawdown: -800, formattedDate: '06/18/25' },
-  { date: '06/19/25', drawdown: -1200, formattedDate: '06/19/25' },
-  { date: '06/20/25', drawdown: -1800, formattedDate: '06/20/25' },
-  { date: '06/21/25', drawdown: -1650, formattedDate: '06/21/25' },
-  { date: '06/22/25', drawdown: -1200, formattedDate: '06/22/25' },
-  { date: '06/23/25', drawdown: -800, formattedDate: '06/23/25' },
-  { date: '06/24/25', drawdown: -200, formattedDate: '06/24/25' },
-  { date: '06/25/25', drawdown: 0, formattedDate: '06/25/25' },
-  { date: '06/26/25', drawdown: 0, formattedDate: '06/26/25' },
-  { date: '06/27/25', drawdown: 0, formattedDate: '06/27/25' },
-  { date: '06/28/25', drawdown: 0, formattedDate: '06/28/25' },
-  { date: '06/29/25', drawdown: 0, formattedDate: '06/29/25' },
-  { date: '06/30/25', drawdown: 0, formattedDate: '06/30/25' },
-  { date: '07/01/25', drawdown: 0, formattedDate: '07/01/25' },
-  { date: '07/02/25', drawdown: 0, formattedDate: '07/02/25' },
-  { date: '07/03/25', drawdown: 0, formattedDate: '07/03/25' },
-  { date: '07/04/25', drawdown: 0, formattedDate: '07/04/25' },
-  { date: '07/05/25', drawdown: 0, formattedDate: '07/05/25' },
-  { date: '07/06/25', drawdown: 0, formattedDate: '07/06/25' },
-  { date: '07/07/25', drawdown: 0, formattedDate: '07/07/25' },
-  { date: '07/08/25', drawdown: 0, formattedDate: '07/08/25' },
-  { date: '07/09/25', drawdown: 0, formattedDate: '07/09/25' },
-  { date: '07/10/25', drawdown: 0, formattedDate: '07/10/25' },
-  { date: '07/11/25', drawdown: 0, formattedDate: '07/11/25' },
-  { date: '07/12/25', drawdown: 0, formattedDate: '07/12/25' },
-  { date: '07/13/25', drawdown: -200, formattedDate: '07/13/25' },
-  { date: '07/14/25', drawdown: -800, formattedDate: '07/14/25' },
-  { date: '07/15/25', drawdown: -2700, formattedDate: '07/15/25' },
-  { date: '07/16/25', drawdown: -1800, formattedDate: '07/16/25' },
-  { date: '07/17/25', drawdown: -800, formattedDate: '07/17/25' },
-  { date: '07/18/25', drawdown: -200, formattedDate: '07/18/25' },
-  { date: '07/19/25', drawdown: 0, formattedDate: '07/19/25' },
-  { date: '07/20/25', drawdown: 0, formattedDate: '07/20/25' },
-  { date: '07/21/25', drawdown: 0, formattedDate: '07/21/25' },
-  { date: '07/22/25', drawdown: -300, formattedDate: '07/22/25' },
-  { date: '07/23/25', drawdown: -100, formattedDate: '07/23/25' }
-]
+// Generate drawdown data from real trades
+const generateDrawdownData = (trades: Trade[]): DrawdownData[] => {
+  if (trades.length === 0) return []
+
+  // Sort trades by date
+  const sortedTrades = [...trades].sort((a, b) => 
+    parseLocalDate(a.closeDate || a.openDate).getTime() - parseLocalDate(b.closeDate || b.openDate).getTime()
+  )
+
+  const drawdownData: DrawdownData[] = []
+  let cumulativePnL = 0
+  let peak = 0
+
+  // Process each trade to calculate running drawdown
+  sortedTrades.forEach(trade => {
+    cumulativePnL += trade.netPnl
+    
+    // Update peak if we hit a new high
+    if (cumulativePnL > peak) {
+      peak = cumulativePnL
+    }
+    
+    // Calculate drawdown (always negative or zero)
+    const drawdown = cumulativePnL - peak
+    
+    const tradeDate = parseLocalDate(trade.closeDate || trade.openDate)
+    const formattedDate = tradeDate.toLocaleDateString('en-US', { 
+      month: '2-digit', 
+      day: '2-digit', 
+      year: '2-digit' 
+    })
+    
+    drawdownData.push({
+      date: tradeDate.toISOString().split('T')[0],
+      drawdown: Math.round(drawdown),
+      formattedDate
+    })
+  })
+
+  return drawdownData
+}
+
+// Custom Tooltip component for Drawdown
+const DrawdownTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    const drawdown = data.drawdown
+    
+    return (
+      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+        <div className="text-gray-600 dark:text-gray-300 font-medium mb-1">{data.formattedDate}</div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[#2547D0]" />
+          <span className="text-gray-700 dark:text-gray-300">
+            Drawdown: {drawdown === 0 ? '$0' : `-$${Math.abs(drawdown).toLocaleString()}`}
+          </span>
+        </div>
+      </div>
+    )
+  }
+  return null
+}
 
 export const DrawdownChart = React.memo(function DrawdownChart() {
+  const [trades, setTrades] = useState<Trade[]>([])
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    setTrades(DataStore.getAllTrades())
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+    return unsubscribe
+  }, [])
+
+  // Generate drawdown data from real trades
+  const drawdownData = useMemo(() => generateDrawdownData(trades), [trades])
+
   const formatYAxis = (value: number) => {
     if (value === 0) return '$0'
-    if (value <= -1000) return `-$${Math.abs(value / 1000).toFixed(1)}k`
-    return `-$${Math.abs(value)}`
+    const absValue = Math.abs(value)
+    if (absValue >= 1000000) {
+      return `-$${(absValue / 1000000).toFixed(1)}M`
+    }
+    if (absValue >= 10000) {
+      return `-$${(absValue / 1000).toFixed(0)}k`
+    }
+    if (absValue >= 1000) {
+      return `-$${(absValue / 1000).toFixed(1)}k`
+    }
+    return `-$${absValue.toFixed(0)}`
   }
 
-  const yTicks = [0, -500, -1000, -1500, -2000, -2500, -3000]
+  // Calculate truly dynamic Y-axis ticks based on actual data
+  const yTicks = useMemo(() => {
+    if (drawdownData.length === 0) return [0, -500, -1000, -1500, -2000, -2500, -3000]
+    
+    const minDrawdown = Math.min(...drawdownData.map(d => d.drawdown), 0)
+    const maxDrawdown = Math.max(...drawdownData.map(d => d.drawdown), 0)
+    
+    // Handle case where there's no drawdown (all positive)
+    if (minDrawdown >= 0) {
+      return [0, -100, -250, -500, -1000]
+    }
+    
+    // Calculate appropriate tick interval based on data range
+    const range = Math.abs(minDrawdown)
+    let tickInterval = 500
+    
+    if (range < 1000) {
+      tickInterval = 100
+    } else if (range < 2500) {
+      tickInterval = 250
+    } else if (range < 5000) {
+      tickInterval = 500
+    } else if (range < 10000) {
+      tickInterval = 1000
+    } else {
+      tickInterval = Math.ceil(range / 8 / 1000) * 1000
+    }
+    
+    const ticks = [0]
+    const numTicks = Math.ceil(Math.abs(minDrawdown) / tickInterval) + 1
+    
+    for (let i = 1; i <= numTicks; i++) {
+      ticks.push(-i * tickInterval)
+    }
+    
+    return ticks.filter(tick => tick >= minDrawdown - tickInterval)
+  }, [drawdownData])
+
+  if (!trades.length || !drawdownData.length) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 1.6 }}
+        className="focus:outline-none"
+      >
+        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Drawdown
+              </h3>
+              <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            </div>
+          </div>
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="text-gray-500 dark:text-gray-400 text-center">
+              <div>No drawdown data available</div>
+              <div className="text-sm mt-1">Import your CSV to see drawdown analysis</div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div
@@ -112,7 +225,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
         <div className="h-[300px] w-full outline-none focus:outline-none">
           <ResponsiveContainer width="100%" height="100%" className="focus:outline-none [&>*]:focus:outline-none">
             <ComposedChart
-              data={sampleDrawdownData}
+              data={drawdownData}
               margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
             >
               {yTicks.map((y) => (
@@ -160,11 +273,13 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 }}
                 className="dark:fill-gray-400"
                 tickFormatter={formatYAxis}
-                domain={[-3000, 0]}
+                domain={[Math.min(...yTicks), 0]}
                 ticks={yTicks}
                 padding={{ top: 5, bottom: 0 }}
                 width={55}
               />
+              
+              <Tooltip content={<DrawdownTooltip />} cursor={false} />
               
               <Area
                 type="monotone"

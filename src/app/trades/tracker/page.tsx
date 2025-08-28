@@ -1,6 +1,6 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { 
   ArrowLeftIcon, 
@@ -17,7 +17,7 @@ import { StarIcon } from '@heroicons/react/24/solid'
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { usePageTitle } from '@/hooks/use-page-title'
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
 import { RichTextEditor } from '@/components/trade/rich-text-editor'
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import { PencilIcon, SwatchIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { TradeDataService, Trade, RunningPnlPoint } from '@/services/trade-data.service'
+import { DataStore } from '@/services/data-store.service'
 import { chartColorPalette } from '@/config/theme'
 import { useTagData } from '@/hooks/use-tag-data'
 import { useTradeMetadata } from '@/hooks/use-trade-metadata'
@@ -41,29 +42,23 @@ import { StatsWidget } from '@/components/ui/stats-widget'
 
 // Running P&L data now loaded dynamically from service
 
-const executionData = [
-  {
-    dateTime: '08-12-2025 19:48:37',
-    price: '$23,722',
-    quantity: 1,
-    grossPnl: '$0'
-  },
-  {
-    dateTime: '08-12-2025 20:40:37',
-    price: '$23,823.25',
-    quantity: -1,
-    grossPnl: '$2,025'
-  }
-]
+// Execution data will be generated dynamically from trade data
 
 export default function TrackerPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const { categories, tags, addTag, removeTag, updateCategory } = useTagData()
   const { getTradeMetadata, setTradeMetadata, setTradeRating, setTradeLevels, addTradeTag, removeTradeTag, setTradeNotes } = useTradeMetadata()
   const [trade, setTrade] = useState<Trade | null>(null)
   const [runningPnlData, setRunningPnlData] = useState<RunningPnlPoint[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [activeMainTab, setActiveMainTab] = useState('stats')
+  const [activeContentTab, setActiveContentTab] = useState('notes')
+  const [activeNotesTab, setActiveNotesTab] = useState('trade-note')
+  const [rating, setRating] = useState(5)
+  const [profitTarget, setProfitTarget] = useState('')
+  const [stopLoss, setStopLoss] = useState('')
   
   // Function to clean trade object from review properties
   const cleanTradeObject = (tradeObj: Trade) => {
@@ -79,55 +74,155 @@ export default function TrackerPage() {
     return cleanTrade
   }
 
-  // Load trade data on mount
+  // Generate mock running P&L data based on actual trade data
+  const generateMockRunningPnl = (trade: Trade): RunningPnlPoint[] => {
+    if (!trade || !trade.entryTime || !trade.exitTime) {
+      return []
+    }
+
+    const entryPrice = trade.entryPrice || 0
+    const exitPrice = trade.exitPrice || 0
+    const netPnl = trade.netPnl || 0
+    const contractsTraded = trade.contractsTraded || 1
+
+    // Create time points between entry and exit
+    const data: RunningPnlPoint[] = []
+    const totalPoints = 20 // Number of data points
+
+    for (let i = 0; i <= totalPoints; i++) {
+      const progress = i / totalPoints
+      
+      // Create realistic price movement
+      const priceRange = Math.abs(exitPrice - entryPrice)
+      const volatility = priceRange * 0.3 // Add some volatility
+      const randomMovement = (Math.random() - 0.5) * volatility
+      
+      // Progressive movement towards exit price with some noise
+      const currentPrice = entryPrice + (progress * (exitPrice - entryPrice)) + randomMovement
+      
+      // Calculate P&L at this point
+      const currentPnl = (currentPrice - entryPrice) * contractsTraded * (trade.side === 'SHORT' ? -1 : 1)
+      
+      // Create time string (simplified)
+      const timeLabel = `${9 + Math.floor(progress * 7)}:${Math.floor((progress * 60) % 60).toString().padStart(2, '0')}`
+      
+      data.push({
+        time: timeLabel,
+        value: Math.round(currentPnl * 100) / 100,
+        price: Math.round(currentPrice * 100) / 100
+      })
+    }
+
+    // Ensure the last point matches the actual final P&L
+    if (data.length > 0) {
+      data[data.length - 1].value = netPnl
+    }
+
+    return data
+  }
+
+  // Generate execution data based on the trade
+  const generateExecutionData = (trade: Trade | null) => {
+    if (!trade) return []
+
+    const executions = []
+    const entryDate = trade.openDate
+    const exitDate = trade.closeDate || trade.openDate
+    
+    // Entry execution
+    executions.push({
+      dateTime: `${entryDate} ${trade.entryTime || '09:30:00'}`,
+      price: `$${trade.entryPrice?.toFixed(2) || '0.00'}`,
+      quantity: trade.contractsTraded || 1,
+      grossPnl: '$0'
+    })
+
+    // Exit execution
+    executions.push({
+      dateTime: `${exitDate} ${trade.exitTime || '10:30:00'}`,
+      price: `$${trade.exitPrice?.toFixed(2) || '0.00'}`,
+      quantity: -(trade.contractsTraded || 1),
+      grossPnl: trade.netPnl >= 0 ? `+$${Math.abs(trade.netPnl).toFixed(2)}` : `-$${Math.abs(trade.netPnl).toFixed(2)}`
+    })
+
+    return executions
+  }
+
+  // Load trade data on mount and when metadata changes
   useEffect(() => {
     const loadTrade = async () => {
-    try {
-      const trades = await TradeDataService.getAllTrades()
-      const tradeId = params.id || params.tradeId // Check for trade ID in URL params
-      
-      // Find specific trade if ID provided, otherwise use first trade
-      const selectedTrade = tradeId 
-        ? trades.find(t => t.id === tradeId) || trades[0] 
-        : trades[0]
+      try {
+        // Get trades from DataStore (real CSV data)
+        const trades = DataStore.getAllTrades()
+        console.log('🔍 Tracker - Available trades:', trades.length)
         
-      const pnlData = await TradeDataService.getRunningPnlData(selectedTrade.id)
-      const processedData = TradeDataService.processRunningPnlData(pnlData)
-      
-      // Clean the trade object of any review properties
-      const cleanTrade = cleanTradeObject(selectedTrade)
-      
-      // Load metadata for this trade and initialize state
-      const metadata = getTradeMetadata(selectedTrade.id)
-      console.log(`Loading metadata for trade ${selectedTrade.id}:`, metadata)
-      if (metadata) {
-        setRating(metadata.rating || 5)
-        setProfitTarget(metadata.profitTarget || '')
-        setStopLoss(metadata.stopLoss || '')
-      } else {
-        // Set defaults for new trades
-        setRating(5)
-        setProfitTarget('')
-        setStopLoss('')
+        // Get trade ID from URL params or search params
+        const tradeId = params.id || params.tradeId || searchParams.get('trade')
+        console.log('🔍 Tracker - Looking for trade ID:', tradeId)
+        
+        if (!trades.length) {
+          console.warn('⚠️ Tracker - No trades available in DataStore')
+          setIsLoading(false)
+          return
+        }
+        
+        // Find specific trade if ID provided, otherwise use first trade
+        let selectedTrade = null
+        if (tradeId) {
+          selectedTrade = trades.find(t => t.id === tradeId)
+          if (!selectedTrade) {
+            console.warn(`⚠️ Tracker - Trade with ID ${tradeId} not found, using first trade`)
+            selectedTrade = trades[0]
+          } else {
+            console.log('✅ Tracker - Found specific trade:', selectedTrade.id, selectedTrade.symbol)
+          }
+        } else {
+          selectedTrade = trades[0]
+          console.log('✅ Tracker - Using first trade:', selectedTrade.id, selectedTrade.symbol)
+        }
+        
+        // Generate mock running P&L data based on the trade
+        const mockRunningPnlData = generateMockRunningPnl(selectedTrade)
+        
+        // Clean the trade object of any review properties
+        const cleanTrade = cleanTradeObject(selectedTrade)
+        
+        setTrade(cleanTrade)
+        setRunningPnlData(mockRunningPnlData)
+        console.log('✅ Tracker - Trade loaded successfully')
+      } catch (error) {
+        console.error('❌ Tracker - Error loading trade:', error)
+      } finally {
+        setIsLoading(false)
       }
-      
-      setTrade(cleanTrade)
-      setRunningPnlData(processedData)
-    } catch (error) {
-      console.error('Error loading trade:', error)
-    } finally {
-      setIsLoading(false)
-    }
     }
     
     loadTrade()
-  }, [params])
-  const [activeMainTab, setActiveMainTab] = useState('stats')
-  const [activeContentTab, setActiveContentTab] = useState('notes')
-  const [activeNotesTab, setActiveNotesTab] = useState('trade-note')
-  const [rating, setRating] = useState(5)
-  const [profitTarget, setProfitTarget] = useState('')
-  const [stopLoss, setStopLoss] = useState('')
+  }, [params, searchParams])
+
+  // Load metadata when trade changes or metadata updates
+  useEffect(() => {
+    if (!trade) return
+
+    const metadata = getTradeMetadata(trade.id)
+    console.log(`🔍 Tracker - Loading metadata for trade ${trade.id}:`, metadata)
+    
+    if (metadata) {
+      setRating(metadata.rating || 5)
+      setProfitTarget(metadata.profitTarget || '')
+      setStopLoss(metadata.stopLoss || '')
+      console.log(`✅ Tracker - Restored SL/TP for trade ${trade.id}: PT=${metadata.profitTarget}, SL=${metadata.stopLoss}`)
+    } else {
+      // Only reset to defaults if no metadata exists AND current values are empty
+      // This prevents overwriting user input when switching between trades
+      if (!profitTarget && !stopLoss && rating === 5) {
+        setRating(5)
+        setProfitTarget('')
+        setStopLoss('')
+        console.log(`🔧 Tracker - Set defaults for new trade ${trade.id}`)
+      }
+    }
+  }, [trade, getTradeMetadata])
 
   // Create handlers that save to metadata service
   const handleRatingChange = (newRating: number) => {
@@ -428,8 +523,7 @@ export default function TrackerPage() {
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {trade?.symbol || 'NQ'}
                 </h1>
-                <span className="text-gray-500 dark:text-gray-400">({trade?.id || '09-01-2025'})</span>
-                <span className="text-gray-500 dark:text-gray-400">{trade?.openDate || 'Tue, Aug 12, 2025'}</span>
+                <span className="text-gray-500 dark:text-gray-400">{trade ? new Date(trade.openDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'Tue, Aug 12, 2025'}</span>
               </div>
             </div>
 
@@ -783,6 +877,25 @@ export default function TrackerPage() {
                       
                       <ReferenceLine y={0} stroke="#d1d5db" strokeDasharray="4 4" strokeWidth={1} />
                       
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const value = payload.find(p => p.dataKey === 'value')?.value
+                            if (value !== undefined) {
+                              return (
+                                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm">
+                                  <p className="font-medium text-gray-900 dark:text-white mb-1">{label}</p>
+                                  <p className={`font-bold ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    P&L: ${value >= 0 ? '+' : ''}${value.toFixed(2)}
+                                  </p>
+                                </div>
+                              )
+                            }
+                          }
+                          return null
+                        }}
+                      />
+                      
                       {/* Positive area - only fills between line and zero when line is above zero */}
                       <Area
                         type="monotone"
@@ -843,7 +956,7 @@ export default function TrackerPage() {
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    2 executions
+                    {generateExecutionData(trade).length} executions
                   </h3>
                   <button className="text-blue-600 dark:text-blue-400 text-sm hover:underline flex items-center">
                     👁 View all
@@ -870,7 +983,7 @@ export default function TrackerPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {executionData.map((execution, index) => (
+                      {generateExecutionData(trade).map((execution, index) => (
                         <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                           <td className="py-3 text-sm text-gray-900 dark:text-white">
                             {execution.dateTime}
@@ -879,10 +992,16 @@ export default function TrackerPage() {
                             {execution.price}
                           </td>
                           <td className="py-3 text-sm text-gray-900 dark:text-white text-right">
-                            {execution.quantity}
+                            {execution.quantity > 0 ? `+${execution.quantity}` : execution.quantity}
                           </td>
                           <td className="py-3 text-sm font-medium text-right">
-                            <span className={execution.grossPnl === '$0' ? 'text-gray-500' : 'text-green-600 dark:text-green-400'}>
+                            <span className={
+                              execution.grossPnl === '$0' 
+                                ? 'text-gray-500' 
+                                : execution.grossPnl.startsWith('+') 
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-red-600 dark:text-red-400'
+                            }>
                               {execution.grossPnl}
                             </span>
                           </td>

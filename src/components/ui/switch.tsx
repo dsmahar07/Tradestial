@@ -41,4 +41,6 @@ const Root = React.forwardRef<HTMLButtonElement, SwitchProps>(
 )
 Root.displayName = 'Switch'
 
-export { Root }
+const Switch = Root
+
+export { Root, Switch }

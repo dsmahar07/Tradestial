@@ -52,12 +52,17 @@ export function MetricCard({
     // Handle time formatting
     if (label.toLowerCase().includes('time') || 
         label.toLowerCase().includes('duration')) {
+      // val is in minutes; show with two decimals
       if (val >= 60) {
         const hours = Math.floor(val / 60)
-        const minutes = val % 60
-        return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+        let minutes = Number((val - hours * 60).toFixed(2))
+        // Handle edge case like 59.999 -> 60.00 after rounding
+        if (minutes >= 60) {
+          return `${hours + 1}h`
+        }
+        return minutes > 0 ? `${hours}h ${minutes.toFixed(2)}m` : `${hours}h`
       }
-      return `${val}m`
+      return `${val.toFixed(2)}m`
     }
     
     // Handle days

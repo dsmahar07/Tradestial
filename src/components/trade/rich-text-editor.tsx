@@ -606,8 +606,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
               lineHeight: '1.6',
               fontFeatureSettings: '"liga" 1, "kern" 1',
               textRendering: 'optimizeLegibility',
-              WebkitFontSmoothing: 'antialiased',
-              MozOsxFontSmoothing: 'grayscale'
+              /* inherit font smoothing from global settings */
             }}
             suppressContentEditableWarning={true}
             onInput={handleEditorInput}

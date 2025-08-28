@@ -2,7 +2,10 @@
 
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
+import { parseLocalDate, getMonth, getYear, getDayOfWeek } from '@/utils/date-utils'
 
 interface DayData {
   date: number
@@ -13,17 +16,8 @@ interface DayData {
   isEmpty: boolean
 }
 
-// Deterministic pseudo-random number generator using seed
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000
-  return x - Math.floor(x)
-}
-
-// Generate monthly data for a given view date (includes leading/trailing placeholders)
-const generateMonthData = (viewDate: Date): DayData[] => {
-  const baseSeed = 12345 + viewDate.getFullYear() * 100 + viewDate.getMonth()
-  let seedCounter = 0
-
+// Generate monthly data for a given view date using real trade data
+const generateMonthData = (viewDate: Date, trades: Trade[]): DayData[] => {
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -32,6 +26,20 @@ const generateMonthData = (viewDate: Date): DayData[] => {
   const today = new Date()
   const isSameMonth = today.getFullYear() === year && today.getMonth() === month
   const todayDate = isSameMonth ? today.getDate() : -1
+
+  // Group trades by date for the current month
+  const dailyTradeMap = new Map<number, { trades: number; pnl: number }>()
+  
+  trades.forEach(trade => {
+    const tradeDate = parseLocalDate(trade.closeDate || trade.openDate)
+    if (getYear(trade.closeDate || trade.openDate) === year && getMonth(trade.closeDate || trade.openDate) === month) {
+      const day = tradeDate.getDate()
+      const existing = dailyTradeMap.get(day) || { trades: 0, pnl: 0 }
+      existing.trades += 1
+      existing.pnl += trade.netPnl
+      dailyTradeMap.set(day, existing)
+    }
+  })
 
   const data: DayData[] = []
 
@@ -46,30 +54,16 @@ const generateMonthData = (viewDate: Date): DayData[] => {
     const isToday = isSameMonth && day === todayDate
     const isFuture = !isSameMonth ? false : day > todayDate
 
-    let trades = 0
-    let pnl = 0
+    const dayData = dailyTradeMap.get(day) || { trades: 0, pnl: 0 }
 
-    if (!isFuture) {
-      const seed1 = baseSeed + seedCounter++
-      const seed2 = baseSeed + seedCounter++
-      const seed3 = baseSeed + seedCounter++
-
-      if (!isWeekend) {
-        const activity = seededRandom(seed1)
-        if (activity > 0.1) { // 90% chance of weekday trading
-          trades = Math.floor(seededRandom(seed2) * 20) + 1
-          pnl = (seededRandom(seed3) - 0.45) * 1000
-        }
-      } else {
-        const activity = seededRandom(seed1)
-        if (activity > 0.7) { // 30% chance of weekend trading
-          trades = Math.floor(seededRandom(seed2) * 5) + 1
-          pnl = (seededRandom(seed3) - 0.5) * 500
-        }
-      }
-    }
-
-    data.push({ date: day, trades, pnl: Math.round(pnl), isToday, isWeekend, isEmpty: false })
+    data.push({ 
+      date: day, 
+      trades: dayData.trades, 
+      pnl: Math.round(dayData.pnl), 
+      isToday, 
+      isWeekend, 
+      isEmpty: false 
+    })
   }
 
   // Trailing placeholders to complete last week
@@ -92,13 +86,49 @@ const generateMonthData = (viewDate: Date): DayData[] => {
 
 export function TradingStreakHeatmap() {
   const [viewDate, setViewDate] = useState<Date>(new Date())
-  const monthData = generateMonthData(viewDate)
+  const [trades, setTrades] = useState<Trade[]>([])
   const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    setTrades(DataStore.getAllTrades())
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+    return unsubscribe
+  }, [])
+
+  const monthData = useMemo(() => generateMonthData(viewDate, trades), [viewDate, trades])
   const monthLabel = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   const goPrevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))
   const goNextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))
+
+  if (!trades.length) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 1.4 }}
+        className="focus:outline-none"
+      >
+        <div className="bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Heatmap</h3>
+              <Info className="h-4 w-4 text-gray-400" />
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-gray-500 dark:text-gray-400 text-center">
+              <div>No heatmap data available</div>
+              <div className="text-sm mt-1">Import your CSV to see trading activity heatmap</div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
     <motion.div

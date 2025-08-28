@@ -1,4 +1,5 @@
-import { Trade, TradeMetrics } from './trade-data.service'
+import { Trade, TradeMetrics, TradeDataService } from './trade-data.service'
+import TradeMetadataService from './trade-metadata.service'
 
 /**
  * Centralized data store for managing imported trade data
@@ -7,39 +8,88 @@ import { Trade, TradeMetrics } from './trade-data.service'
 export class DataStore {
   private static trades: Trade[] = []
   private static listeners: Array<() => void> = []
-  
+
+  // Format a Date to YYYY-MM-DD using local timezone
+  private static formatLocalYMD(d: Date): string {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   // Add trades from CSV import
-  static async addTrades(newTrades: Partial<Trade>[]): Promise<void> {
+  static async addTrades(newTrades: Partial<Trade>[], clearExisting: boolean = false): Promise<void> {
     const validTrades = newTrades
       .filter(trade => this.validateTrade(trade))
       .map(trade => this.normalizeTradeData(trade as Trade))
-    
-    this.trades = [...this.trades, ...validTrades]
+
+    if (clearExisting) {
+      // Replace all trades with new ones (for fresh imports)
+      this.trades = validTrades
+    } else {
+      // Add to existing trades
+      this.trades = [...this.trades, ...validTrades]
+    }
+
     this.notifyListeners()
   }
-  
+
   // Get all trades
   static getAllTrades(): Trade[] {
     return [...this.trades]
   }
-  
+
+  // Replace all trades (used for fresh imports)
+  static async replaceTrades(newTrades: Partial<Trade>[]): Promise<void> {
+    await this.addTrades(newTrades, true)
+  }
+
+  // Upsert updates for existing trades by id (used by enrichment pipeline)
+  static async upsertTrades(partials: Partial<Trade>[]): Promise<void> {
+    if (!partials || partials.length === 0) return
+    const byId = new Map(partials.filter(p => p.id).map(p => [p.id as string, p]))
+    this.trades = this.trades.map(t => {
+      const patch = byId.get(t.id)
+      return patch ? { ...t, ...patch } : t
+    })
+    this.notifyListeners()
+  }
+
   // Get trades by date range
   static getTradesByDateRange(startDate: Date, endDate: Date): Trade[] {
+    const startYMD = this.formatLocalYMD(startDate)
+    const endYMD = this.formatLocalYMD(endDate)
     return this.trades.filter(trade => {
-      const tradeDate = new Date(trade.openDate)
-      return tradeDate >= startDate && tradeDate <= endDate
+      const ymd = (trade.openDate || '').split('T')[0]
+      return ymd >= startYMD && ymd <= endYMD
     })
   }
-  
+
   // Get trades by symbol
   static getTradesBySymbol(symbol: string): Trade[] {
-    return this.trades.filter(trade => 
+    return this.trades.filter(trade =>
       trade.symbol.toLowerCase() === symbol.toLowerCase()
     )
   }
-  
+
   // Calculate comprehensive metrics
   static calculateMetrics(trades?: Trade[]): TradeMetrics {
+    const tradesToAnalyze = trades || this.trades
+    
+    // Get metadata function from TradeMetadataService
+    const getTradeMetadata = (tradeId: string) => {
+      const metadata = TradeMetadataService.getTradeMetadata(tradeId)
+      return metadata ? {
+        profitTarget: metadata.profitTarget,
+        stopLoss: metadata.stopLoss
+      } : null
+    }
+    
+    return TradeDataService.calculateMetrics(tradesToAnalyze, getTradeMetadata)
+  }
+  
+  // Legacy method for backwards compatibility
+  private static calculateMetricsLegacy(trades?: Trade[]): TradeMetrics {
     const tradesToAnalyze = trades || this.trades
     
     if (tradesToAnalyze.length === 0) {
@@ -53,7 +103,25 @@ export class DataStore {
         avgLossAmount: 0,
         profitFactor: 0,
         totalWinAmount: 0,
-        totalLossAmount: 0
+        totalLossAmount: 0,
+        grossPnl: 0,
+        totalCommissions: 0,
+        avgRoi: 0,
+        maxWin: 0,
+        maxLoss: 0,
+        consecutiveWins: 0,
+        consecutiveLosses: 0,
+        avgTradeDuration: 0,
+        sharpeRatio: 0,
+        maxDrawdown: 0,
+        profitabilityIndex: 0,
+        riskRewardRatio: 0,
+        expectancy: 0,
+        // Added fields to satisfy TradeMetrics interface
+        avgPlannedRMultiple: 0,
+        avgRealizedRMultiple: 0,
+        rMultipleExpectancy: 0,
+        tradesWithValidSLTP: 0
       }
     }
     
@@ -74,6 +142,37 @@ export class DataStore {
     const avgLossAmount = losingTrades > 0 ? totalLossAmount / losingTrades : 0
     const profitFactor = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
 
+    // Additional metrics to satisfy TradeMetrics
+    const grossPnl = tradesToAnalyze.reduce((sum, trade) => sum + (trade.grossPnl || trade.netPnl), 0)
+    const totalCommissions = tradesToAnalyze.reduce((sum, trade) => sum + (trade.commissions || 0), 0)
+    const avgRoi = tradesToAnalyze.reduce((sum, trade) => sum + (trade.netRoi || 0), 0) / Math.max(totalTrades, 1)
+    const maxWin = winningTrades > 0 ? Math.max(...tradesToAnalyze.filter(t => t.netPnl > 0).map(t => t.netPnl)) : 0
+    const maxLoss = losingTrades > 0 ? Math.min(...tradesToAnalyze.filter(t => t.netPnl < 0).map(t => t.netPnl)) : 0
+
+    // Streaks
+    let currentWin = 0, currentLoss = 0, maxWinStreak = 0, maxLossStreak = 0
+    tradesToAnalyze.forEach(t => {
+      if (t.netPnl >= 0) {
+        currentWin++; currentLoss = 0; maxWinStreak = Math.max(maxWinStreak, currentWin)
+      } else {
+        currentLoss++; currentWin = 0; maxLossStreak = Math.max(maxLossStreak, currentLoss)
+      }
+    })
+
+    // Drawdown
+    let running = 0, peak = 0, maxDrawdown = 0
+    tradesToAnalyze.forEach(t => {
+      running += t.netPnl
+      peak = Math.max(peak, running)
+      maxDrawdown = Math.max(maxDrawdown, peak - running)
+    })
+
+    const avgTradeDuration = 0 // not available without per-trade durations in minutes
+    const sharpeRatio = 0 // placeholder until daily returns available
+    const profitabilityIndex = winRate / 100
+    const riskRewardRatio = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
+    const expectancy = (winRate / 100) * avgWinAmount - ((100 - winRate) / 100) * avgLossAmount
+
     return {
       totalTrades,
       netCumulativePnl,
@@ -84,15 +183,33 @@ export class DataStore {
       avgLossAmount,
       profitFactor,
       totalWinAmount,
-      totalLossAmount
+      totalLossAmount,
+      grossPnl,
+      totalCommissions,
+      avgRoi,
+      maxWin,
+      maxLoss,
+      consecutiveWins: maxWinStreak,
+      consecutiveLosses: maxLossStreak,
+      avgTradeDuration,
+      sharpeRatio,
+      maxDrawdown,
+      profitabilityIndex,
+      riskRewardRatio,
+      expectancy,
+      // Added fields to satisfy TradeMetrics interface
+      avgPlannedRMultiple: 0,
+      avgRealizedRMultiple: 0,
+      rMultipleExpectancy: 0,
+      tradesWithValidSLTP: 0
     }
   }
-  
+
   // Calculate dashboard KPIs
   static calculateDashboardKPIs() {
     const metrics = this.calculateMetrics()
     const trades = this.getAllTrades()
-    
+
     return {
       netPnl: {
         value: metrics.netCumulativePnl,
@@ -118,25 +235,33 @@ export class DataStore {
       tradeExpectancy: {
         value: (metrics.winRate / 100) * metrics.avgWinAmount - ((100 - metrics.winRate) / 100) * metrics.avgLossAmount,
         formatted: this.formatCurrency((metrics.winRate / 100) * metrics.avgWinAmount - ((100 - metrics.winRate) / 100) * metrics.avgLossAmount)
+      },
+      avgPlannedRMultiple: {
+        value: metrics.avgPlannedRMultiple || 0,
+        formatted: `${(metrics.avgPlannedRMultiple || 0).toFixed(2)}R`
+      },
+      avgRealizedRMultiple: {
+        value: metrics.avgRealizedRMultiple || 0,
+        formatted: `${(metrics.avgRealizedRMultiple || 0).toFixed(2)}R`
       }
     }
   }
-  
+
   // Calculate performance metrics for analytics page
   static calculatePerformanceMetrics() {
     const trades = this.getAllTrades()
     const metrics = this.calculateMetrics()
-    
+
     if (trades.length === 0) {
       return this.getEmptyPerformanceMetrics()
     }
-    
+
     // Group trades by day for daily metrics
     const dailyGroups = this.groupTradesByDay(trades)
-    const dailyMetrics = Object.values(dailyGroups).map(dayTrades => 
+    const dailyMetrics = Object.values(dailyGroups).map(dayTrades =>
       this.calculateMetrics(dayTrades)
     )
-    
+
     return {
       // Summary metrics
       netPnL: { value: metrics.netCumulativePnl, formatted: this.formatCurrency(metrics.netCumulativePnl) },
@@ -146,14 +271,14 @@ export class DataStore {
       avgNetTradePnL: { value: metrics.netCumulativePnl / trades.length },
       avgDailyVolume: { value: this.calculateAvgDailyVolume(trades) },
       loggedDays: { value: Object.keys(dailyGroups).length },
-      
+
       // Daily metrics
       avgDailyWinRate: { value: dailyMetrics.reduce((sum, m) => sum + m.winRate, 0) / dailyMetrics.length },
       avgDailyNetPnL: { value: dailyMetrics.reduce((sum, m) => sum + m.netCumulativePnl, 0) / dailyMetrics.length },
       maxDailyNetDrawdown: { value: Math.min(...dailyMetrics.map(m => m.netCumulativePnl)) },
       largestProfitableDay: { value: Math.max(...dailyMetrics.map(m => m.netCumulativePnl)) },
       largestLosingDay: { value: Math.min(...dailyMetrics.map(m => m.netCumulativePnl)) },
-      
+
       // Trade-specific metrics
       avgTradeWinLoss: { value: metrics.avgWinAmount / Math.max(metrics.avgLossAmount, 1) },
       avgHoldTime: { value: this.calculateAvgHoldTime(trades), formatted: this.formatDuration(this.calculateAvgHoldTime(trades)) },
@@ -161,22 +286,22 @@ export class DataStore {
       largestLosingTrade: { value: Math.min(...trades.map(t => t.netPnl)) },
       longsWinRate: { value: this.calculateSideWinRate(trades, 'LONG') },
       shortsWinRate: { value: this.calculateSideWinRate(trades, 'SHORT') },
-      
+
       // Additional metrics
       avgDailyWinLoss: { value: this.calculateAvgDailyWinLoss(dailyMetrics) },
       avgNetDrawdown: { value: this.calculateAvgDrawdown(trades) },
       avgTradingDaysDuration: { value: this.calculateAvgTradingDayDuration(dailyGroups) },
       longestTradeDuration: { value: this.calculateLongestTradeDuration(trades) },
-      avgPlannedRMultiple: { value: 0, formatted: '0R' }, // Placeholder
-      avgRealizedRMultiple: { value: 0, formatted: '0R' }, // Placeholder
+      avgPlannedRMultiple: { value: metrics.avgPlannedRMultiple, formatted: `${metrics.avgPlannedRMultiple.toFixed(2)}R` },
+      avgRealizedRMultiple: { value: metrics.avgRealizedRMultiple, formatted: `${metrics.avgRealizedRMultiple.toFixed(2)}R` },
       zellaScale: { current: 7.5, max: 10, color: 'green' as const } // Placeholder
     }
   }
-  
+
   // Get chart data for various visualizations
   static getChartData() {
     const trades = this.getAllTrades()
-    
+
     return {
       dailyPnL: this.getDailyPnLData(trades),
       cumulativePnL: this.getCumulativePnLData(trades),
@@ -186,7 +311,7 @@ export class DataStore {
       drawdownData: this.getDrawdownData(trades)
     }
   }
-  
+
   // Subscribe to data changes
   static subscribe(callback: () => void): () => void {
     this.listeners.push(callback)
@@ -194,13 +319,26 @@ export class DataStore {
       this.listeners = this.listeners.filter(listener => listener !== callback)
     }
   }
-  
+
   // Clear all data (for testing)
   static clearData(): void {
     this.trades = []
     this.notifyListeners()
   }
-  
+
+  // Get data source information for debugging
+  static getDataInfo(): { 
+    count: number
+    lastUpdated: number
+    sampleTradeId?: string 
+  } {
+    return {
+      count: this.trades.length,
+      lastUpdated: Date.now(),
+      sampleTradeId: this.trades[0]?.id
+    }
+  }
+
   // Private helper methods
   private static validateTrade(trade: Partial<Trade>): boolean {
     return !!(
@@ -210,31 +348,98 @@ export class DataStore {
       typeof trade.contractsTraded === 'number'
     )
   }
-  
+
   private static normalizeTradeData(trade: Trade): Trade {
+    // Normalize dates to YYYY-MM-DD (local), avoid UTC shifts
+    const normalizeYMD = (value?: string): string | undefined => {
+      if (!value) return undefined
+      // If includes 'T', take date part
+      if (value.includes('T')) return value.split('T')[0]
+      // If MM/DD/YYYY, convert
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [mm, dd, yyyy] = value.split('/')
+        return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
+      }
+      // If YYYY-MM-DD, keep
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+      // Fallback: parse with Date and format locally
+      const d = new Date(value)
+      return isNaN(d.getTime()) ? value : DataStore.formatLocalYMD(d)
+    }
+
+    const openYMD = normalizeYMD(trade.openDate) || DataStore.formatLocalYMD(new Date())
+    const closeYMD = normalizeYMD(trade.closeDate) || openYMD
+
+    // Derive sensible defaults for Best Exit fields if missing.
+    // Without intra-trade MFE path, we use realized exit metrics as a proxy so the UI can display values.
+    // Compute normalized ROI percent
+    const parseProvidedRoiToPercent = (roi: any): number | undefined => {
+      if (roi === undefined || roi === null || roi === '') return undefined
+      if (typeof roi === 'string') {
+        const cleaned = roi.replace('%', '').trim()
+        const n = parseFloat(cleaned)
+        return isNaN(n) ? undefined : n
+      }
+      if (typeof roi === 'number') {
+        // If value looks like a ratio (<= 1), convert to percent
+        return roi <= 1 ? roi * 100 : roi
+      }
+      return undefined
+    }
+
+    const costBasis = (() => {
+      const adjusted = trade.adjustedCost
+      if (typeof adjusted === 'number' && adjusted > 0) return adjusted
+      const qty = typeof trade.contractsTraded === 'number' && trade.contractsTraded > 0 ? trade.contractsTraded : 1
+      const entry = typeof trade.entryPrice === 'number' ? Math.abs(trade.entryPrice) : 0
+      const basis = entry * qty
+      return basis > 0 ? basis : 0
+    })()
+
+    const computedRoiPct = (() => {
+      const provided = parseProvidedRoiToPercent(trade.netRoi)
+      if (provided !== undefined) return provided
+      if (typeof trade.netPnl === 'number' && costBasis > 0) return (trade.netPnl / costBasis) * 100
+      return 0
+    })()
+
+    const realizedBestExitPnl = typeof trade.bestExitPnl === 'number' ? trade.bestExitPnl : trade.netPnl
+    const realizedBestExitPercent = typeof trade.bestExitPercent === 'string'
+      ? trade.bestExitPercent
+      : `${computedRoiPct.toFixed(2)}%`
+    const realizedBestExitPrice = typeof trade.bestExitPrice === 'number' ? trade.bestExitPrice : trade.exitPrice
+    const realizedBestExitTime = typeof trade.bestExitTime === 'string' && trade.bestExitTime.length > 0
+      ? trade.bestExitTime
+      : (trade.exitTime || trade.closeTime)
+
     return {
       ...trade,
       id: trade.id || `trade_${Date.now()}_${Math.random()}`,
-      closeDate: trade.closeDate || trade.openDate,
+      openDate: openYMD,
+      closeDate: closeYMD,
       status: trade.netPnl >= 0 ? 'WIN' : 'LOSS',
-      netRoi: trade.netRoi || (trade.netPnl / Math.max(trade.adjustedCost || 1, 1)),
+      // netRoi is stored as a percentage number (e.g., 12.5 means 12.5%)
+      netRoi: computedRoiPct,
       commissions: trade.commissions || 0,
       grossPnl: trade.grossPnl || trade.netPnl,
-      side: trade.side || 'LONG'
+      side: trade.side || 'LONG',
+      // Best exit fallbacks
+      bestExitPnl: realizedBestExitPnl,
+      bestExitPercent: realizedBestExitPercent,
+      bestExitPrice: realizedBestExitPrice,
+      bestExitTime: realizedBestExitTime
     }
   }
-  
+
   private static calculateCurrentStreak(trades: Trade[]): { value: number; type: 'win' | 'loss' } {
     if (trades.length === 0) return { value: 0, type: 'win' }
-    
-    const sortedTrades = [...trades].sort((a, b) => 
-      new Date(b.openDate).getTime() - new Date(a.openDate).getTime()
-    )
-    
+    // Sort by YYYY-MM-DD strings to avoid UTC parsing issues
+    const sortedTrades = [...trades].sort((a, b) => b.openDate.localeCompare(a.openDate))
+
     let streak = 1
     const latestTrade = sortedTrades[0]
     const streakType = latestTrade.netPnl >= 0 ? 'win' : 'loss'
-    
+
     for (let i = 1; i < sortedTrades.length; i++) {
       const currentType = sortedTrades[i].netPnl >= 0 ? 'win' : 'loss'
       if (currentType === streakType) {

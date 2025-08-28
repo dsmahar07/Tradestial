@@ -10,7 +10,9 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { DataStore } from '@/services/data-store.service'
+import { Trade as RealTrade } from '@/services/trade-data.service'
 
 interface Trade {
   id: string
@@ -138,10 +140,89 @@ const timeRanges = ['Today', 'Last 7 Days', 'Last Month', 'All Time']
 
 export function RecentTradesTable() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('Today')
-  const [visibleTrades, setVisibleTrades] = useState(6)
-  
-  const showMoreTrades = () => {
-    setVisibleTrades(prev => Math.min(prev + 3, recentTrades.length))
+  const [trades, setTrades] = useState<RealTrade[]>([])
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    const initialTrades = DataStore.getAllTrades()
+    console.log('🔍 Recent Trades Table - Initial load:', initialTrades.length)
+    setTrades(initialTrades)
+    
+    const unsubscribe = DataStore.subscribe(() => {
+      const updatedTrades = DataStore.getAllTrades()
+      console.log('🔍 Recent Trades Table - Data update received:', updatedTrades.length)
+      setTrades(updatedTrades)
+    })
+    return unsubscribe
+  }, [])
+
+  // Convert real trades to display format
+  const recentTrades = useMemo(() => {
+    console.log('🔍 Recent Trades Table - Processing trades:', trades.length)
+    
+    console.log('🔍 Processing trades:', trades.length)
+    
+    const processedTrades = trades
+      .sort((a, b) => new Date(b.closeDate || b.openDate).getTime() - new Date(a.closeDate || a.openDate).getTime())
+      .map((trade, index): Trade => ({
+        id: trade.id, // Use the original unique ID from parser
+        symbol: trade.symbol,
+        type: (trade.side === 'LONG' ? 'BUY' : 'SELL') as 'BUY' | 'SELL',
+        quantity: trade.contractsTraded || 1,
+        entryPrice: trade.entryPrice || 0,
+        exitPrice: trade.exitPrice || 0,
+        pnl: trade.netPnl,
+        pnlPercentage: trade.netRoi || 0,
+        timestamp: formatTimestamp(trade.closeDate || trade.openDate),
+        duration: calculateDuration(trade.entryTime, trade.exitTime) || '0m',
+        status: 'CLOSED' as const
+      }))
+    
+    console.log('🔍 Final processed trades for table:', processedTrades.length)
+    return processedTrades
+  }, [trades])
+
+  // Helper functions
+  function formatTimestamp(dateStr: string): string {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffMins < 60) return `${diffMins} mins ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${diffDays}d ago`
+  }
+
+  function calculateDuration(entryTime?: string, exitTime?: string): string {
+    if (!entryTime || !exitTime) return 'N/A'
+    
+    try {
+      const entry = new Date(`1970-01-01 ${entryTime}`)
+      const exit = new Date(`1970-01-01 ${exitTime}`)
+      let diffMs = exit.getTime() - entry.getTime()
+      
+      // Handle trades that cross midnight (negative duration)
+      if (diffMs < 0) {
+        diffMs += 24 * 60 * 60 * 1000 // Add 24 hours
+      }
+      
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      
+      if (diffMins < 1) return '<1m'
+      
+      const hours = Math.floor(diffMins / 60)
+      const mins = diffMins % 60
+
+      if (hours > 0) {
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+      }
+      return `${mins}m`
+    } catch {
+      return 'N/A'
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -161,12 +242,12 @@ export function RecentTradesTable() {
       transition={{ duration: 0.5, delay: 1.0 }}
       className="focus:outline-none h-full"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none h-full flex flex-col min-h-0">
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none h-[870px] flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Recent Trades
+              Recent Trades ({recentTrades.length})
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Latest trading activity
@@ -201,7 +282,7 @@ export function RecentTradesTable() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto flex-1 min-h-0">
+        <div className="overflow-auto flex-1 min-h-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-[#2a2a2a]">
@@ -224,12 +305,12 @@ export function RecentTradesTable() {
                   P&L
                 </th>
                 <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Time
+                  Duration
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {recentTrades.slice(0, visibleTrades).map((trade, index) => (
+              {recentTrades.map((trade, index) => (
                 <motion.tr
                   key={trade.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -288,14 +369,9 @@ export function RecentTradesTable() {
                     </div>
                   </td>
                   <td className="py-4 px-2 text-right">
-                    <div className="flex flex-col items-end text-xs text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{trade.timestamp}</span>
-                      </div>
-                      <span className="text-gray-400 dark:text-gray-500">
-                        {trade.duration}
-                      </span>
+                    <div className="flex items-center justify-end space-x-1 text-sm text-gray-600 dark:text-gray-300">
+                      <Clock className="h-4 w-4" />
+                      <span className="font-medium">{trade.duration}</span>
                     </div>
                   </td>
                 </motion.tr>
@@ -304,22 +380,9 @@ export function RecentTradesTable() {
           </table>
         </div>
 
-        {/* Show More Button */}
-        {visibleTrades < recentTrades.length && (
-          <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={showMoreTrades}
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-            >
-              Show More Trades ({recentTrades.length - visibleTrades} remaining)
-            </Button>
-          </div>
-        )}
 
         {/* Summary Footer */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-[#2a2a2a]">
+        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-[#2a2a2a]">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-lg font-semibold text-green-600 dark:text-green-400">

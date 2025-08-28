@@ -6,34 +6,78 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn, formatCurrencyValue } from '@/lib/utils'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts'
 import { FileText, Settings, Bold, Italic, Underline, Strikethrough, Eraser, Palette, Type, Minus, Plus, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Undo, Redo, Link as LinkIcon, Code, Quote, ImagePlus } from 'lucide-react'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTheme } from '@/hooks/use-theme'
 import Image from 'next/image'
+import { Trade } from '@/services/trade-data.service'
 
 type DayDetailModalProps = {
   open: boolean
   onClose: () => void
   date: Date | null
   pnl?: number
+  trades?: Trade[]
 }
 
 type ChartPoint = { time: string; value: number }
 
-function buildChartData(pnl?: number): ChartPoint[] {
-  // Generate a simple day equity curve based on sign of P&L
-  const baseline = [0, -200, -400, -600, -800, -1000]
-  const positive = [0, 200, 350, 500, 650, 800]
-  const negative = [0, -300, -600, -1000, -800, -600]
-  const src = typeof pnl === 'number' ? (pnl >= 0 ? positive : negative) : baseline
-  return src.map((v, idx) => ({ time: `${9 + idx}:00`, value: v }))
+function formatLocalTime(iso?: string | null): string {
+  if (!iso) return '—'
+  const utc = new Date(iso)
+  if (isNaN(utc.getTime())) return '—'
+  // Read user-selected timezone offset (minutes from UTC). Fallback to current app default if missing.
+  let targetOffset = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = window.localStorage.getItem('import:timezoneOffsetMinutes')
+        if (stored != null && stored !== '') return parseInt(stored)
+      }
+    } catch {}
+    return -new Date().getTimezoneOffset()
+  })()
+
+  // Convert UTC -> target timezone by adding offset minutes, then format as UTC to avoid applying browser offset again.
+  const shifted = new Date(utc.getTime() + targetOffset * 60 * 1000)
+  return shifted.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
 }
 
-export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps) {
+function buildChartDataFromTrades(trades: Trade[] | undefined, fallbackPnl?: number): ChartPoint[] {
+  if (!trades || trades.length === 0) {
+    // fallback to previous simple curve if no trades for the day
+    const baseline = [0, -200, -400, -600, -800, -1000]
+    const positive = [0, 200, 350, 500, 650, 800]
+    const negative = [0, -300, -600, -1000, -800, -600]
+    const src = typeof fallbackPnl === 'number' ? (fallbackPnl >= 0 ? positive : negative) : baseline
+    return src.map((v, idx) => ({ time: `${9 + idx}:00`, value: v }))
+  }
+
+  // Sort trades by closeTime/exitTime/closeDate, fallback to openDate
+  const sorted = [...trades].sort((a, b) => {
+    const ta = new Date(a.closeDate || a.openDate).getTime()
+    const tb = new Date(b.closeDate || b.openDate).getTime()
+    return ta - tb
+  })
+
+  let cumulative = 0
+  const points: ChartPoint[] = []
+  sorted.forEach((t, idx) => {
+    cumulative += t.netPnl || 0
+    // Build a readable time label
+    const tLabel = t.closeTime || t.exitTime || t.openTime || new Date(t.closeDate || t.openDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || `T${idx + 1}`
+    points.push({ time: tLabel, value: Math.round(cumulative) })
+  })
+  // Ensure we at least have a starting zero point for nicer area start
+  points.unshift({ time: 'Start', value: 0 })
+  return points
+}
+
+export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailModalProps) {
   const isPositive = typeof pnl === 'number' && pnl >= 0
-  const chartData = buildChartData(pnl)
+  const chartData = buildChartDataFromTrades(trades, pnl)
   const { theme } = useTheme()
-  const isDarkTheme = theme === 'dark' || (theme === 'system' && typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+  // Determine dark mode via document class when available, otherwise fallback to explicit theme value
+  const isDarkTheme = typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : theme === 'dark'
 
   // Note editor state
   const [isNoteMode, setIsNoteMode] = useState<boolean>(false)
@@ -150,14 +194,27 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
     exec('fontSize', String(clamped + 1))
   }
 
-  // Simple mock stats (can be wired to real data later)
-  const totalTrades = typeof pnl === 'number' && pnl !== 0 ? 2 : 0
-  const winners = isPositive ? 1 : 1
-  const losers = isPositive ? 1 : 1
-  const grossPnl = Math.round((pnl ?? 0) * 0.86)
-  const commissions = Math.abs(Math.round((pnl ?? 0) * 0.14))
-  const profitFactor = isPositive ? 1.45 : 0.68
+  // Real stats from trades
+  const totalTrades = trades?.length ?? 0
+  const winners = (trades || []).filter(t => t.status === 'WIN').length
+  const losers = (trades || []).filter(t => t.status === 'LOSS').length
+  const grossPnl = Math.round((trades || []).reduce((sum, t) => sum + (t.grossPnl ?? t.netPnl ?? 0), 0))
+  const commissions = Math.round(Math.abs((trades || []).reduce((sum, t) => sum + (t.commissions || 0), 0)))
+  const totalWinAmt = (trades || []).filter(t => t.netPnl > 0).reduce((s, t) => s + t.netPnl, 0)
+  const totalLossAmt = Math.abs((trades || []).filter(t => t.netPnl < 0).reduce((s, t) => s + t.netPnl, 0))
+  const profitFactor = totalLossAmt > 0 ? totalWinAmt / totalLossAmt : totalWinAmt > 0 ? Infinity : 0
   const winrate = totalTrades ? Math.round((winners / totalTrades) * 100) : 0
+
+  // Only show the last 3 trades in the table (most recent by close/open date)
+  const displayedTrades = useMemo<Trade[]>(() => {
+    const list = [...(trades || [])]
+    list.sort((a, b) => {
+      const ta = new Date(a.closeDate || a.openDate).getTime()
+      const tb = new Date(b.closeDate || b.openDate).getTime()
+      return tb - ta // desc: newest first
+    })
+    return list.slice(0, 3)
+  }, [trades])
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -167,7 +224,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
             <div className="flex items-center gap-3 text-lg">
               <span className="font-semibold">{date ? date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }) : '—'}</span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300" />
-              <span className={cn('text-sm font-semibold', isPositive ? 'text-green-600' : 'text-red-600')}>
+              <span className={cn('text-sm font-semibold', isPositive ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
                 Net P&L {typeof pnl === 'number' ? `${pnl >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(pnl))}`.replace('$-', '-') : '$0'}
               </span>
             </div>
@@ -374,7 +431,7 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                       return (
                         <div className="bg-white dark:bg-[#171717] border rounded-md px-2 py-1 text-xs shadow">
                           <div className="font-medium mb-0.5">{p.time}</div>
-                          <div className={cn(p.value >= 0 ? 'text-green-600' : 'text-red-600')}>{`${p.value >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(p.value))}`}</div>
+                          <div className={cn(p.value >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>{`${p.value >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(p.value))}`}</div>
                         </div>
                       )
                     }} />
@@ -416,13 +473,13 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                   <div className="space-y-6">
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Gross P&L</div>
-                      <div className={cn('text-lg font-semibold', (pnl ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                        {(pnl ?? 0) >= 0 ? '+' : '-'}{formatCurrencyValue(Math.abs(grossPnl))}
+                      <div className={cn('text-lg font-semibold', (grossPnl ?? 0) >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                        {(grossPnl ?? 0) >= 0 ? '+' : '-'}{formatCurrencyValue(Math.abs(grossPnl))}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Volume</div>
-                      <div className="text-lg font-semibold">21</div>
+                      <div className="text-lg font-semibold">{(trades || []).reduce((sum, t) => sum + (t.volume || 0), 0)}</div>
                     </div>
                   </div>
                 </div>
@@ -431,11 +488,11 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
                   <div className="space-y-6">
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Commissions</div>
-                      <div className="text-lg font-semibold">${commissions}</div>
+                      <div className="text-lg font-semibold">{formatCurrencyValue(commissions)}</div>
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Profit factor</div>
-                      <div className="text-lg font-semibold">{profitFactor.toFixed(4)}</div>
+                      <div className="text-lg font-semibold">{Number.isFinite(profitFactor) ? profitFactor.toFixed(2) : '∞'}</div>
                     </div>
                   </div>
                 </div>
@@ -443,29 +500,43 @@ export function DayDetailModal({ open, onClose, date, pnl }: DayDetailModalProps
             </div>
           </div>
 
-          {/* Trades table (placeholder) */}
+          {/* Trades table (real data) */}
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-[#2a2a2a] text-gray-600 dark:text-gray-400">
-                  {['Average entry','Best exit P&L','Best exit (%)','Best exit Price','Best exit Time','Close time','Custom_tags','Average exit'].map((h) => (
+                  {['Symbol','Average entry','Best exit P&L','Best exit (%)','Best exit Price','Best exit Time','Close time','Custom tags','Average exit','Net P&L'].map((h) => (
                     <th key={h} className="text-left py-2 px-3 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {[0,1].map((i) => (
-                  <tr key={i} className="border-b border-gray-100 dark:border-[#2a2a2a]">
-                    <td className="py-2 px-3">$23,61{7 + i}.25</td>
-                    <td className="py-2 px-3">{i === 0 ? '-' : '$0'}</td>
-                    <td className="py-2 px-3">-</td>
-                    <td className="py-2 px-3">$0</td>
-                    <td className="py-2 px-3">—</td>
-                    <td className="py-2 px-3">07:{i === 0 ? '21:03' : '14:27'}</td>
-                    <td className="py-2 px-3">—</td>
-                    <td className="py-2 px-3">$23,61{1 + i}.43</td>
-                  </tr>
-                ))}
+                {displayedTrades.map((t) => {
+                  const avgEntry = t.averageEntry ?? t.entryPrice
+                  const avgExit = t.averageExit ?? t.exitPrice
+                  const bestExitPnl = t.bestExitPnl ?? null
+                  const bestExitPercent = t.bestExitPercent ?? null
+                  const bestExitPrice = t.bestExitPrice ?? null
+                  const bestExitTime = t.bestExitTime ?? null
+                  const closeTime = t.closeTime || t.exitTime || ''
+                  const tags = (t.customTags && t.customTags.length > 0) ? t.customTags.join(', ') : (t.tags && t.tags.length > 0 ? t.tags.join(', ') : '—')
+                  return (
+                    <tr key={t.id} className="border-b border-gray-100 dark:border-[#2a2a2a]">
+                      <td className="py-2 px-3">{t.symbol}</td>
+                      <td className="py-2 px-3">{typeof avgEntry === 'number' ? formatCurrencyValue(avgEntry) : '—'}</td>
+                      <td className="py-2 px-3">{typeof bestExitPnl === 'number' ? formatCurrencyValue(bestExitPnl) : '—'}</td>
+                      <td className="py-2 px-3">{bestExitPercent ?? '—'}</td>
+                      <td className="py-2 px-3">{typeof bestExitPrice === 'number' ? formatCurrencyValue(bestExitPrice) : '—'}</td>
+                      <td className="py-2 px-3">{formatLocalTime(bestExitTime)}</td>
+                      <td className="py-2 px-3">{closeTime || '—'}</td>
+                      <td className="py-2 px-3">{tags}</td>
+                      <td className="py-2 px-3">{typeof avgExit === 'number' ? formatCurrencyValue(avgExit) : '—'}</td>
+                      <td className={cn('py-2 px-3 font-medium', (t.netPnl ?? 0) >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                        {(t.netPnl ?? 0) >= 0 ? '+' : '-'}{formatCurrencyValue(Math.abs(t.netPnl || 0))}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

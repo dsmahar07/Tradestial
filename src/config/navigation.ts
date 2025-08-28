@@ -7,7 +7,8 @@ import {
   JournalIcon,
   LightningIcon,
   ChartBarsIcon,
-  GalleryIcon
+  GalleryIcon,
+  CalendarIcon
 } from '@/components/icons/mageicons'
 
 export interface NavigationItem {
@@ -95,6 +96,14 @@ export const navigationConfig: NavigationSection[] = [
         label: 'Gallery',
         href: '/gallery',
         tooltip: 'Media gallery',
+        isEnabled: true
+      },
+      {
+        id: 'resources',
+        icon: CalendarIcon,
+        label: 'Resources',
+        href: '/resources',
+        tooltip: 'Trading resources and tools',
         isEnabled: true
       }
     ]

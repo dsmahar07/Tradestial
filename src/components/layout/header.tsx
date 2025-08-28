@@ -58,6 +58,16 @@ export function DashboardHeader() {
           title: 'Import Trading Data',
           description: 'Sync and import your trading data from various platforms'
         }
+      case '/resources':
+        return {
+          title: 'Trading Resources',
+          description: 'Essential tools and information for successful trading'
+        }
+      case '/settings':
+        return {
+          title: 'Settings',
+          description: 'Manage your account preferences and application settings'
+        }
       case '/dashboard':
       default:
         return {
@@ -70,7 +80,7 @@ export function DashboardHeader() {
   const { title, description } = getPageInfo()
 
   return (
-    <header className="bg-gray-50 dark:bg-[#1C1C1C] text-gray-900 dark:text-white px-6 py-6">
+    <header className="bg-gray-50 dark:bg-[#1C1C1C] text-gray-900 dark:text-white px-6 py-3 border-b border-gray-200 dark:border-[#2a2a2a]">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{description}</p>

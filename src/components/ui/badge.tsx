@@ -42,4 +42,6 @@ const Root = React.forwardRef<HTMLDivElement, BadgeRootProps>(
 )
 Root.displayName = 'Badge'
 
-export { Root }
+const Badge = Root
+
+export { Root, Badge }

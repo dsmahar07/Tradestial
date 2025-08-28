@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
+import { parseLocalDate, getMonth, getYear } from '@/utils/date-utils'
 
 interface MonthData {
     month: string
@@ -17,25 +20,63 @@ interface YearlyCalendarProps {
     className?: string
 }
 
-export function YearlyCalendar({ className }: YearlyCalendarProps) {
-    const [selectedYear, setSelectedYear] = useState(2025)
-    const [selectedTab, setSelectedTab] = useState<'winRate' | 'pnl' | 'trades'>('winRate')
+// Generate yearly data from real trades
+const generateYearData = (trades: Trade[], year: number): MonthData[] => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthlyData: MonthData[] = []
 
-    // Mock data - replace with actual data from your trading service
-    const yearData: MonthData[] = [
-        { month: 'Jan', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Feb', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Mar', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Apr', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'May', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Jun', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Jul', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Aug', trades: 2, pnl: 4667, winRate: 85 },
-        { month: 'Sep', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Oct', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Nov', trades: 0, pnl: 0, winRate: 0 },
-        { month: 'Dec', trades: 0, pnl: 0, winRate: 0 },
-    ]
+    // Initialize all months
+    for (let i = 0; i < 12; i++) {
+        monthlyData.push({
+            month: monthNames[i],
+            trades: 0,
+            pnl: 0,
+            winRate: 0
+        })
+    }
+
+    // Process trades for the selected year
+    const yearTrades = trades.filter(trade => {
+        return getYear(trade.closeDate || trade.openDate) === year
+    })
+
+    yearTrades.forEach(trade => {
+        const monthIndex = getMonth(trade.closeDate || trade.openDate)
+        
+        monthlyData[monthIndex].trades += 1
+        monthlyData[monthIndex].pnl += trade.netPnl
+    })
+
+    // Calculate win rates
+    monthlyData.forEach((monthData, index) => {
+        if (monthData.trades > 0) {
+            const monthTrades = yearTrades.filter(trade => {
+                return getMonth(trade.closeDate || trade.openDate) === index
+            })
+            const winningTrades = monthTrades.filter(trade => trade.netPnl > 0).length
+            monthData.winRate = Math.round((winningTrades / monthData.trades) * 100)
+        }
+    })
+
+    return monthlyData
+}
+
+export function YearlyCalendar({ className }: YearlyCalendarProps) {
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+    const [selectedTab, setSelectedTab] = useState<'winRate' | 'pnl' | 'trades'>('winRate')
+    const [trades, setTrades] = useState<Trade[]>([])
+
+    // Load trades and subscribe to changes
+    useEffect(() => {
+        setTrades(DataStore.getAllTrades())
+        const unsubscribe = DataStore.subscribe(() => {
+            setTrades(DataStore.getAllTrades())
+        })
+        return unsubscribe
+    }, [])
+
+    // Generate year data from real trades
+    const yearData = useMemo(() => generateYearData(trades, selectedYear), [trades, selectedYear])
 
     const totalTrades = yearData.reduce((sum, month) => sum + month.trades, 0)
     const totalPnl = yearData.reduce((sum, month) => sum + month.pnl, 0)
@@ -81,6 +122,30 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
 
     const navigateYear = (direction: 'prev' | 'next') => {
         setSelectedYear(prev => direction === 'prev' ? prev - 1 : prev + 1)
+    }
+
+    // Show empty state when no trades
+    if (!trades.length) {
+        return (
+            <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#171717]", className)}>
+                <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-semibold">Yearly calendar</CardTitle>
+                            <Info className="w-4 h-4 text-gray-400" />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                    <div className="h-32 flex items-center justify-center">
+                        <div className="text-gray-500 dark:text-gray-400 text-center">
+                            <div>No yearly trading data</div>
+                            <div className="text-sm mt-1">Import your CSV to see monthly performance</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )
     }
 
     return (

@@ -7,9 +7,12 @@ import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
-import { Trade, TradeDataService } from '@/services/trade-data.service'
+import { Trade } from '@/services/trade-data.service'
+import { calculateRMultipleMetrics, formatRMultiple } from '@/utils/r-multiple'
+import { useTradeMetadata } from '@/hooks/use-trade-metadata'
 import { Area, AreaChart, Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { cn } from '@/lib/utils'
+import { useAnalytics } from '@/hooks/use-analytics'
 
 type PnlMetric = 'NET P&L' | 'GROSS P&L'
 
@@ -59,43 +62,69 @@ function formatHm(totalMinutes: number | null | undefined): string {
 export default function OverviewPage() {
   usePageTitle('Analytics - Overview')
 
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [trades, setTrades] = useState<Trade[]>([])
+  const { getTradeMetadata } = useTradeMetadata()
   const [pnlMetric, setPnlMetric] = useState<PnlMetric>('NET P&L')
   const [metricMenuOpen, setMetricMenuOpen] = useState(false)
+  const [timeframeMenuOpen, setTimeframeMenuOpen] = useState(false)
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'all' | '1M' | '3M' | '6M' | '1Y'>('all')
   const metricMenuRef = useRef<HTMLDivElement | null>(null)
+  const timeframeMenuRef = useRef<HTMLDivElement | null>(null)
+
+  // Use our new reactive analytics system
+  const { state, loading, error, trades, updateFilters } = useAnalytics()
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (metricMenuRef.current && !metricMenuRef.current.contains(e.target as Node)) {
         setMetricMenuOpen(false)
       }
+      if (timeframeMenuRef.current && !timeframeMenuRef.current.contains(e.target as Node)) {
+        setTimeframeMenuOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // Update filters when PnL metric or timeframe changes
   useEffect(() => {
-    let mounted = true
-    setLoading(true)
-    TradeDataService.getAllTrades()
-      .then((data) => {
-        if (!mounted) return
-        setTrades(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error(err)
-        if (!mounted) return
-        setError('Failed to load trades')
-        setLoading(false)
-      })
-    return () => { mounted = false }
-  }, [])
+    const now = new Date()
+    let dateRange = undefined
+
+    if (selectedTimeframe !== 'all') {
+      const endDate = now
+      const startDate = new Date(now)
+      
+      switch (selectedTimeframe) {
+        case '1M':
+          startDate.setMonth(now.getMonth() - 1)
+          break
+        case '3M':
+          startDate.setMonth(now.getMonth() - 3)
+          break
+        case '6M':
+          startDate.setMonth(now.getMonth() - 6)
+          break
+        case '1Y':
+          startDate.setFullYear(now.getFullYear() - 1)
+          break
+      }
+      
+      dateRange = { startDate: startDate.toISOString(), endDate: endDate.toISOString() }
+    }
+
+    updateFilters({
+      pnlMetric: pnlMetric === 'NET P&L' ? 'NET' : 'GROSS',
+      dateRange
+    })
+  }, [pnlMetric, selectedTimeframe, updateFilters])
 
   const derived = useMemo(() => {
+    console.log('🔍 Derived calculation - trades:', trades?.length || 0)
+    console.log('🔍 Derived calculation - trades data:', trades?.slice(0, 2)) // Show first 2 trades
+    
     if (!trades?.length) {
+      console.log('❌ Derived returning empty - no trades')
       return {
         totalTrades: 0,
         totals: { pnl: 0, commissions: 0, fees: 0, swap: 0 },
@@ -118,6 +147,8 @@ export default function OverviewPage() {
         volumes: { avgDailyContracts: 0 },
         drawdown: { max: 0, maxPct: 0, avg: 0, avgPct: 0 },
         openTrades: 0,
+        avgPlannedRMultiple: 0,
+        avgRealizedRMultiple: 0,
       }
     }
 
@@ -246,6 +277,9 @@ export default function OverviewPage() {
     // Open trades (no closeDate)
     const openTrades = trades.filter(t => !t.closeDate).length
 
+    // R-Multiple calculations
+    const rMultipleMetrics = calculateRMultipleMetrics(trades, getTradeMetadata)
+
     return {
       totalTrades,
       totals: { pnl: totalPnl, commissions, fees, swap },
@@ -268,8 +302,10 @@ export default function OverviewPage() {
       volumes: { avgDailyContracts },
       drawdown: { max: Math.abs(maxDrawdown), maxPct: maxDrawdownPct, avg: Math.abs(avgDrawdown), avgPct: avgDrawdownPct },
       openTrades,
+      avgPlannedRMultiple: rMultipleMetrics.avgPlannedRMultiple,
+      avgRealizedRMultiple: rMultipleMetrics.avgRealizedRMultiple,
     }
-  }, [trades, pnlMetric])
+  }, [trades, pnlMetric, getTradeMetadata])
 
   const handleTabChange = (tabId: string) => {
     console.log('Active tab:', tabId)
@@ -297,8 +333,82 @@ export default function OverviewPage() {
         </div>
         <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
           <div className="w-full space-y-6">
-            {/* Toolbar: P&L metric */}
-            <div className="flex items-center justify-end gap-2 flex-wrap">
+            {/* Toolbar: Timeframe and P&L metric */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    // Debug data flow - always visible
+                    try {
+                      const { DataStore } = await import('@/services/data-store.service')
+                      const directTrades = DataStore.getAllTrades()
+                      
+                      console.log('🔍 Debug Results:')
+                      console.log('  - DataStore trades:', directTrades.length)
+                      console.log('  - useAnalytics trades:', trades?.length || 0)
+                      console.log('  - Loading state:', loading)
+                      console.log('  - Error state:', error)
+                      console.log('  - Analytics state:', state)
+                      
+                      if (directTrades.length > 0) {
+                        console.log('  - Sample trade:', directTrades[0])
+                        alert(`DataStore has ${directTrades.length} trades, but useAnalytics shows ${trades?.length || 0} trades. Check console for details.`)
+                      } else {
+                        alert('DataStore is empty. CSV import may have failed.')
+                      }
+                    } catch (err) {
+                      console.error('Debug failed:', err)
+                      alert('Debug failed. Check console.')
+                    }
+                  }}
+                  className="px-3 py-1.5 text-xs bg-orange-100 dark:bg-orange-800 text-orange-700 dark:text-orange-200 rounded-md hover:bg-orange-200 dark:hover:bg-orange-700 transition-colors"
+                >
+                  🐛 Debug Data
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('🔄 Force refresh analytics...')
+                    window.location.reload()
+                  }}
+                  className="px-3 py-1.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+              <div className="relative" ref={timeframeMenuRef}>
+                <button
+                  onClick={() => setTimeframeMenuOpen(o => !o)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[100px] justify-between"
+                  aria-label="Select timeframe"
+                  aria-expanded={timeframeMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <span>{selectedTimeframe === 'all' ? 'All Time' : selectedTimeframe}</span>
+                  <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", timeframeMenuOpen && "rotate-180")} />
+                </button>
+                {timeframeMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
+                    {[
+                      { value: 'all', label: 'All Time' },
+                      { value: '1M', label: 'Last Month' },
+                      { value: '3M', label: 'Last 3 Months' },
+                      { value: '6M', label: 'Last 6 Months' },
+                      { value: '1Y', label: 'Last Year' }
+                    ].map(timeframe => (
+                      <button 
+                        key={timeframe.value}
+                        onClick={() => { setSelectedTimeframe(timeframe.value as any); setTimeframeMenuOpen(false) }} 
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
+                        role="option"
+                        aria-selected={selectedTimeframe === timeframe.value}
+                      >
+                        {timeframe.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="relative" ref={metricMenuRef}>
                 <button
                   onClick={() => setMetricMenuOpen(o => !o)}
@@ -331,6 +441,7 @@ export default function OverviewPage() {
                   </div>
                 )}
               </div>
+              </div>
             </div>
 
             {/* Loading / Error */}
@@ -339,6 +450,78 @@ export default function OverviewPage() {
             )}
             {error && !loading && (
               <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
+            )}
+            
+            {/* No Data State - Show load test data button */}
+            {!loading && !error && trades?.length === 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">No trading data found</h3>
+                    <p className="text-xs text-blue-600 dark:text-blue-300">Import CSV data or load test data to see analytics</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.location.href = '/import-data'}
+                      className="px-3 py-1.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                    >
+                      Import CSV
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { loadTestDataFromCSV } = await import('@/utils/load-test-data')
+                          await loadTestDataFromCSV()
+                          window.location.reload()
+                        } catch (err) {
+                          console.error('Failed to load test data:', err)
+                          alert('Failed to load test data. Please import CSV manually.')
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 rounded-md hover:bg-green-200 dark:hover:bg-green-700 transition-colors"
+                    >
+                      Load Test Data
+                    </button>
+                    <button
+                      onClick={async () => {
+                        // Debug data flow
+                        try {
+                          const { DataStore } = await import('@/services/data-store.service')
+                          const directTrades = DataStore.getAllTrades()
+                          
+                          console.log('🔍 Debug Results:')
+                          console.log('  - DataStore trades:', directTrades.length)
+                          console.log('  - useAnalytics trades:', trades?.length || 0)
+                          console.log('  - Loading state:', loading)
+                          console.log('  - Error state:', error)
+                          console.log('  - Full state:', state)
+                          
+                          if (directTrades.length > 0) {
+                            alert(`DataStore has ${directTrades.length} trades, but useAnalytics shows ${trades?.length || 0} trades. Check console for details.`)
+                          } else {
+                            alert('DataStore is empty. CSV import may have failed.')
+                          }
+                        } catch (err) {
+                          console.error('Debug failed:', err)
+                          alert('Debug failed. Check console.')
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs bg-orange-100 dark:bg-orange-800 text-orange-700 dark:text-orange-200 rounded-md hover:bg-orange-200 dark:hover:bg-orange-700 transition-colors"
+                    >
+                      Debug
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log('🔄 Refreshing analytics page...')
+                        window.location.reload()
+                      }}
+                      className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-700 transition-colors"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {!loading && !error && (
@@ -514,11 +697,15 @@ export default function OverviewPage() {
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-sm text-zinc-600 dark:text-zinc-400">Average planned R-Multiple</span>
-                        <span className="text-sm font-semibold text-zinc-900 dark:text-white">—</span>
+                        <span className={`text-sm font-semibold ${derived.avgPlannedRMultiple >= 0 ? 'text-teal-600' : 'text-red-600'}`}>
+                          {formatRMultiple(derived.avgPlannedRMultiple)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-sm text-zinc-600 dark:text-zinc-400">Average realized R-Multiple</span>
-                        <span className="text-sm font-semibold text-zinc-900 dark:text-white">—</span>
+                        <span className={`text-sm font-semibold ${derived.avgRealizedRMultiple >= 0 ? 'text-teal-600' : 'text-red-600'}`}>
+                          {formatRMultiple(derived.avgRealizedRMultiple)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-sm text-zinc-600 dark:text-zinc-400">Trade expectancy</span>
@@ -554,8 +741,20 @@ export default function OverviewPage() {
                       <div className="w-2 h-2 rounded-full bg-purple-500 ml-auto"></div>
                     </div>
                     <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={derived.cumulative}>
+                      {derived.cumulative.length === 0 ? (
+                        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600">
+                          <div className="text-center">
+                            <div className="text-gray-400 dark:text-gray-500 mb-2">
+                              <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                            </div>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">No cumulative P&L data</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={derived.cumulative}>
                           <defs>
                             <linearGradient id="overviewCumGreen" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="rgba(16,185,129,0.8)" />
@@ -574,6 +773,7 @@ export default function OverviewPage() {
                           <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" strokeWidth={1} ifOverflow="extendDomain" />
                         </AreaChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
@@ -584,8 +784,20 @@ export default function OverviewPage() {
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>
                     </div>
                     <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={derived.dailyBars}>
+                      {derived.dailyBars.length === 0 ? (
+                        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600">
+                          <div className="text-center">
+                            <div className="text-gray-400 dark:text-gray-500 mb-2">
+                              <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                            </div>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">No daily P&L data</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={derived.dailyBars}>
                           <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
                           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatAxisCurrency} />
                           <Tooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Daily P&L']} />
@@ -596,6 +808,7 @@ export default function OverviewPage() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
                 </section>

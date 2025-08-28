@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+/* Inter is now loaded via next/font in layout.tsx for better performance and hinting */
 
 @tailwind base;
 @tailwind components;
@@ -34,6 +34,40 @@
     right: 8px !important;
     left: auto !important;
     max-width: calc(100vw - 32px);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    text-rendering: optimizeLegibility;
+    font-kerning: normal;
+    font-variant-ligatures: common-ligatures contextual;
+    font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+  }
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+    font-kerning: normal;
+    font-variant-ligatures: common-ligatures contextual;
+    font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+    font-optical-sizing: auto;
+  }
+  
+  /* Remove focus outlines from SVG elements in charts */
+  svg, svg * {
+    outline: none !important;
+  }
+  /* Improve text precision inside SVG charts */
+  svg text {
+    text-rendering: geometricPrecision;
   }
 }
 
@@ -84,26 +118,13 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  
-  /* Remove focus outlines from SVG elements in charts */
-  svg, svg * {
-    outline: none !important;
-  }
-}
-
 @layer utilities {
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    line-clamp: 2; /* standard property for compatibility */
   }
 }
 
@@ -295,4 +316,26 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
+}
+
+/* Animation delay utilities for loading animations */
+@layer utilities {
+  .animation-delay-75 {
+    animation-delay: 75ms;
+  }
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-150 {
+    animation-delay: 150ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-225 {
+    animation-delay: 225ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
 }

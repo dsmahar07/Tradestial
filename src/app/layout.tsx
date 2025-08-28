@@ -2,6 +2,13 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/hooks/use-theme'
 import { PerformanceMonitor } from '@/components/features/performance-monitor'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: {
@@ -70,7 +77,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased overflow-x-hidden bg-background text-foreground" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans subpixel-antialiased overflow-x-hidden bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider
           defaultTheme="light"
           storageKey="tradestial-ui-theme"

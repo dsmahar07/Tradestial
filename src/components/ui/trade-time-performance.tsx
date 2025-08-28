@@ -1,55 +1,125 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Info, Settings } from 'lucide-react'
 import { Button } from './button'
 import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from 'recharts'
 import { useTheme } from '@/hooks/use-theme'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
 
-const sampleTradeTimeData = [
-  // Pre-market and market open (9:30-10:30)
-  { x: 9.5, y: 450 },
-  { x: 9.75, y: -200 },
-  { x: 10.0, y: 800 },
-  { x: 10.25, y: 650 },
-  
-  // Mid-morning (10:30-12:00)
-  { x: 10.5, y: -300 },
-  { x: 10.75, y: 1200 },
-  { x: 11.0, y: 900 },
-  { x: 11.25, y: -500 },
-  { x: 11.5, y: 750 },
-  { x: 11.75, y: -150 },
-  
-  // Lunch time (12:00-13:00) - typically slower
-  { x: 12.0, y: -100 },
-  { x: 12.25, y: 200 },
-  { x: 12.5, y: -250 },
-  { x: 12.75, y: 150 },
-  
-  // Afternoon (13:00-15:00)
-  { x: 13.0, y: 1100 },
-  { x: 13.25, y: 850 },
-  { x: 13.5, y: -400 },
-  { x: 13.75, y: 1350 },
-  { x: 14.0, y: 950 },
-  { x: 14.25, y: -600 },
-  { x: 14.5, y: 1500 },
-  { x: 14.75, y: 700 },
-  
-  // Power hour (15:00-16:00)
-  { x: 15.0, y: 1800 },
-  { x: 15.25, y: -800 },
-  { x: 15.5, y: 2200 },
-  { x: 15.75, y: 1600 },
-  { x: 16.0, y: 950 }
-]
+interface TradeTimeData {
+  x: number // Time in decimal hours (e.g., 9.5 = 9:30)
+  y: number // P&L
+  trade: Trade // Original trade data for tooltip
+  actualTime?: string // Actual time from trade data
+  isDistributed?: boolean // Whether time was distributed artificially
+}
+
+// Generate trade time data from real trades
+const generateTradeTimeData = (trades: Trade[]): TradeTimeData[] => {
+  if (trades.length === 0) return []
+
+  const processedData = trades
+    .map((trade, index) => {
+      let decimalTime: number = 12 // Default to noon if no time found
+      let actualTime: string | undefined
+      let isDistributed = false
+      
+      // Try to extract time from exitTime first
+      if (trade.exitTime && typeof trade.exitTime === 'string') {
+        try {
+          const timeStr = trade.exitTime.trim()
+          
+          // Handle different time formats - support both HH:mm and HH:mm:ss
+          if (timeStr.includes(':')) {
+            const parts = timeStr.split(':')
+            if (parts.length >= 2) {
+              const hours = parseInt(parts[0].trim())
+              const minutes = parseInt(parts[1].trim())
+              
+              if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                decimalTime = hours + minutes / 60
+                // For display, use just HH:mm format
+                actualTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+              }
+            }
+          }
+        } catch (e) {
+          // Failed to parse exitTime, continue to fallback
+        }
+      }
+      
+      // If exitTime didn't work, try entryTime
+      if (decimalTime === 12 && trade.entryTime && typeof trade.entryTime === 'string') {
+        try {
+          const timeStr = trade.entryTime.trim()
+          if (timeStr.includes(':')) {
+            const parts = timeStr.split(':')
+            if (parts.length >= 2) {
+              const hours = parseInt(parts[0].trim())
+              const minutes = parseInt(parts[1].trim())
+              
+              if (!isNaN(hours) && !isNaN(minutes) && hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                decimalTime = hours + minutes / 60
+                // For display, use just HH:mm format
+                actualTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+              }
+            }
+          }
+        } catch (e) {
+          // Failed to parse entryTime, continue to fallback
+        }
+      }
+      
+      // If still no time found, distribute trades evenly across market hours
+      // Only use distribution if we couldn't parse any time data
+      if (decimalTime === 12 && !actualTime) {
+        decimalTime = 9.5 + (index / Math.max(1, trades.length - 1)) * 6.5
+        isDistributed = true
+      }
+      
+      const dataPoint: TradeTimeData = {
+        x: decimalTime,
+        y: trade.netPnl || 0,
+        trade: trade,
+        actualTime: actualTime,
+        isDistributed: isDistributed
+      }
+      
+      // Validate the data point before adding it
+      if (!trade || !trade.id) {
+        console.warn('Invalid trade data found:', trade)
+        return null
+      }
+      
+      return dataPoint
+    })
+    .filter((dataPoint): dataPoint is TradeTimeData => dataPoint !== null) // Remove null values
+  return processedData
+}
 
 export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
   const { theme } = useTheme()
+  const [trades, setTrades] = useState<Trade[]>([])
+  
   // Detect dark mode using document class to avoid comparing against a 'system' literal when theme typing doesn't include it
   const isDark = (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) || theme === 'dark'
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    setTrades(DataStore.getAllTrades())
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+    return unsubscribe
+  }, [])
+
+  // Generate trade time data from real trades
+  const tradeTimeData = useMemo(() => {
+    return generateTradeTimeData(trades)
+  }, [trades])
 
   const formatYAxis = (value: number) => {
     if (value === 0) return '$0'
@@ -68,9 +138,43 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
   }
 
-  // Derive domains and add slight jitter to reduce overlap
+  if (!trades.length || tradeTimeData.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 1.8 }}
+        className="focus:outline-none"
+      >
+        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Trade time performance
+              </h3>
+              <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            </div>
+          </div>
+          <div className="h-[320px] flex items-center justify-center">
+            <div className="text-gray-500 dark:text-gray-400 text-center">
+              <div>No time performance data</div>
+              <div className="text-sm mt-1">Import your CSV with exit times to see trading patterns</div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
+
+  // Derive domains and add slight jitter to reduce overlap while preserving trade data
   const jitter = (n: number) => n + (Math.random() - 0.5) * 0.02
-  const data = sampleTradeTimeData.map(d => ({ x: jitter(d.x), y: d.y }))
+  const data = tradeTimeData.map(d => ({ 
+    x: jitter(d.x), 
+    y: d.y,
+    trade: d.trade,
+    actualTime: d.actualTime,
+    isDistributed: d.isDistributed
+  }))
   const xs = data.map(d => d.x)
   const ys = data.map(d => d.y)
   const minX = Math.min(...xs)
@@ -78,19 +182,21 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
   const minY = Math.min(...ys)
   const maxY = Math.max(...ys)
   const padX = Math.max(0.05, (maxX - minX) * 0.05)
-  // const padY = Math.max(100, (maxY - minY) * 0.05)
 
-  const winners = data.filter(d => d.y >= 0)
-  const losers = data.filter(d => d.y < 0)
+  // Add color information to each data point
+  const coloredData = data.map(d => ({
+    ...d,
+    color: d.y >= 0 ? '#10b981' : '#ef4444'
+  }))
 
   const tooltipBg = isDark ? 'bg-[#171717]' : 'bg-white'
   const tooltipBorder = isDark ? 'border-gray-600' : 'border-gray-200'
 
   // Build hourly x-axis ticks for better readability
-  const startHour = Math.floor(Math.min(minX, 9.5))
-  const endHour = Math.ceil(Math.max(maxX, 16))
+  const startHour = Math.floor(minX)
+  const endHour = Math.ceil(maxX)
   const hourlyTicks: number[] = []
-  for (let h = startHour; h <= endHour; h += 0.5) {
+  for (let h = startHour; h <= endHour; h += 1) { // Use 1-hour intervals for wider time ranges
     hourlyTicks.push(h)
   }
 
@@ -193,36 +299,87 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
               
               <Tooltip cursor={false} content={({ active, payload }) => {
                 if (!active || !payload || !payload.length) return null
-                const p = payload[0].payload as { x: number; y: number }
-                const time = formatXAxis(p.x)
-                const pnl = p.y
-                const signed = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`
-                return (
-                  <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-2 py-1 text-xs shadow focus:outline-none`}>
-                    <div className="font-medium mb-0.5">{time}</div>
-                    <div className={pnl >= 0 ? 'text-green-600' : 'text-red-600'}>{signed}</div>
-                  </div>
-                )
+                
+                try {
+                  const data = payload[0].payload
+                  
+                  // Safety check for data structure
+                  if (!data || typeof data !== 'object') return null
+                  
+                  const trade = data.trade
+                  const time = data.actualTime ? data.actualTime : formatXAxis(data.x)
+                  const pnl = data.y || 0
+                  const signed = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`
+                  
+                  // Validate that color matches P&L
+                  const expectedColor = pnl >= 0 ? '#10b981' : '#ef4444'
+                  const actualColor = data.color
+                  if (actualColor !== expectedColor) {
+                    console.error('Color mismatch detected:', { pnl, expectedColor, actualColor })
+                  }
+                  
+                  // Safety check for trade object
+                  if (!trade || typeof trade !== 'object') {
+                    return (
+                      <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-3 py-2 text-sm shadow focus:outline-none`}>
+                        <div className="font-medium text-gray-900 dark:text-white mb-1">
+                          Trade Data
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          Time: {time}
+                        </div>
+                        <div className={`font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          P&L: {signed}
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  const tradeDate = trade.closeDate || trade.openDate 
+                    ? new Date(trade.closeDate || trade.openDate).toLocaleDateString()
+                    : 'Unknown Date'
+                  
+                  return (
+                    <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-3 py-2 text-sm shadow focus:outline-none`}>
+                      <div className="font-medium text-gray-900 dark:text-white mb-1">
+                        {trade.symbol || 'Unknown Symbol'}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        {tradeDate} at {time}
+                        {data.isDistributed && <span className="ml-1 text-orange-500">(estimated time)</span>}
+                      </div>
+                      <div className="space-y-1">
+                        <div className={`font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          P&L: {signed}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          Entry: ${trade.entryPrice?.toFixed(2) || 'N/A'} → Exit: ${trade.exitPrice?.toFixed(2) || 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                } catch (error) {
+                  console.error('Error rendering Trade Time Performance tooltip:', error)
+                  return (
+                    <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-3 py-2 text-sm shadow focus:outline-none`}>
+                      <div className="text-gray-600 dark:text-gray-400">
+                        Unable to load trade details
+                      </div>
+                    </div>
+                  )
+                }
               }} />
               {/* Legend intentionally omitted to match the reference look */}
               
               <Scatter 
-                name="Profits"
-                data={winners}
+                name="Trades"
+                data={coloredData}
                 fill="#10b981"
-                stroke="#10b981"
-                fillOpacity={0.8}
                 isAnimationActive={false}
-                shape={(props: any) => <Dot cx={props.cx} cy={props.cy} fill={props.fill} stroke={props.stroke} />}
-              />
-              <Scatter 
-                name="Losses"
-                data={losers}
-                fill="#ef4444"
-                stroke="#ef4444"
-                fillOpacity={0.8}
-                isAnimationActive={false}
-                shape={(props: any) => <Dot cx={props.cx} cy={props.cy} fill={props.fill} stroke={props.stroke} />}
+                shape={(props: any) => {
+                  const pointColor = props.payload?.color || '#10b981'
+                  return <Dot cx={props.cx} cy={props.cy} fill={pointColor} stroke={pointColor} />
+                }}
               />
             </ScatterChart>
           </ResponsiveContainer>

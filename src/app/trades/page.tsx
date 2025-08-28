@@ -38,7 +38,7 @@ export default function TradesPage() {
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   
-  const [visibleColumns, setVisibleColumns] = useState({
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
     'symbol': true,
     'open-date': true,
     'status': true,
@@ -104,9 +104,8 @@ export default function TradesPage() {
       trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       trade.id.toLowerCase().includes(searchQuery.toLowerCase())
     
-    const matchesStatus = statusFilter === 'All Status' || 
-      (statusFilter === 'Closed' && (trade.status === 'WIN' || trade.status === 'LOSS')) ||
-      (statusFilter === 'Open' && trade.status === 'OPEN')
+    const matchesStatus = statusFilter === 'All Status' ||
+      trade.status === (statusFilter as 'WIN' | 'LOSS')
     
     return matchesSearch && matchesStatus
   })
@@ -601,27 +600,32 @@ export default function TradesPage() {
                         </td>
                       )}
                       {visibleColumns['net-pnl'] && (
-                        <td className="px-4 py-4 text-right text-sm font-medium text-gray-900 dark:text-gray-100 min-w-[120px] whitespace-nowrap">
-                          <span className={trade.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <td className="px-4 py-4 text-right text-sm font-medium min-w-[120px] whitespace-nowrap">
+                          <span className={`${trade.netPnl >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]'} font-semibold`}>
                             {formatCurrency(trade.netPnl)}
                           </span>
                         </td>
                       )}
+
                       {visibleColumns['net-roi'] && (
-                        <td className="px-4 py-4 text-right text-sm text-gray-900 dark:text-gray-100 min-w-[80px] whitespace-nowrap">
-                          <span className={trade.netRoi >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        <td className="px-4 py-4 text-right text-sm min-w-[80px] whitespace-nowrap">
+                          <span className={`${trade.netRoi >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]'} font-semibold`}>
                             {(trade.netRoi * 100).toFixed(2)}%
                           </span>
                         </td>
                       )}
+
                       {visibleColumns['scale'] && (
                         <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
                           {trade.zellaScale !== undefined ? (
                             <div className="flex justify-center">
                               {[...Array(5)].map((_, i) => (
-                                <span key={i} className={`text-sm ${
-                                  i < trade.zellaScale! ? 'text-blue-400' : 'text-gray-300'
-                                }`}>●</span>
+                                <span
+                                  key={i}
+                                  className={`text-sm ${i < (trade.zellaScale ?? 0) ? 'text-blue-400' : 'text-gray-300'}`}
+                                >
+                                  ●
+                                </span>
                               ))}
                             </div>
                           ) : '--'}

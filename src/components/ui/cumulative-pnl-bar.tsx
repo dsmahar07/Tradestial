@@ -19,7 +19,9 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
 
 interface PnlPeriod {
   period: string
@@ -30,49 +32,53 @@ interface PnlPeriod {
   color: string
 }
 
-// Generate realistic daily cumulative PnL data
-const generatePnlData = (): PnlPeriod[] => {
+// Generate daily P&L data from real trades
+const generatePnlDataFromTrades = (trades: Trade[]): PnlPeriod[] => {
+  if (trades.length === 0) return []
+  
   const data: PnlPeriod[] = []
+  const dailyTradeMap = new Map<string, { pnl: number; trades: number }>()
+  
+  // Group trades by day
+  trades.forEach(trade => {
+    const tradeDate = new Date(trade.closeDate || trade.openDate)
+    const dateKey = tradeDate.toDateString()
+    
+    const existing = dailyTradeMap.get(dateKey) || { pnl: 0, trades: 0 }
+    existing.pnl += trade.netPnl
+    existing.trades += 1
+    dailyTradeMap.set(dateKey, existing)
+  })
+  
+  // Get all trading days and sort them
+  const tradingDays = Array.from(dailyTradeMap.keys())
+    .map(dateKey => new Date(dateKey))
+    .sort((a, b) => a.getTime() - b.getTime())
+  
+  // Take last 14 days or all days if less than 14
+  const recentDays = tradingDays.slice(-14)
+  
   let cumulativePnl = 0
   
-  // Generate last 14 days of data
-  for (let i = 13; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
+  // Calculate cumulative P&L for recent days
+  recentDays.forEach(date => {
+    const dateKey = date.toDateString()
+    const dayData = dailyTradeMap.get(dateKey)!
     
-    // Simulate daily P&L with realistic volatility
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    let dailyPnl = 0
-    let trades = 0
-    
-    if (!isWeekend) {
-      // Trading days: simulate realistic P&L
-      const volatility = Math.random() * 0.8 + 0.2 // 0.2 to 1.0
-      const trend = Math.sin(i * 0.2) * 0.2 // Add some wave pattern
-      dailyPnl = (Math.random() - 0.45 + trend) * 800 * volatility
-      trades = Math.floor(Math.random() * 12) + 3
-    } else {
-      // Weekends: minimal or no trading
-      dailyPnl = Math.random() > 0.8 ? (Math.random() - 0.5) * 200 : 0
-      trades = Math.random() > 0.8 ? Math.floor(Math.random() * 3) : 0
-    }
-    
-    cumulativePnl += dailyPnl
+    cumulativePnl += dayData.pnl
     
     data.push({
       period: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       name: date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
       cumulativePnl: Math.round(cumulativePnl),
-      dailyPnl: Math.round(dailyPnl),
-      trades,
+      dailyPnl: Math.round(dayData.pnl),
+      trades: dayData.trades,
       color: cumulativePnl >= 0 ? '#10b981' : '#ef4444'
     })
-  }
+  })
   
   return data
 }
-
-const pnlData = generatePnlData()
 
 const timeRanges = ['Last 14 Days', 'Last 7 Days', 'This Month', 'All Time']
 const metrics = ['Cumulative P&L', 'Daily P&L', 'Trade Count']
@@ -80,6 +86,31 @@ const metrics = ['Cumulative P&L', 'Daily P&L', 'Trade Count']
 export function CumulativePnlBar() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('Last 14 Days')
   const [selectedMetric, setSelectedMetric] = useState('Cumulative P&L')
+  const [trades, setTrades] = useState<Trade[]>([])
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    const initialTrades = DataStore.getAllTrades()
+    console.log('🔍 Cumulative PNL Bar - Initial load:', initialTrades.length)
+    setTrades(initialTrades)
+    const unsubscribe = DataStore.subscribe(() => {
+      const updatedTrades = DataStore.getAllTrades()
+      console.log('🔍 Cumulative PNL Bar - Data update received:', updatedTrades.length)
+      setTrades(updatedTrades)
+    })
+    return unsubscribe
+  }, [])
+
+  // Generate P&L data from real trades
+  const pnlData = useMemo(() => {
+    console.log('🔍 Cumulative PNL Bar - Generating data from trades:', trades.length)
+    const data = generatePnlDataFromTrades(trades)
+    console.log('🔍 Generated P&L data:', data.length, 'periods')
+    if (data.length > 0) {
+      console.log('🔍 Sample data point:', data[0])
+    }
+    return data
+  }, [trades])
 
   // Get data based on selected metric
   const getChartData = () => {
@@ -111,6 +142,32 @@ export function CumulativePnlBar() {
   }
 
   const chartData = getChartData()
+
+  // Show empty state when no trades
+  if (!trades.length) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 1.2 }}
+        className="focus:outline-none"
+      >
+        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Cumulative P&L
+            </h3>
+          </div>
+          <div className="h-72 flex items-center justify-center">
+            <div className="text-gray-500 dark:text-gray-400 text-center">
+              <div>No P&L data available</div>
+              <div className="text-sm mt-1">Import your CSV to see cumulative P&L chart</div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
+  }
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {

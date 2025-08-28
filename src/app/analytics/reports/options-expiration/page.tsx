@@ -1,19 +1,17 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
-import { Trade, TradeDataService } from '@/services/trade-data.service'
+import { useAnalytics } from '@/hooks/use-analytics'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts'
 
 export default function OptionsExpirationPage() {
   usePageTitle('Analytics - Options: Days till expiration')
-  const [trades, setTrades] = useState<Trade[] | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { trades, loading, error } = useAnalytics()
   
   const handleTabChange = (tabId: string) => {
     console.log('Active tab:', tabId)
@@ -23,22 +21,6 @@ export default function OptionsExpirationPage() {
     console.log(`Selected ${itemId} from ${tabId} tab`)
   }
  
-  useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      try {
-        const data = await TradeDataService.getAllTrades()
-        if (mounted) setTrades(data)
-      } catch (e) {
-        if (mounted) setError('Failed to load trades')
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [])
 
   const bins = useMemo(
     () => ['Same day','1 day','2 days','3 days','4 days','5 days','6 days','7 days','8 days','9 days','10+ days'],

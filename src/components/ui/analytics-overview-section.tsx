@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Info, ChevronDown } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -11,6 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
 
 // Custom Tooltip Component for dark theme support
 const CustomTooltip = ({ active, payload, label, formatter }: any) => {
@@ -31,6 +33,74 @@ const CustomTooltip = ({ active, payload, label, formatter }: any) => {
 }
 
 export function AnalyticsOverviewSection() {
+  const [pnlMetric, setPnlMetric] = useState<'NET P&L' | 'GROSS P&L'>('NET P&L')
+  const [trades, setTrades] = useState<Trade[]>([])
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    // Load initial data
+    setTrades(DataStore.getAllTrades())
+
+    // Subscribe to data changes
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+
+    return unsubscribe
+  }, [])
+
+  // Generate real cumulative and daily data from trades
+  const chartData = useMemo(() => {
+    if (!trades.length) {
+      return { cumulative: [], daily: [] }
+    }
+
+    // Sort trades by date
+    const sortedTrades = [...trades].sort((a, b) => 
+      new Date(a.closeDate || a.openDate).getTime() - new Date(b.closeDate || b.openDate).getTime()
+    )
+
+    // Generate cumulative P&L data
+    let cumulativePnL = 0
+    const cumulativeData = []
+    const dailyMap = new Map<string, number>()
+
+    for (const trade of sortedTrades) {
+      const date = new Date(trade.closeDate || trade.openDate)
+      const dateStr = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+      const pnl = pnlMetric === 'NET P&L' ? trade.netPnl : (trade.grossPnl || trade.netPnl)
+      
+      cumulativePnL += pnl
+      cumulativeData.push({
+        date: dateStr,
+        value: cumulativePnL
+      })
+
+      // Aggregate daily P&L
+      dailyMap.set(dateStr, (dailyMap.get(dateStr) || 0) + pnl)
+    }
+
+    // Generate daily data
+    const dailyData = Array.from(dailyMap.entries()).map(([date, value]) => ({
+      date,
+      value
+    }))
+
+    return { cumulative: cumulativeData, daily: dailyData }
+  }, [trades, pnlMetric])
+
+  if (!trades.length) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+          <div className="text-center py-8">
+            <p className="text-gray-500 dark:text-gray-400">No trade data available. Import your CSV to see analytics.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* P&L Toggle and Top Stats */}
@@ -339,12 +409,7 @@ export function AnalyticsOverviewSection() {
             
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[
-                  { date: '06/17/25', value: -2000 },
-                  { date: '06/25/25', value: 1500 },
-                  { date: '07/15/25', value: 3500 },
-                  { date: '07/23/25', value: 5000 }
-                ]}>
+                <AreaChart data={chartData.cumulative}>
                   <defs>
                     <linearGradient id="cumulativeGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
@@ -387,20 +452,7 @@ export function AnalyticsOverviewSection() {
             
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { date: '06/18/25', value: -1000 },
-                  { date: '06/19/25', value: -500 },
-                  { date: '06/20/25', value: 3000 },
-                  { date: '06/21/25', value: 200 },
-                  { date: '06/27/25', value: -800 },
-                  { date: '06/28/25', value: -300 },
-                  { date: '07/01/25', value: 3000 },
-                  { date: '07/16/25', value: -2500 },
-                  { date: '07/17/25', value: 3000 },
-                  { date: '07/18/25', value: 700 },
-                  { date: '07/19/25', value: -500 },
-                  { date: '07/24/25', value: 800 }
-                ]}>
+                <BarChart data={chartData.daily}>
                   <XAxis 
                     dataKey="date" 
                     axisLine={false}
@@ -417,20 +469,7 @@ export function AnalyticsOverviewSection() {
                     content={<CustomTooltip formatter={(value: any) => [`$${value}`, 'Daily P&L']} />}
                   />
                   <Bar dataKey="value">
-                    {[
-                      { date: '06/18/25', value: -1000 },
-                      { date: '06/19/25', value: -500 },
-                      { date: '06/20/25', value: 3000 },
-                      { date: '06/21/25', value: 200 },
-                      { date: '06/27/25', value: -800 },
-                      { date: '06/28/25', value: -300 },
-                      { date: '07/01/25', value: 3000 },
-                      { date: '07/16/25', value: -2500 },
-                      { date: '07/17/25', value: 3000 },
-                      { date: '07/18/25', value: 700 },
-                      { date: '07/19/25', value: -500 },
-                      { date: '07/24/25', value: 800 }
-                    ].map((entry, index) => (
+                    {chartData.daily.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.value >= 0 ? '#10b981' : '#ef4444'} />
                     ))}
                   </Bar>

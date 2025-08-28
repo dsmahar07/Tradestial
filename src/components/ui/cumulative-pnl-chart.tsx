@@ -1,6 +1,6 @@
   'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Button } from './button'
 import {
@@ -10,152 +10,33 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
+import { useChartData } from '@/hooks/use-analytics'
 
-// Sample PnL data points - consistent 30-minute intervals
-const rawData = [
-  { time: '09:30', value: -500 },
-  { time: '10:00', value: -300 },
-  { time: '10:30', value: -100 },
-  { time: '11:00', value: 200 },
-  { time: '11:30', value: 500 },
-  { time: '12:00', value: 800 },
-  { time: '12:30', value: 600 },
-  { time: '13:00', value: 300 },
-  { time: '13:30', value: -200 },
-  { time: '14:00', value: -400 },
-  { time: '14:30', value: -100 },
-  { time: '15:00', value: 100 },
-  { time: '15:30', value: 400 },
-  { time: '16:00', value: 700 },
-]
+// chartData will be generated dynamically in the component
 
-// Robust data processing for complex PnL data with multiple zero crossings
-const processData = (data: any[]) => {
-  const processed = []
-  
-  for (let i = 0; i < data.length; i++) {
-    const current = data[i]
-    const next = data[i + 1]
-    
-    processed.push(current)
-    
-    if (next) {
-      // Handle zero crossing detection more robustly
-      const currentValue = current.value || 0
-      const nextValue = next.value || 0
-      
-      // Check for sign change (positive to negative or vice versa)
-      const crossesZero = (currentValue > 0 && nextValue < 0) || (currentValue < 0 && nextValue > 0)
-      
-      // Also handle cases where one value is exactly zero
-      const involvesZero = currentValue === 0 || nextValue === 0
-      
-      if (crossesZero && !involvesZero) {
-        // Calculate precise zero crossing point using linear interpolation
-        const valueDiff = nextValue - currentValue
-        const ratio = Math.abs(currentValue) / Math.abs(valueDiff)
-        
-        // Handle time interpolation more robustly
-        let crossingTime = current.time
-        try {
-          const currentTimeParts = current.time.split(':')
-          const nextTimeParts = next.time.split(':')
-          
-          if (currentTimeParts.length >= 2 && nextTimeParts.length >= 2) {
-            const currentMinutes = parseInt(currentTimeParts[0]) * 60 + parseInt(currentTimeParts[1])
-            const nextMinutes = parseInt(nextTimeParts[0]) * 60 + parseInt(nextTimeParts[1])
-            
-            // Handle day boundary crossings
-            let minutesDiff = nextMinutes - currentMinutes
-            if (minutesDiff < 0) minutesDiff += 24 * 60 // Handle next day
-            
-            const crossingMinutes = currentMinutes + (minutesDiff * ratio)
-            const crossingHour = Math.floor(crossingMinutes / 60) % 24
-            const crossingMinute = Math.floor(crossingMinutes % 60)
-            
-            crossingTime = `${crossingHour.toString().padStart(2, '0')}:${crossingMinute.toString().padStart(2, '0')}`
-          }
-        } catch (e) {
-          // Fallback to current time if parsing fails
-          crossingTime = current.time
-        }
-        
-        // Insert zero crossing point
-        processed.push({
-          time: crossingTime,
-          value: 0,
-          isZeroCrossing: true
-        })
-      }
-      
-      // Add intermediate points for very volatile data (large value changes)
-      const valueDiff = Math.abs(nextValue - currentValue)
-      const avgValue = Math.abs((currentValue + nextValue) / 2)
-      
-      // If the change is very large relative to average, add smoothing points
-      if (valueDiff > avgValue * 2 && avgValue > 0) {
-        const steps = Math.min(3, Math.floor(valueDiff / avgValue))
-        
-        for (let step = 1; step <= steps; step++) {
-          const ratio = step / (steps + 1)
-          const interpolatedValue = currentValue + (nextValue - currentValue) * ratio
-          
-          // Calculate interpolated time
-          let interpolatedTime = current.time
-          try {
-            const currentTimeParts = current.time.split(':')
-            const nextTimeParts = next.time.split(':')
-            
-            if (currentTimeParts.length >= 2 && nextTimeParts.length >= 2) {
-              const currentMinutes = parseInt(currentTimeParts[0]) * 60 + parseInt(currentTimeParts[1])
-              const nextMinutes = parseInt(nextTimeParts[0]) * 60 + parseInt(nextTimeParts[1])
-              
-              let minutesDiff = nextMinutes - currentMinutes
-              if (minutesDiff < 0) minutesDiff += 24 * 60
-              
-              const interpolatedMinutes = currentMinutes + (minutesDiff * ratio)
-              const interpolatedHour = Math.floor(interpolatedMinutes / 60) % 24
-              const interpolatedMinute = Math.floor(interpolatedMinutes % 60)
-              
-              interpolatedTime = `${interpolatedHour.toString().padStart(2, '0')}:${interpolatedMinute.toString().padStart(2, '0')}`
-            }
-          } catch (e) {
-            interpolatedTime = current.time
-          }
-          
-          processed.push({
-            time: interpolatedTime,
-            value: interpolatedValue,
-            isInterpolated: true
-          })
-        }
-      }
-    }
-  }
-  
-  return processed
-}
-
-const chartData = processData(rawData)
-
-// Enhanced Tooltip with data point information
+// Simple Tooltip showing only P&L amount
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload
-    const value = payload[0].value
-    const isPositive = value >= 0
-    const isZeroCrossing = data?.isZeroCrossing
-    const isInterpolated = data?.isInterpolated
+    console.log('🔍 Tooltip payload:', payload[0])
+    const value = payload[0].value || payload[0].payload?.value
+    console.log('🔍 Tooltip value:', value)
+    
+    if (value === undefined || value === null) {
+      return (
+        <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+          <div className="font-semibold text-gray-500">
+            No data
+          </div>
+        </div>
+      )
+    }
+    
+    const formattedValue = value >= 0 ? `$${value.toLocaleString()}` : `-$${Math.abs(value).toLocaleString()}`
     
     return (
       <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
-        <div className="text-gray-600 dark:text-gray-300 font-medium mb-1">
-          {label}
-          {isZeroCrossing && <span className="text-blue-500 ml-1">(crossing)</span>}
-          {isInterpolated && <span className="text-gray-400 ml-1">(smooth)</span>}
-        </div>
-        <div className={`font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {isPositive ? '+' : ''}${Math.round(value).toLocaleString()}
+        <div className={`font-semibold ${value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+          {formattedValue}
         </div>
       </div>
     )
@@ -164,6 +45,73 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
+  // Pull reactive, filtered, cached chart data from analytics service
+  const { data: rawData, loading } = useChartData('cumulativePnL')
+
+  // Map reactive data shape to chart's expected shape
+  const chartData = useMemo(() => {
+    if (!rawData || rawData.length === 0) return []
+    // Ensure chronological order
+    const sorted = [...rawData].sort((a: { date: string }, b: { date: string }) => {
+      const ta = new Date(a.date).getTime()
+      const tb = new Date(b.date).getTime()
+      return ta - tb
+    })
+
+    // Map to display-friendly labels
+    const mapped = sorted.map((d: { date: string; cumulative: number }, index: number) => {
+      const dt = new Date(d.date)
+      let label: string
+      if (isNaN(dt.getTime())) {
+        // Fallback if date parsing fails
+        label = d.date
+      } else {
+        // Format as "MM/dd" (e.g., "01/15")
+        const month = String(dt.getMonth() + 1).padStart(2, '0')
+        const day = String(dt.getDate()).padStart(2, '0')
+        label = `${month}/${day}`
+      }
+      return {
+        time: label,
+        value: Math.round(d.cumulative || 0),
+        index
+      }
+    })
+
+    // Prepend a synthetic baseline point at $0 one day before the first data point
+    // Hide its tick label by setting an empty label so it doesn't appear on X-axis.
+    if (sorted.length > 0) {
+      const firstDateStr = sorted[0].date
+      const firstDate = new Date(firstDateStr)
+      if (!isNaN(firstDate.getTime())) {
+        firstDate.setDate(firstDate.getDate() - 1)
+        return [{ time: '', value: 0, index: -1 }, ...mapped]
+      }
+    }
+    return mapped
+  }, [rawData])
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-[385px] flex items-center justify-center">
+        <div className="text-gray-500 dark:text-gray-400 text-center">
+          <div>Loading cumulative P&L…</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!chartData.length) {
+    return (
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-[385px] flex items-center justify-center">
+        <div className="text-gray-500 dark:text-gray-400 text-center">
+          <div>No trade data available</div>
+          <div className="text-sm mt-1">Import your CSV to see cumulative P&L</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
       {/* Header */}
@@ -229,8 +177,13 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               padding={{ left: 0, right: 0 }}
               height={25}
               tickMargin={5}
-              tickFormatter={(value) => value}
-              interval={2}
+              tickFormatter={(value) => {
+                // Skip empty labels (baseline point)
+                if (!value || value === '') return ''
+                return value
+              }}
+              interval="preserveStartEnd"
+              minTickGap={20}
             />
             <YAxis 
               axisLine={false}
@@ -247,15 +200,15 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               width={96}
               tickMargin={8}
               padding={{ top: 0, bottom: 0 }}
+              domain={([dataMin, dataMax]: [number, number], _allowOverflow: boolean) => [
+                Math.min(0, dataMin),
+                Math.max(0, dataMax)
+              ]}
             />
             
             <Tooltip
               content={<CustomTooltip />}
-              cursor={{
-                stroke: '#6b7280',
-                strokeWidth: 1,
-                strokeDasharray: '4 4'
-              }}
+              cursor={false}
             />
             
             <ReferenceLine y={0} stroke="#d1d5db" strokeDasharray="4 4" strokeWidth={1} />
@@ -292,7 +245,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#3559E9"
+              stroke="#5B2CC9"
               strokeWidth={2.5}
               fill="none"
               connectNulls={true}
@@ -302,7 +255,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               dot={false}
               activeDot={{
                 r: 4,
-                fill: "#3559E9",
+                fill: "#5B2CC9",
                 stroke: "#fff",
                 strokeWidth: 2
               }}

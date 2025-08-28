@@ -367,15 +367,15 @@ function RulesEditor({ strategy, onChange }: { strategy: StrategyModel; onChange
         <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">No Playbook Rules</div>
       )}
       <div className="space-y-3">
-        {groups.map(group => (
-          <div key={group.id} className="rounded-lg p-3 bg-gray-50 dark:bg-[#121212]">
+        {groups.map((group, groupIndex) => (
+          <div key={group.id || `group-${groupIndex}`} className="rounded-lg p-3 bg-gray-50 dark:bg-[#121212]">
             <div className="flex items-center gap-2 mb-2">
               <input value={group.title} onChange={(e)=>setGroupTitle(group.id, e.target.value)} placeholder="E.g. Entry criteria" className="flex-1 h-9 rounded-lg bg-gray-100 dark:bg-[#1a1a1a] text-gray-900 dark:text-white px-3 border border-transparent outline-none focus:ring-0" />
               <button onClick={()=>removeGroup(group.id)} className="text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-md hover:bg-gray-200/60 dark:hover:bg-[#2a2a2a]">×</button>
             </div>
             <div className="space-y-2">
-              {group.rules.map(rule => (
-                <div key={rule.id} className="grid grid-cols-12 gap-2 items-center">
+              {group.rules.map((rule, ruleIndex) => (
+                <div key={rule.id || `rule-${ruleIndex}`} className="grid grid-cols-12 gap-2 items-center">
                   <div className="col-span-9">
                     <input value={rule.text} onChange={(e)=>setRule(group.id, rule.id, { text: e.target.value })} placeholder="E.g. Trading above VWAP" className="w-full h-9 rounded-lg bg-white dark:bg-[#121212] text-gray-900 dark:text-white px-3 border border-transparent outline-none focus:ring-0" />
                   </div>

@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, Edit3, Share2 } from 'lucide-react'
-import { XMarkIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline'
 import { Button } from '@/components/ui/button'
 import { MonthlyCalendar } from '@/components/ui/monthly-calendar'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Checkbox from '@radix-ui/react-checkbox'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -19,6 +20,9 @@ import {
   ReferenceLine,
   CartesianGrid 
 } from 'recharts'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
+import { useReviewStatus } from '@/hooks/use-review-status'
 
 interface TradeData {
   time: string
@@ -383,6 +387,11 @@ const sampleTradeCards: TradeCard[] = [
 
 // Process chart data to add zero crossing points for proper gradient separation
 const processChartData = (data: TradeData[]) => {
+  // Safety check for undefined or null data
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return [{ time: '09:30', value: 0 }, { time: '16:00', value: 0 }]
+  }
+  
   const processed = []
   
   for (let i = 0; i < data.length; i++) {
@@ -472,40 +481,142 @@ const columnConfig = {
 }
 
 export function DailyJournalContent() {
+  const router = useRouter()
+  const { reviewStatuses, getReviewStatus, setReviewStatus, setBulkReviewStatus } = useReviewStatus()
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
+  const [trades, setTrades] = useState<Trade[]>([])
+  const [selectedTrades, setSelectedTrades] = useState<string[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const tradesPerPage = 100
+  
   const [visibleColumns, setVisibleColumns] = useState({
-    'average-entry': true,
-    'average-exit': true,
-    'best-exit-pnl': true,
-    'best-exit': true,
-    'best-exit-price': true,
-    'best-exit-time': true,
-    'close-time': true,
-    'custom-tags': true,
-    'duration': true,
-    'gross-pnl': true,
-    'instrument': true,
-    'mistakes': true,
+    'symbol': true,
+    'open-date': true,
+    'status': true,
+    'close-date': true,
+    'entry-price': true,
+    'exit-price': true,
     'net-pnl': true,
     'net-roi': true,
-    'open-time': true,
-    'pips': true,
-    'model-points': true,
-    'price-mae': true,
-    'price-mfe': true,
-    'position-mae': true,
-    'position-mfe': true,
-    'r-multiple': true,
-    'return-per-pip': true,
-    'reviewed': true,
-    'side': true,
-    'tag': true,
-    'ticks': true,
-    'ticks-per-contract': true,
-    'ticker': true,
-    'volume-score': true
+    'scale': true,
+    'reviewed': true
   })
-  const router = useRouter()
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    setTrades(DataStore.getAllTrades())
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+    return unsubscribe
+  }, [])
+
+  // Table helper functions
+  const handleSelectAll = () => {
+    if (selectedTrades.length === trades.length && trades.length > 0) {
+      setSelectedTrades([])
+    } else {
+      setSelectedTrades(trades.map(trade => trade.id))
+    }
+  }
+
+  const handleSelectTrade = (tradeId: string) => {
+    if (selectedTrades.includes(tradeId)) {
+      setSelectedTrades(selectedTrades.filter(id => id !== tradeId))
+    } else {
+      setSelectedTrades([...selectedTrades, tradeId])
+    }
+  }
+
+  const getAvatarColor = (symbol: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500',
+      'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-gray-500'
+    ]
+    const hash = symbol.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+    return colors[hash % colors.length]
+  }
+
+  const getInitials = (symbol: string) => {
+    return symbol.substring(0, 2).toUpperCase()
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
+
+
+  // Generate daily summaries from imported data  
+  const dailySummaries = useMemo(() => {
+    console.log('🔍 Daily Journal - Processing trades:', trades.length)
+    if (!trades.length) return []
+
+    // Group trades by date
+    const tradesByDate = new Map<string, Trade[]>()
+    trades.forEach(trade => {
+      const tradeDate = new Date(trade.closeDate || trade.openDate)
+      const dateKey = tradeDate.toDateString()
+      
+      if (!tradesByDate.has(dateKey)) {
+        tradesByDate.set(dateKey, [])
+      }
+      tradesByDate.get(dateKey)!.push(trade)
+    })
+
+    console.log('🔍 Daily Journal - Trading days:', tradesByDate.size)
+
+    // Convert to daily summary format
+    const dailyData: Array<{
+      id: string
+      date: string
+      dayTrades: Trade[]
+      totalPnL: number
+      winners: number
+      losers: number
+      winRate: string
+    }> = []
+
+    tradesByDate.forEach((dayTrades, dateKey) => {
+      const date = new Date(dateKey)
+      const totalPnL = dayTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
+      const winners = dayTrades.filter(t => t.netPnl > 0).length
+      const losers = dayTrades.filter(t => t.netPnl < 0).length
+      const winRate = dayTrades.length > 0 ? ((winners / dayTrades.length) * 100).toFixed(0) : '0'
+
+      console.log(`🔍 Processing day ${date.toDateString()}: ${dayTrades.length} trades, P&L: ${totalPnL}`)
+
+      dailyData.push({
+        id: `day_${date.getTime()}`,
+        date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+        dayTrades: dayTrades,
+        totalPnL: Math.round(totalPnL),
+        netPnl: Math.round(totalPnL), // For compatibility with existing code
+        isProfit: totalPnL >= 0,
+        winners: winners,
+        losers: losers,
+        winRate: `${winRate}%`,
+        chartData: [
+          { time: '09:30', value: 0 },
+          { time: '16:00', value: Math.round(totalPnL) }
+        ],
+        stats: {
+          totalTrades: dayTrades.length,
+          winners: winners,
+          losers: losers,
+          winrate: `${winRate}%`,
+          grossPnl: Math.round(totalPnL),
+          volume: dayTrades.reduce((sum, t) => sum + (t.contractsTraded || 1), 0),
+          commissions: dayTrades.reduce((sum, t) => sum + (t.commissions || 0), 0),
+          profitFactor: losers > 0 ? parseFloat(Math.abs(dayTrades.filter(t => t.netPnl > 0).reduce((sum, t) => sum + t.netPnl, 0) / dayTrades.filter(t => t.netPnl < 0).reduce((sum, t) => sum + t.netPnl, 0)).toFixed(2)) : 0
+        }
+      })
+    })
+
+    return dailyData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [trades])
 
   const toggleTable = (cardId: string) => {
     const newExpanded = new Set(expandedTables)
@@ -534,11 +645,14 @@ export function DailyJournalContent() {
     router.push('/notes?source=trade&tradeId=' + card.id)
   }
 
-  // Convert trade cards to calendar format
-  const tradingDays = sampleTradeCards.map(card => ({
-    date: card.date,
-    pnl: card.netPnl,
-    isProfit: card.isProfit
+  // Use real daily data or fallback to sample for demo
+  const dataToUse = trades.length > 0 ? dailySummaries : sampleTradeCards
+  
+  // Convert to calendar format
+  const tradingDays = dataToUse.map((item: any) => ({
+    date: item.date,
+    pnl: item.totalPnL || item.netPnl,
+    isProfit: (item.totalPnL || item.netPnl) >= 0
   }))
 
   const handleDateSelect = (date: Date) => {
@@ -548,15 +662,11 @@ export function DailyJournalContent() {
 
   return (
     <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
-      {/* Page Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Journal</h1>
-      </div>
       
       <div className="flex gap-8 max-w-none">
         {/* Left side - Trading cards */}
         <div className="flex-1 space-y-4 min-w-0">
-          {sampleTradeCards.map((card) => {
+          {dataToUse.map((card) => {
             const isTableExpanded = expandedTables.has(card.id)
             
             return (
@@ -769,7 +879,7 @@ export function DailyJournalContent() {
                           <div className="pl-4">
                             <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Profit factor</div>
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {card.stats.profitFactor}
+                              {typeof card.stats.profitFactor === 'number' ? card.stats.profitFactor.toFixed(2) : card.stats.profitFactor}
                             </div>
                           </div>
                         </div>
@@ -778,42 +888,280 @@ export function DailyJournalContent() {
                   </div>
               </div>
               
-              {/* Detailed Trades Table - Toggleable */}
+              {/* Trades Table - Same as Trades Page */}
               {isTableExpanded && (
                 <div className="px-6 pb-6">
-                  <div className="overflow-x-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-track]:dark:bg-gray-800 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
-                    <table className="w-full" style={{ minWidth: '1200px' }}>
-                      <thead className="bg-gray-50 dark:bg-[#171717] border-b border-gray-200 dark:border-[#2a2a2a]">
-                        <tr>
-                          {Object.entries(visibleColumns)
-                            .filter(([_, isVisible]) => isVisible)
-                            .map(([columnKey]) => {
-                              const config = columnConfig[columnKey as keyof typeof columnConfig]
-                              return (
-                                <th key={columnKey} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
-                                  {config?.label || columnKey.replace(/-/g, ' ')}
-                                </th>
-                              )
-                            })}
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white dark:bg-[#171717] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
-                        {card.trades.map((trade, index) => (
-                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer">
-                            {Object.entries(visibleColumns)
-                              .filter(([_, isVisible]) => isVisible)
-                              .map(([columnKey]) => {
-                                const config = columnConfig[columnKey as keyof typeof columnConfig]
-                                return (
-                                  <td key={columnKey} className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 min-w-[120px] whitespace-nowrap">
-                                    {config?.getValue(trade) || 'N/A'}
-                                  </td>
-                                )
-                              })}
+                  <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full table-auto" style={{ minWidth: '1200px' }}>
+                        <thead className="bg-white dark:bg-[#171717] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
+                          <tr>
+                            <th className="w-12 px-4 py-3 text-center">
+                              <div className="flex justify-center">
+                                <Checkbox.Root
+                                  checked={selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0}
+                                  onCheckedChange={() => {
+                                    if (selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0) {
+                                      setSelectedTrades([])
+                                    } else {
+                                      setSelectedTrades(card.dayTrades.map(trade => trade.id))
+                                    }
+                                  }}
+                                  className="w-4 h-4 border border-gray-300 dark:border-[#2a2a2a] rounded flex items-center justify-center outline-none"
+                                  style={{
+                                    backgroundColor: selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0 ? '#3559E9' : 'white',
+                                    borderColor: selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0 ? '#3559E9' : '#d1d5db'
+                                  }}
+                                >
+                                  <Checkbox.Indicator className="text-white">
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                      <polyline points="20,6 9,17 4,12"></polyline>
+                                    </svg>
+                                  </Checkbox.Indicator>
+                                </Checkbox.Root>
+                              </div>
+                            </th>
+                            {visibleColumns['symbol'] && (
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[140px]">
+                                <div className="flex items-center">
+                                  Symbol <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['open-date'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[110px]">
+                                <div className="flex items-center justify-center">
+                                  Open Date <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['status'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[90px]">
+                                <div className="flex items-center justify-center">
+                                  Status <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['close-date'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[110px]">
+                                <div className="flex items-center justify-center">
+                                  Close Date <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['entry-price'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">
+                                <div className="flex items-center justify-center">
+                                  Entry Price <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['exit-price'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">
+                                <div className="flex items-center justify-center">
+                                  Exit Price <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['net-pnl'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[130px]">
+                                <div className="flex items-center justify-center">
+                                  Net P&L <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['net-roi'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[100px]">
+                                <div className="flex items-center justify-center">
+                                  Net ROI <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['scale'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[100px]">
+                                <div className="flex items-center justify-center">
+                                  Scale <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            {visibleColumns['reviewed'] && (
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[100px]">
+                                <div className="flex items-center justify-center">
+                                  Reviewed <ChevronDownIcon className="w-3 h-3 ml-1" />
+                                </div>
+                              </th>
+                            )}
+                            <th className="w-12 px-4 py-3 text-center"></th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white dark:bg-[#171717] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
+                          {card.dayTrades.map((trade) => (
+                            <tr 
+                              key={trade.id} 
+                              className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+                              onClick={() => router.push(`/trades/tracker?trade=${trade.id}`)}
+                            >
+                              <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex justify-center">
+                                  <Checkbox.Root
+                                    checked={selectedTrades.includes(trade.id)}
+                                    onCheckedChange={() => handleSelectTrade(trade.id)}
+                                    className="w-4 h-4 border border-gray-300 dark:border-[#2a2a2a] rounded flex items-center justify-center outline-none"
+                                    style={{
+                                      backgroundColor: selectedTrades.includes(trade.id) ? '#3559E9' : 'white',
+                                      borderColor: selectedTrades.includes(trade.id) ? '#3559E9' : '#d1d5db'
+                                    }}
+                                  >
+                                    <Checkbox.Indicator className="text-white">
+                                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                        <polyline points="20,6 9,17 4,12"></polyline>
+                                      </svg>
+                                    </Checkbox.Indicator>
+                                  </Checkbox.Root>
+                                </div>
+                              </td>
+                              {visibleColumns['symbol'] && (
+                                <td className="px-6 py-4 w-[140px]">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${getAvatarColor(trade.symbol)}`}>
+                                      {getInitials(trade.symbol)}
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{trade.symbol}</span>
+                                  </div>
+                                </td>
+                              )}
+                              {visibleColumns['open-date'] && (
+                                <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[110px]">
+                                  {new Date(trade.openDate).toLocaleDateString('en-US', { 
+                                    day: '2-digit', 
+                                    month: 'short'
+                                  })}
+                                </td>
+                              )}
+                              {visibleColumns['status'] && (
+                                <td className="px-4 py-4 w-[90px]">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      trade.status === 'WIN' ? 'bg-green-500' : 'bg-red-500'
+                                    }`}></div>
+                                    <span className="text-sm text-gray-900 dark:text-gray-100">
+                                      {trade.status === 'WIN' ? 'Win' : trade.status === 'LOSS' ? 'Loss' : trade.status}
+                                    </span>
+                                  </div>
+                                </td>
+                              )}
+                              {visibleColumns['close-date'] && (
+                                <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[110px]">
+                                  {new Date(trade.closeDate).toLocaleDateString('en-US', { 
+                                    day: '2-digit', 
+                                    month: 'short'
+                                  })}
+                                </td>
+                              )}
+                              {visibleColumns['entry-price'] && (
+                                <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[120px]">
+                                  {formatCurrency(trade.entryPrice)}
+                                </td>
+                              )}
+                              {visibleColumns['exit-price'] && (
+                                <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[120px]">
+                                  {formatCurrency(trade.exitPrice)}
+                                </td>
+                              )}
+                              {visibleColumns['net-pnl'] && (
+                                <td className="px-4 py-4 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[130px]">
+                                  <span className={trade.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                    {formatCurrency(trade.netPnl)}
+                                  </span>
+                                </td>
+                              )}
+                              {visibleColumns['net-roi'] && (
+                                <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[100px]">
+                                  <span className={trade.netRoi >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                    {trade.netRoi.toFixed(2)}%
+                                  </span>
+                                </td>
+                              )}
+                              {visibleColumns['scale'] && (
+                                <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[100px]">
+                                  {trade.zellaScale !== undefined ? (
+                                    <div className="flex justify-center">
+                                      {[...Array(5)].map((_, i) => (
+                                        <span key={i} className={`text-sm ${
+                                          i < trade.zellaScale! ? 'text-blue-400' : 'text-gray-300'
+                                        }`}>●</span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-400">--</span>
+                                  )}
+                                </td>
+                              )}
+                              {visibleColumns['reviewed'] && (
+                                <td className="px-4 py-4 text-center w-[100px]" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex justify-center">
+                                    <button
+                                      onClick={() => {
+                                        const currentStatus = getReviewStatus(trade.id)
+                                        let newStatus: 'reviewed' | 'not-reviewed' | null
+                                        
+                                        if (currentStatus === null) {
+                                          newStatus = 'reviewed'
+                                        } else if (currentStatus === 'reviewed') {
+                                          newStatus = 'not-reviewed'
+                                        } else {
+                                          newStatus = null
+                                        }
+                                        
+                                        setReviewStatus(trade.id, newStatus)
+                                      }}
+                                      className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                      title="Click to toggle review status"
+                                    >
+                                      {getReviewStatus(trade.id) === 'reviewed' ? (
+                                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                      ) : getReviewStatus(trade.id) === 'not-reviewed' ? (
+                                        <XCircleIcon className="w-5 h-5 text-red-500" />
+                                      ) : (
+                                        <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-500 hover:border-gray-400 dark:hover:border-gray-300"></div>
+                                      )}
+                                    </button>
+                                  </div>
+                                </td>
+                              )}
+                              <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex justify-center">
+                                  <DropdownMenu.Root>
+                                    <DropdownMenu.Trigger asChild>
+                                      <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors outline-none">
+                                        <EllipsisHorizontalIcon className="w-4 h-4" />
+                                      </button>
+                                    </DropdownMenu.Trigger>
+                                    <DropdownMenu.Portal>
+                                      <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                                        <DropdownMenu.Item 
+                                          className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100"
+                                          onClick={() => router.push(`/trades/tracker/${trade.id}`)}
+                                        >
+                                          View Details
+                                        </DropdownMenu.Item>
+                                        <DropdownMenu.Item className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100">
+                                          Edit Trade
+                                        </DropdownMenu.Item>
+                                        <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-[#2a2a2a]" />
+                                        <DropdownMenu.Item className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer text-red-600 outline-none">
+                                          Delete
+                                        </DropdownMenu.Item>
+                                      </DropdownMenu.Content>
+                                    </DropdownMenu.Portal>
+                                  </DropdownMenu.Root>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}

@@ -31,6 +31,7 @@ interface AnalyticsCardProps {
   donutData?: GaugeData[]
   showHorizontalBars?: boolean
   horizontalBarsData?: GaugeData[]
+  horizontalBarsFormatter?: (value: number, name: string) => string
   showFullPieChart?: boolean
   pieChartData?: GaugeData[]
   showVerticalBars?: boolean
@@ -55,6 +56,7 @@ export function AnalyticsCard({
   donutData = [],
   showHorizontalBars = false,
   horizontalBarsData = [],
+  horizontalBarsFormatter,
   showFullPieChart = false,
   pieChartData = [],
   showVerticalBars = false,
@@ -201,7 +203,9 @@ export function AnalyticsCard({
                           {bar.name}
                         </span>
                         <span className="text-xs font-bold" style={{ color: bar.color }}>
-                          ${bar.value}
+                          {horizontalBarsFormatter 
+                            ? horizontalBarsFormatter(bar.value, bar.name) 
+                            : `$${bar.value}`}
                         </span>
                       </div>
                       <div className="relative h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">

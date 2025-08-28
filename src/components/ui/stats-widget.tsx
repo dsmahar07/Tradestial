@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { AreaChart, Area, ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Dot } from 'recharts'
+import { AreaChart, Area, ResponsiveContainer, LineChart, Line, XAxis, YAxis, ReferenceLine, Dot, Tooltip } from 'recharts'
 import ReactECharts from 'echarts-for-react'
 import {
   DropdownMenu,
@@ -145,62 +145,97 @@ export function StatsWidget({
 
   return (
     <>
-      {/* Net P&L with teal left border */}
+      {/* Net P&L with dynamic color left border */}
       <div className="mb-6 relative">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-r"></div>
-        <div className="pl-4">
+        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-r ${
+          trade && trade.netPnl >= 0 ? 'bg-teal-500' : 'bg-red-500'
+        }`}></div>
+        <div className="pl-4 text-center">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Net P&L</div>
-          <div className="text-2xl font-bold" style={{color: '#14b8a6'}}>
-            $2,025
+          <div className={`text-2xl font-bold ${
+            trade && trade.netPnl >= 0 ? 'text-teal-500' : 'text-red-500'
+          }`}>
+            {trade ? `${trade.netPnl >= 0 ? '+' : ''}$${Math.abs(trade.netPnl).toFixed(2)}` : '$0.00'}
           </div>
         </div>
       </div>
+
+      {/* Divider between header and main content (full-bleed) */}
+      <div className="-mx-4 border-t border-gray-200 dark:border-gray-700 mb-4" />
 
       {/* Trade Metrics */}
       <div className="space-y-2 text-sm">
         <div className="flex justify-between items-center py-1">
           <span className="text-gray-500 dark:text-gray-400">Side</span>
-          <span className="font-bold" style={{color: '#14b8a6'}}>LONG</span>
+          <span className={`font-bold ${
+            trade?.side === 'LONG' ? 'text-teal-500' : trade?.side === 'SHORT' ? 'text-red-600' : 'text-gray-600'
+          } dark:text-gray-300`}>
+            {trade?.side || 'UNKNOWN'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Contracts traded</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">1</span>
+          <span className="font-bold text-gray-600 dark:text-gray-300">
+            {trade?.contractsTraded || 0}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Points</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">101.25</span>
+          <span className="font-bold text-gray-600 dark:text-gray-300">
+            {trade ? Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)).toFixed(2) : '0.00'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Ticks</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">405.0</span>
+          <span className="font-bold text-gray-600 dark:text-gray-300">
+            {trade ? (Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)) * 4).toFixed(1) : '0.0'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Ticks Per Contract</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">405.0</span>
+          <span className="font-bold text-gray-600 dark:text-gray-300">
+            {trade && trade.contractsTraded ? ((Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)) * 4) / trade.contractsTraded).toFixed(1) : '0.0'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Commissions & Fees</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">$0</span>
+          <span className="font-bold text-gray-600 dark:text-gray-300">
+            ${trade?.commissions?.toFixed(2) || '0.00'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Net ROI</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">0.43%</span>
+          <span className={`font-bold ${
+            trade && trade.netRoi >= 0 ? 'text-green-600' : 'text-red-600'
+          } dark:text-gray-300`}>
+            {trade ? `${trade.netRoi >= 0 ? '+' : ''}${trade.netRoi.toFixed(2)}%` : '0.00%'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Gross P&L</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">$2,025</span>
+          <span className={`font-bold ${
+            (trade ? (trade.grossPnl ?? 0) : 0) >= 0 ? 'text-green-600' : 'text-red-600'
+          } dark:text-gray-300`}>
+            {(() => {
+              const gp = trade ? (trade.grossPnl ?? trade.netPnl ?? 0) : 0
+              const sign = gp >= 0 ? '+' : ''
+              return `$${sign}${Math.abs(gp).toFixed(2)}`
+            })()}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Adjusted Cost</span>
-          <span className="font-bold text-gray-600 dark:text-gray-300">$474,440</span>
+          <span className="font-bold text-gray-600 dark:text-gray-300">
+            ${trade ? ((trade.entryPrice || 0) * (trade.contractsTraded || 1)).toFixed(0) : '0'}
+          </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
@@ -448,9 +483,13 @@ export function StatsWidget({
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Price MAE / MFE</span>
           <div className="flex items-center gap-1 text-xs font-bold">
-            <span className="text-red-600 dark:text-red-400">$23,937</span>
+            <span className="text-red-600 dark:text-red-400">
+              {trade ? `$${((trade.entryPrice || 0) - Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)) * 0.3).toFixed(0)}` : '$0'}
+            </span>
             <span className="text-gray-400">/</span>
-            <span style={{color: '#14b8a6'}}>$23,967.25</span>
+            <span style={{color: '#14b8a6'}}>
+              {trade ? `$${((trade.entryPrice || 0) + Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)) * 0.5).toFixed(2)}` : '$0.00'}
+            </span>
           </div>
         </div>
 
@@ -462,10 +501,33 @@ export function StatsWidget({
               <AreaChart data={runningPnlData.slice(-8)}>
                 <defs>
                   <linearGradient id="miniPnlGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.6}/>
-                    <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.1}/>
+                    <stop 
+                      offset="0%" 
+                      stopColor={trade && trade.netPnl >= 0 ? "#14b8a6" : "#ef4444"} 
+                      stopOpacity={0.6}
+                    />
+                    <stop 
+                      offset="100%" 
+                      stopColor={trade && trade.netPnl >= 0 ? "#14b8a6" : "#ef4444"} 
+                      stopOpacity={0.1}
+                    />
                   </linearGradient>
                 </defs>
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 text-xs">
+                          <p className="font-medium text-gray-900 dark:text-white">{label}</p>
+                          <p className={`${payload[0].value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            P&L: ${payload[0].value >= 0 ? '+' : ''}${payload[0].value.toFixed(2)}
+                          </p>
+                        </div>
+                      )
+                    }
+                    return null
+                  }}
+                />
                 <Area
                   type="monotone"
                   dataKey="value"
@@ -628,22 +690,30 @@ export function StatsWidget({
           
           <div className="flex justify-between items-center py-1">
             <span className="font-semibold" style={{color: '#7F85AF'}}>Average Entry</span>
-            <span className="font-bold text-gray-600 dark:text-gray-300">$23,722</span>
+            <span className="font-bold text-gray-600 dark:text-gray-300">
+              ${trade?.entryPrice?.toFixed(2) || '0.00'}
+            </span>
           </div>
           
           <div className="flex justify-between items-center py-1">
             <span className="font-semibold" style={{color: '#7F85AF'}}>Average Exit</span>
-            <span className="font-bold text-gray-600 dark:text-gray-300">$23,823.25</span>
+            <span className="font-bold text-gray-600 dark:text-gray-300">
+              ${trade?.exitPrice?.toFixed(2) || '0.00'}
+            </span>
           </div>
           
           <div className="flex justify-between items-center py-1">
             <span className="font-semibold" style={{color: '#7F85AF'}}>Entry Time</span>
-            <span className="font-bold text-gray-600 dark:text-gray-300">19:48:37</span>
+            <span className="font-bold text-gray-600 dark:text-gray-300">
+              {trade?.entryTime || 'N/A'}
+            </span>
           </div>
           
           <div className="flex justify-between items-center py-1">
             <span className="font-semibold" style={{color: '#7F85AF'}}>Exit Time</span>
-            <span className="font-bold text-gray-600 dark:text-gray-300">20:40:37</span>
+            <span className="font-bold text-gray-600 dark:text-gray-300">
+              {trade?.exitTime || 'N/A'}
+            </span>
           </div>
         </div>
 

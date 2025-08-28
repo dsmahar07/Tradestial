@@ -1,17 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, Plus, Upload, FileText, CheckCircle, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft } from 'lucide-react'
+import { useRef, useState, useMemo } from 'react'
+
+import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OrdersIcon } from '@/components/ui/custom-icons'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Root as DropdownMenu,
+  Content as DropdownMenuContent,
+  Item as DropdownMenuItem,
+  Separator as DropdownMenuSeparator,
+  Trigger as DropdownMenuTrigger,
+} from '@/components/ui/fancy-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+} from '@/components/ui/fancy-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/use-page-title'
@@ -328,11 +339,20 @@ interface ImportState {
 export default function ImportDataPage() {
   usePageTitle('Import Trading Data')
   const router = useRouter()
+  const isImportingRef = useRef(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilters, setSelectedFilters] = useState<string[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  
-  // Import workflow state
+  // Determine user's local timezone as default (fallback to UTC)
+  const localTimeZone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    } catch {
+      return 'UTC'
+    }
+  }, [])
+  const [selectedTimezone, setSelectedTimezone] = useState(localTimeZone)
+  const [selectedDateFormat, setSelectedDateFormat] = useState('MM/DD/YYYY')
   const [importState, setImportState] = useState<ImportState>({
     step: 'broker-selection',
     selectedBroker: null,
@@ -341,6 +361,89 @@ export default function ImportDataPage() {
     fieldMapping: {},
     importResults: null
   })
+
+  // ----- Timezone helpers -----
+  const allTimezones: string[] = useMemo(() => {
+    try {
+      // Modern environments support this and include the full IANA list
+      // @ts-ignore - TS may not know about supportedValuesOf in older lib types
+      const tzs: string[] = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : []
+      if (tzs && tzs.length) return tzs
+    } catch {
+      // ignore and use fallback
+    }
+    // Fallback minimal list to avoid empty menu if environment lacks the API
+    return [
+      'UTC','Etc/UTC','Etc/GMT','Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Rome','Europe/Amsterdam','Europe/Zurich',
+      'America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Toronto','America/Mexico_City','America/Sao_Paulo',
+      'Asia/Kolkata','Asia/Dubai','Asia/Tokyo','Asia/Shanghai','Asia/Hong_Kong','Asia/Singapore','Asia/Seoul','Asia/Bangkok',
+      'Australia/Sydney','Australia/Melbourne','Pacific/Auckland','Africa/Johannesburg'
+    ]
+  }, [])
+
+  const groupTimezones = useMemo(() => {
+    const groups: Record<string, string[]> = {}
+    for (const tz of allTimezones) {
+      const region = tz.includes('/') ? tz.split('/')[0] : 'Other'
+      if (!groups[region]) groups[region] = []
+      groups[region].push(tz)
+    }
+    // Sort regions and items
+    const sorted: Array<[string, string[]]> = Object.entries(groups)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([region, tzs]) => [region, tzs.sort((a, b) => a.localeCompare(b))]) as any
+    return sorted
+  }, [allTimezones])
+
+  // Search within timezone list
+  const [tzQuery, setTzQuery] = useState('')
+  const filteredTimezoneGroups = useMemo(() => {
+    const q = tzQuery.trim().toLowerCase()
+    if (!q) return groupTimezones
+    return groupTimezones
+      .map(([region, tzs]) => [region, tzs.filter(tz => tz.toLowerCase().includes(q))] as [string, string[]])
+      .filter(([, tzs]) => tzs.length > 0)
+  }, [groupTimezones, tzQuery])
+
+  const getOffsetMinutes = (timeZone: string): number => {
+    try {
+      const now = new Date()
+      // Format the date in the given timeZone and UTC, then compute offset
+      const tzFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour12: false,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      })
+      const utcFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        hour12: false,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      })
+      const parse = (s: string) => {
+        const m = s.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/)
+        if (!m) return now.getTime()
+        const [, mm, dd, yyyy, HH, MM, SS] = m
+        return Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), Number(HH), Number(MM), Number(SS))
+      }
+      const tzStr = tzFormatter.format(now)
+      const utcStr = utcFormatter.format(now)
+      const tzUTCms = parse(tzStr)
+      const utcUTCms = parse(utcStr)
+      return Math.round((tzUTCms - utcUTCms) / 60000)
+    } catch {
+      return 0
+    }
+  }
+
+  const formatOffset = (minutes: number) => {
+    const sign = minutes >= 0 ? '+' : '-'
+    const abs = Math.abs(minutes)
+    const h = String(Math.floor(abs / 60)).padStart(2, '0')
+    const m = String(abs % 60).padStart(2, '0')
+    return `UTC${sign}${h}:${m}`
+  }
 
   const filterOptions = [
     { id: 'autoSync', label: 'Auto Sync Available' },
@@ -396,7 +499,7 @@ export default function ImportDataPage() {
     await processFile(file)
   }
 
-  const handleFileDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+  const handleFileDrop = async (event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault()
     const file = event.dataTransfer.files?.[0]
     if (!file) return
@@ -404,7 +507,7 @@ export default function ImportDataPage() {
     await processFile(file)
   }
 
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault()
   }
 
@@ -422,7 +525,12 @@ export default function ImportDataPage() {
       alert('File is too large. Please select a file smaller than 10MB.')
       return
     }
-
+    // Re-entrancy guard: avoid duplicate processing if already in-flight
+    if (isImportingRef.current) {
+      console.warn('⚠️ Duplicate import trigger ignored (import already in progress):', file.name)
+      return
+    }
+    isImportingRef.current = true
     setIsProcessing(true)
     
     try {
@@ -431,7 +539,12 @@ export default function ImportDataPage() {
       // Use the CSV import service to process the file
       const result = await CSVImportService.importCSV(
         file,
-        importState.selectedBroker?.id
+        importState.selectedBroker?.id,
+        undefined,
+        {
+          preferredDateFormat: selectedDateFormat,
+          timezoneOffsetMinutes: getOffsetMinutes(selectedTimezone)
+        }
       )
       
       console.log('📄 Import result:', result)
@@ -468,12 +581,19 @@ export default function ImportDataPage() {
       }))
     } finally {
       setIsProcessing(false)
+      isImportingRef.current = false
     }
   }
   
   const handleFieldMappingComplete = async (mapping: Record<string, string>) => {
     if (!importState.uploadedFile) return
     
+    // Prevent duplicate imports if one is already in progress
+    if (isImportingRef.current) {
+      console.warn('⚠️ Duplicate field-mapping import trigger ignored')
+      return
+    }
+    isImportingRef.current = true
     setIsProcessing(true)
     setImportState(prev => ({ ...prev, step: 'processing', fieldMapping: mapping }))
     
@@ -481,7 +601,11 @@ export default function ImportDataPage() {
       const result = await CSVImportService.importCSV(
         importState.uploadedFile,
         importState.selectedBroker?.id,
-        mapping
+        mapping,
+        {
+          preferredDateFormat: selectedDateFormat,
+          timezoneOffsetMinutes: getOffsetMinutes(selectedTimezone)
+        }
       )
       
       await processImport(result.trades)
@@ -500,6 +624,7 @@ export default function ImportDataPage() {
       }))
     } finally {
       setIsProcessing(false)
+      isImportingRef.current = false
     }
   }
   
@@ -545,6 +670,9 @@ export default function ImportDataPage() {
       fieldMapping: {},
       importResults: null
     })
+    setIsProcessing(false)
+    setSelectedTimezone(localTimeZone)
+    setSelectedDateFormat('MM/DD/YYYY')
   }
   
   const goBackToUpload = () => {
@@ -594,14 +722,13 @@ export default function ImportDataPage() {
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800",
-                        selectedFilters.length > 0 && "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300"
+                        "border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                       )}
                     >
                       <Filter className="w-4 h-4 mr-2" />
                       Filters
                       {selectedFilters.length > 0 && (
-                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-purple-600 text-white rounded-full">
+                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-[#3559E9] dark:bg-[#3559E9] text-white rounded-full">
                           {selectedFilters.length}
                         </span>
                       )}
@@ -621,7 +748,7 @@ export default function ImportDataPage() {
                         <div className="flex items-center justify-between w-full">
                           <span className="text-gray-900 dark:text-white">{option.label}</span>
                           {selectedFilters.includes(option.id) && (
-                            <Check className="w-4 h-4 text-purple-600" />
+                            <Check className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                           )}
                         </div>
                       </DropdownMenuItem>
@@ -857,15 +984,82 @@ export default function ImportDataPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* Import Settings */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Timezone
+                        </label>
+                        <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select timezone" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <div className="px-2 pb-2">
+                              <input
+                                type="text"
+                                value={tzQuery}
+                                onChange={(e) => setTzQuery(e.target.value)}
+                                placeholder="Search timezones..."
+                                className="w-full h-9 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#141414] px-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0f172a]"
+                              />
+                            </div>
+                            {filteredTimezoneGroups.map(([region, tzs]) => (
+                              <SelectGroup key={region}>
+                                <SelectLabel>{region}</SelectLabel>
+                                {tzs.map((tz) => {
+                                  const offset = formatOffset(getOffsetMinutes(tz))
+                                  return (
+                                    <SelectItem key={tz} value={tz}>
+                                      {tz} ({offset})
+                                    </SelectItem>
+                                  )
+                                })}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Date Format
+                        </label>
+                        <Select value={selectedDateFormat} onValueChange={setSelectedDateFormat}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select date format" />
+                          </SelectTrigger>
+                          <SelectContent noScroll>
+                            <SelectGroup>
+                              <SelectLabel>Common</SelectLabel>
+                              <SelectItem value="MM/DD/YYYY">MM/DD/YYYY — 04/27/2025</SelectItem>
+                              <SelectItem value="DD/MM/YYYY">DD/MM/YYYY — 27/04/2025</SelectItem>
+                              <SelectItem value="YYYY-MM-DD">YYYY-MM-DD — 2025-04-27 (ISO)</SelectItem>
+                            </SelectGroup>
+                            <SelectGroup>
+                              <SelectLabel>Regional</SelectLabel>
+                              <SelectItem value="DD.MM.YYYY">DD.MM.YYYY — 27.04.2025 (German)</SelectItem>
+                              <SelectItem value="YYYY/MM/DD">YYYY/MM/DD — 2025/04/27</SelectItem>
+                            </SelectGroup>
+                            <SelectGroup>
+                              <SelectLabel>Variants</SelectLabel>
+                              <SelectItem value="MM-DD-YYYY">MM-DD-YYYY — 04-27-2025</SelectItem>
+                              <SelectItem value="DD-MM-YYYY">DD-MM-YYYY — 27-04-2025</SelectItem>
+                              <SelectItem value="MM.DD.YYYY">MM.DD.YYYY — 04.27.2025</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <FileUpload.Root
                       className={cn(
                         isProcessing && "border-blue-300 bg-blue-50 dark:bg-blue-900/20"
                       )}
                       htmlFor="file-upload"
-                      onDrop={handleFileDrop}
-                      onDragOver={handleDragOver}
-                      onDragEnter={handleDragOver}
-                      onClick={() => !isProcessing && document.getElementById('file-upload')?.click()}
+                      onDrop={(e: React.DragEvent<HTMLLabelElement>) => handleFileDrop(e)}
+                      onDragOver={(e: React.DragEvent<HTMLLabelElement>) => handleDragOver(e)}
+                      onDragEnter={(e: React.DragEvent<HTMLLabelElement>) => handleDragOver(e)}
                     >
                       {isProcessing ? (
                         <Clock className="w-8 h-8 text-blue-500 animate-spin" />
@@ -948,57 +1142,37 @@ export default function ImportDataPage() {
                 </Button>
 
                 {importState.importResults.success ? (
-                  <Card className="border-0 shadow-none bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800">
-                    <CardHeader>
-                      <div className="flex items-center space-x-3">
-                        <CheckCircle className="w-8 h-8 text-green-500" />
-                        <div>
-                          <CardTitle className="text-green-800 dark:text-green-200">
-                            Import Successful!
-                          </CardTitle>
-                          <p className="text-green-600 dark:text-green-400">
-                            Successfully imported {importState.importResults.trades.length} trades
-                          </p>
-                        </div>
+                  <div className="max-w-md mx-auto">
+                    <div className="bg-white dark:bg-[#171717] rounded-2xl p-8 text-center shadow-lg border border-gray-100 dark:border-gray-800">
+                      <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <OrdersIcon className="text-green-600 dark:text-green-400" size={32} />
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="text-center p-4 bg-white dark:bg-[#171717] rounded-lg">
-                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                              {importState.importResults.trades.length}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Trades Imported</div>
-                          </div>
-                          <div className="text-center p-4 bg-white dark:bg-[#171717] rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                              {importState.importResults.warnings.length}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Warnings</div>
-                          </div>
-                          <div className="text-center p-4 bg-white dark:bg-[#171717] rounded-lg">
-                            <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                              0
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">Errors</div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex space-x-3">
-                          <Button 
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => router.push('/dashboard')}
-                          >
-                            View Dashboard
-                          </Button>
-                          <Button variant="outline" onClick={resetImport}>
-                            Import More Data
-                          </Button>
-                        </div>
+                      
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                        Import Complete
+                      </h3>
+                      
+                      <p className="text-gray-600 dark:text-gray-400 mb-6">
+                        Successfully imported <span className="font-medium text-green-600 dark:text-green-400">{importState.importResults.trades.length} trades</span> to your portfolio
+                      </p>
+                      
+                      <div className="flex flex-col space-y-3">
+                        <Button 
+                          className="w-full bg-[#3559E9] hover:bg-[#2947d1] text-white"
+                          onClick={() => router.push('/dashboard')}
+                        >
+                          View Dashboard
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          onClick={resetImport}
+                          className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                        >
+                          Import More Data
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ) : (
                   <Card className="border-0 shadow-none bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800">
                     <CardHeader>

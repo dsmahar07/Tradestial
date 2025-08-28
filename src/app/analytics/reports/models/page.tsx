@@ -9,7 +9,8 @@ import { PerformanceChart } from '@/components/analytics/performance-chart'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { cn } from '@/lib/utils'
-import { TradeDataService, type Trade } from '@/services/trade-data.service'
+import { TradeDataService } from '@/services/trade-data.service'
+import type { Trade } from '@/services/trade-data.service'
 import type { PerformanceChart as ChartShape, ChartDataPoint } from '@/types/performance'
 
 export default function ModelsPage() {
@@ -22,21 +23,19 @@ export default function ModelsPage() {
   const [metricMenuOpen, setMetricMenuOpen] = useState(false)
   const topMenuRef = useRef<HTMLDivElement>(null)
   const metricMenuRef = useRef<HTMLDivElement>(null)
-
-  // Data state
-  // Note: no local trades state needed beyond processing
-  const [loading, setLoading] = useState<boolean>(true)
+  const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Derived time-series (aggregated across all models by day)
+  // Series state
   const [dailyNetSeries, setDailyNetSeries] = useState<ChartDataPoint[]>([])
   const [cumulativeNetSeries, setCumulativeNetSeries] = useState<ChartDataPoint[]>([])
   const [drawdownSeries, setDrawdownSeries] = useState<ChartDataPoint[]>([])
   const [winRateSeries, setWinRateSeries] = useState<ChartDataPoint[]>([])
   const [tradeCountSeries, setTradeCountSeries] = useState<ChartDataPoint[]>([])
   const [maxLosingStreakSeries, setMaxLosingStreakSeries] = useState<ChartDataPoint[]>([])
+  const [summaryRows, setSummaryRows] = useState<ModelRow[]>([])
 
-  // Grouped by model for summary
+  // Calculate models data from real trades
   type ModelRow = {
     model: string
     winRate: number
@@ -46,7 +45,8 @@ export default function ModelsPage() {
     avgWin: number
     avgLoss: number
   }
-  const [summaryRows, setSummaryRows] = useState<ModelRow[]>([])
+
+  // summaryRows and series are built in the effect below
 
   // Helpers
   const toISODate = (d: Date) => d.toISOString().slice(0, 10)
@@ -156,7 +156,7 @@ export default function ModelsPage() {
         setSummaryRows(rows)
 
         setError(null)
-      } catch (e) {
+      } catch {
         if (!isMounted) return
         setError('Failed to load models data')
       } finally {
@@ -326,7 +326,7 @@ export default function ModelsPage() {
                 data={leftChart} 
                 onDataRequest={onDataRequest}
                 contextInfo={{
-                  getPeriodLabel: (date: string, index: number) => {
+                  getPeriodLabel: (date: string) => {
                     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                   }
                 }}
@@ -335,7 +335,7 @@ export default function ModelsPage() {
                 data={rightChart} 
                 onDataRequest={onDataRequest}
                 contextInfo={{
-                  getPeriodLabel: (date: string, index: number) => {
+                  getPeriodLabel: (date: string) => {
                     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                   }
                 }}

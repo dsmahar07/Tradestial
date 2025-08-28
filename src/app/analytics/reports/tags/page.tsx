@@ -9,7 +9,8 @@ import { PerformanceChart } from '@/components/analytics/performance-chart'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { cn } from '@/lib/utils'
-import { TradeDataService, type Trade } from '@/services/trade-data.service'
+import { useAnalytics } from '@/hooks/use-analytics'
+import type { Trade } from '@/services/trade-data.service'
 import type { PerformanceChart as ChartShape, ChartDataPoint } from '@/types/performance'
 
 export default function TagsPage() {

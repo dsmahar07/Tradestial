@@ -1,18 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rm:*)",
-      "Bash(git checkout:*)",
       "Bash(npm install:*)",
-      "Bash(git remote add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git checkout:*)",
+      "Bash(git log:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git config:*)",
-      "Bash(git push:*)",
-      "Bash(find:*)",
-      "Bash(for:*)",
-      "Bash(do sed -i 's/bg-white dark:bg-gray-800/bg-white dark:bg-[#171717]/g; s/border-gray-200 dark:border-gray-700/border-gray-200 dark:border-[#2a2a2a]/g; s/border-gray-300 dark:border-gray-600/border-gray-300 dark:border-[#2a2a2a]/g' \"$file\")",
-      "Bash(done)"
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

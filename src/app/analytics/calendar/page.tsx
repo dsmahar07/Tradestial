@@ -6,17 +6,10 @@ import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { useAnalytics } from '@/hooks/use-analytics'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-
-// Configuration for trading data generation
-const TRADING_CONFIG = {
-  tradingProbability: 0.7, // 70% chance of having trades on any given day
-  maxTradesPerDay: 8,
-  minTradesPerDay: 1,
-  pnlRange: { min: -800, max: 1200 },
-  pnlBias: 0.4 // Slight positive bias for realistic data
-}
+import { getYear } from '@/utils/date-utils'
 
 // P&L thresholds for color intensity
 const PNL_THRESHOLDS = {
@@ -29,34 +22,39 @@ const PNL_THRESHOLDS = {
   highLoss: -500
 }
 
-// Mock trading data for heatmap
-const generateMockTradingData = (year: number) => {
+// Generate real trading data for heatmap from imported trades
+const generateRealTradingData = (trades: any[], year: number) => {
   const data: Record<string, { pnl: number; trades: number }> = {}
   
-  // Generate random trading data for the specified year
-  for (let month = 0; month < 12; month++) {
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  if (!trades?.length) return data
+
+  // Filter trades for the specified year and group by date
+  trades.forEach(trade => {
+    const tradeYear = getYear(trade.openDate)
+    
+    if (tradeYear === year) {
+      const dateKey = trade.openDate.split('T')[0] // YYYY-MM-DD format
       
-      // Random chance of having trades
-      if (Math.random() > (1 - TRADING_CONFIG.tradingProbability)) {
-        const trades = Math.floor(Math.random() * TRADING_CONFIG.maxTradesPerDay) + TRADING_CONFIG.minTradesPerDay
-        const pnlRange = TRADING_CONFIG.pnlRange.max - TRADING_CONFIG.pnlRange.min
-        const pnl = (Math.random() - TRADING_CONFIG.pnlBias) * pnlRange + TRADING_CONFIG.pnlRange.min
-        data[dateKey] = { pnl, trades }
+      if (!data[dateKey]) {
+        data[dateKey] = { pnl: 0, trades: 0 }
       }
+      
+      data[dateKey].pnl += trade.netPnl
+      data[dateKey].trades += 1
     }
-  }
-  
+  })
+
   return data
 }
 
 export default function CalendarPage() {
   usePageTitle('Analytics - Calendar')
   
+  // Get real trade data
+  const { trades, loading, error } = useAnalytics()
+  
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const tradingData = useMemo(() => generateMockTradingData(selectedYear), [selectedYear])
+  const tradingData = useMemo(() => generateRealTradingData(trades || [], selectedYear), [trades, selectedYear])
   
   const handleTabChange = (tabId: string) => {
     console.log('Active tab:', tabId)
@@ -224,6 +222,37 @@ export default function CalendarPage() {
                 </button>
               </div>
             </div>
+
+            {/* Loading / Error / Empty States */}
+            {loading && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">Loading calendar data...</div>
+            )}
+            {error && !loading && (
+              <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
+            )}
+            
+            {/* No Data State */}
+            {!loading && !error && (!trades || trades.length === 0) && (
+              <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="text-gray-400 dark:text-gray-500 mb-4">
+                  <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No trading data available
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Import your CSV file to view your trading calendar
+                </p>
+                <button 
+                  onClick={() => window.location.href = '/import-data'}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Import Trading Data
+                </button>
+              </div>
+            )}
 
             {/* Year Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

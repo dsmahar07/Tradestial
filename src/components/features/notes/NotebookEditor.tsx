@@ -1384,8 +1384,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 // Ensure proper Unicode and emoji rendering
                 fontFeatureSettings: '"liga" 1, "kern" 1',
                 textRendering: 'optimizeLegibility',
-                WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale'
+                /* inherit font smoothing from global settings */
               }}
               suppressContentEditableWarning={true}
               onInput={handleEditorInput}

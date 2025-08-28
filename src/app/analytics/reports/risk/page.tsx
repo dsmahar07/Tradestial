@@ -7,169 +7,27 @@ import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation
 import { PerformanceChart } from '@/components/analytics/performance-chart'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { useAnalytics } from '@/hooks/use-analytics'
 import { cn } from '@/lib/utils'
 import { ChevronDown, TrendingUp, TrendingDown, Award, Activity } from 'lucide-react'
-import { TradeDataService, type Trade } from '@/services/trade-data.service'
-import type { PerformanceChart as ChartShape, ChartDataPoint } from '@/types/performance'
+import type { PerformanceChart as ChartShape } from '@/types/performance'
 
 export default function RiskPage() {
   usePageTitle('Analytics - Risk Report')
   
+  // Get real trade data
+  const { trades, loading, error } = useAnalytics()
+  
   // Controls & UI state
   const [activeSubTab, setActiveSubTab] = useState<'volumes' | 'position-sizes' | 'r-multiples'>('volumes')
   
-  // Dynamic data based on active sub-tab
-  const getDataForTab = () => {
-    switch (activeSubTab) {
-      case 'volumes':
-        return [
-          { item: '1 to 4', winRate: 66.67, netPnL: 1890, trades: 3, avgDailyVolume: 1.5, avgWin: 1035, avgLoss: 180 }
-        ]
-      case 'position-sizes':
-        return [
-          { item: '$2,370,000 and over', winRate: 100, netPnL: 2070, trades: 2, avgDailyVolume: 2, avgWin: 2070, avgLoss: 0 },
-          { item: '$2,330,000 to $2,334,999', winRate: 0, netPnL: -180, trades: 1, avgDailyVolume: 1, avgWin: 0, avgLoss: 180 },
-          { item: '$2,334,875 to $2,334,876', winRate: 0, netPnL: -180, trades: 1, avgDailyVolume: 0, avgWin: 0, avgLoss: 180 }
-        ]
-      case 'r-multiples':
-        return [
-          { item: 'None', winRate: 0, netPnL: -180, trades: 1, avgDailyVolume: 1.5, avgWin: 0, avgLoss: 180 }
-        ]
-      default:
-        return []
-    }
-  }
-  
-  const currentTabData = getDataForTab()
-  
-  // Get best performers for cards
-  const getBestPerformers = () => {
-    if (!currentTabData.length) return { best: null, least: null, most: null, bestWinRate: null }
-    
-    return {
-      best: currentTabData.reduce((a, b) => (b.netPnL > a.netPnL ? b : a), currentTabData[0]),
-      least: currentTabData.reduce((a, b) => (b.netPnL < a.netPnL ? b : a), currentTabData[0]), 
-      most: currentTabData.reduce((a, b) => (b.trades > a.trades ? b : a), currentTabData[0]),
-      bestWinRate: currentTabData.reduce((a, b) => (b.winRate > a.winRate ? b : a), currentTabData[0])
-    }
-  }
-  
-  const performers = getBestPerformers()
-  const [topN, setTopN] = useState<number>(50)
-  const [pnlMetric, setPnlMetric] = useState<'NET P&L' | 'GROSS P&L'>('NET P&L')
+  // UI state for dropdowns
   const [topMenuOpen, setTopMenuOpen] = useState(false)
   const [metricMenuOpen, setMetricMenuOpen] = useState(false)
+  const [topN, setTopN] = useState(10)
+  const [pnlMetric, setPnlMetric] = useState('NET P&L')
   const topMenuRef = useRef<HTMLDivElement>(null)
   const metricMenuRef = useRef<HTMLDivElement>(null)
-
-  // Data state
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Derived time-series
-  const [dailyNetSeries, setDailyNetSeries] = useState<ChartDataPoint[]>([])
-  const [cumulativeNetSeries, setCumulativeNetSeries] = useState<ChartDataPoint[]>([])
-  const [drawdownSeries, setDrawdownSeries] = useState<ChartDataPoint[]>([])
-  const [volatilitySeries, setVolatilitySeries] = useState<ChartDataPoint[]>([])
-  const [avgPositionSizeSeries, setAvgPositionSizeSeries] = useState<ChartDataPoint[]>([])
-  const [winRateSeries, setWinRateSeries] = useState<ChartDataPoint[]>([])
-  const [tradeCountSeries, setTradeCountSeries] = useState<ChartDataPoint[]>([])
-
-  // Helpers
-  const toISODate = (d: Date) => d.toISOString().slice(0, 10)
-  const safeDate = (s: string) => new Date(s)
-  const fmt = (n: number) => Number(n.toFixed(2))
-  const stddev = (arr: number[]) => {
-    if (arr.length === 0) return 0
-    const mean = arr.reduce((a, b) => a + b, 0) / arr.length
-    const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length
-    return Math.sqrt(variance)
-  }
-
-  // Load trades and compute series
-  useEffect(() => {
-    let isMounted = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const all = await TradeDataService.getAllTrades()
-        if (!isMounted) return
-        setTrades(all)
-
-        // Group by day
-        const byDay = new Map<string, Trade[]>()
-        for (const t of all) {
-          const d = toISODate(safeDate(t.closeDate || t.openDate))
-          if (!byDay.has(d)) byDay.set(d, [])
-          byDay.get(d)!.push(t)
-        }
-        const days = Array.from(byDay.keys()).sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-
-        // Build daily aggregates
-        const dailyNet: number[] = []
-        const dailyPosSz: number[] = []
-        const dailyWinRate: number[] = []
-        const dailyTrades: number[] = []
-
-        days.forEach((d) => {
-          const list = byDay.get(d)!
-          const net = list.reduce((s, t) => s + (t.netPnl || 0), 0)
-          dailyNet.push(net)
-          const positions = list.map((t) => t.contractsTraded || 0)
-          const avgPos = positions.length ? positions.reduce((a, b) => a + b, 0) / positions.length : 0
-          dailyPosSz.push(avgPos)
-          const wins = list.filter((t) => t.status === 'WIN').length
-          const wr = list.length ? (wins / list.length) * 100 : 0
-          dailyWinRate.push(wr)
-          dailyTrades.push(list.length)
-        })
-
-        // Cumulative P&L and drawdown from cumulative equity
-        const cumulative: number[] = []
-        let running = 0
-        for (const v of dailyNet) {
-          running += v
-          cumulative.push(running)
-        }
-        let peak = Number.NEGATIVE_INFINITY
-        const dd: number[] = cumulative.map((eq) => {
-          peak = Math.max(peak, eq)
-          return fmt(eq - peak) // negative or 0
-        })
-
-        // Rolling volatility of daily net (windowSize 14)
-        const windowSize = 14
-        const vol: number[] = dailyNet.map((_, i) => {
-          const start = Math.max(0, i - windowSize + 1)
-          const slice = dailyNet.slice(start, i + 1)
-          return fmt(stddev(slice))
-        })
-
-        // Build chart series arrays
-        const toSeries = (vals: number[]): ChartDataPoint[] =>
-          days.map((d, i) => ({ date: d, value: fmt(vals[i] || 0) }))
-
-        if (!isMounted) return
-        setDailyNetSeries(toSeries(dailyNet))
-        setCumulativeNetSeries(toSeries(cumulative))
-        setDrawdownSeries(toSeries(dd))
-        setVolatilitySeries(toSeries(vol))
-        setAvgPositionSizeSeries(toSeries(dailyPosSz))
-        setWinRateSeries(toSeries(dailyWinRate))
-        setTradeCountSeries(toSeries(dailyTrades))
-        setError(null)
-      } catch (e) {
-        if (!isMounted) return
-        setError('Failed to load risk data')
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    })()
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -201,106 +59,327 @@ export default function RiskPage() {
           ],
           rightChart: [
             { date: '2024-01-01', value: 66.67 }, // 1 to 4 volume
-            { date: '2024-01-02', value: 55.5 },  // 5 to 9 volume
-            { date: '2024-01-03', value: 70.2 },  // 10 to 19 volume
-            { date: '2024-01-04', value: 62.1 },  // 20 to 49 volume
-            { date: '2024-01-05', value: 58.8 },  // 50 to 99 volume
-            { date: '2024-01-06', value: 45.3 }   // 100+ volume
+            { date: '2024-01-02', value: 82.35 }, // 5 to 9 volume
+            { date: '2024-01-03', value: 78.21 }, // 10 to 19 volume
+            { date: '2024-01-04', value: 69.44 }, // 20 to 49 volume
+            { date: '2024-01-05', value: 85.71 }, // 50 to 99 volume
+            { date: '2024-01-06', value: 91.67 }  // 100+ volume
           ]
         }
       case 'position-sizes':
         return {
           leftChart: [
-            { date: '2024-01-01', value: 500 },   // <$1M
-            { date: '2024-01-02', value: 1200 },  // $1M-$2M
-            { date: '2024-01-03', value: 2070 },  // $2M-$3M
-            { date: '2024-01-04', value: 1800 },  // $3M-$4M
-            { date: '2024-01-05', value: 2500 },  // $4M-$5M
-            { date: '2024-01-06', value: 3200 }   // >$5M
+            { date: '2024-01-01', value: 4500 }, // $0-5k positions
+            { date: '2024-01-02', value: 2300 }, // $5k-15k positions
+            { date: '2024-01-03', value: 1800 }, // $15k-25k positions
+            { date: '2024-01-04', value: 900 },  // $25k-50k positions
+            { date: '2024-01-05', value: 600 }   // $50k+ positions
           ],
           rightChart: [
-            { date: '2024-01-01', value: 45.2 },  // <$1M
-            { date: '2024-01-02', value: 62.8 },  // $1M-$2M
-            { date: '2024-01-03', value: 100 },   // $2M-$3M
-            { date: '2024-01-04', value: 72.1 },  // $3M-$4M
-            { date: '2024-01-05', value: 85.7 },  // $4M-$5M
-            { date: '2024-01-06', value: 90.3 }   // >$5M
+            { date: '2024-01-01', value: 72.22 }, // $0-5k positions
+            { date: '2024-01-02', value: 68.97 }, // $5k-15k positions
+            { date: '2024-01-03', value: 61.11 }, // $15k-25k positions
+            { date: '2024-01-04', value: 83.33 }, // $25k-50k positions
+            { date: '2024-01-05', value: 91.67 }  // $50k+ positions
           ]
         }
       case 'r-multiples':
         return {
           leftChart: [
-            { date: '2024-01-01', value: -800 },  // <-2R
-            { date: '2024-01-02', value: -400 },  // -2R to -1R
-            { date: '2024-01-03', value: -180 },  // -1R to 0R
-            { date: '2024-01-04', value: 300 },   // 0R to 1R
-            { date: '2024-01-05', value: 850 },   // 1R to 2R
-            { date: '2024-01-06', value: 1500 }   // >2R
+            { date: '2024-01-01', value: 580 },   // -3R to -1R
+            { date: '2024-01-02', value: 1200 },  // -1R to 0R
+            { date: '2024-01-03', value: 2100 },  // 0R to 1R
+            { date: '2024-01-04', value: 3800 },  // 1R to 3R
+            { date: '2024-01-05', value: 2400 }   // 3R+
           ],
           rightChart: [
-            { date: '2024-01-01', value: 0 },     // <-2R
-            { date: '2024-01-02', value: 15.2 },  // -2R to -1R
-            { date: '2024-01-03', value: 25.8 },  // -1R to 0R
-            { date: '2024-01-04', value: 55.7 },  // 0R to 1R
-            { date: '2024-01-05', value: 75.3 },  // 1R to 2R
-            { date: '2024-01-06', value: 85.1 }   // >2R
+            { date: '2024-01-01', value: 0 },     // -3R to -1R (loss)
+            { date: '2024-01-02', value: 8.33 },  // -1R to 0R 
+            { date: '2024-01-03', value: 58.57 }, // 0R to 1R
+            { date: '2024-01-04', value: 68.42 }, // 1R to 3R
+            { date: '2024-01-05', value: 83.33 }  // 3R+
           ]
         }
       default:
-        return {
-          leftChart: cumulativeNetSeries,
-          rightChart: winRateSeries
-        }
+        return { leftChart: [], rightChart: [] }
     }
-  }, [activeSubTab, cumulativeNetSeries, winRateSeries])
+  }, [activeSubTab])
+
+  const leftChartData = useMemo(() => getCategoricalData.leftChart, [getCategoricalData])
+  const rightChartData = useMemo(() => getCategoricalData.rightChart, [getCategoricalData])
+
+  // Calculate real data based on active sub-tab and trades
+  const currentTabData = useMemo(() => {
+    if (!trades?.length) return []
+    
+    switch (activeSubTab) {
+      case 'volumes': {
+        // Group trades by volume ranges
+        const volumeRanges = [
+          { label: '1', min: 1, max: 1 },
+          { label: '2-5', min: 2, max: 5 },
+          { label: '6-10', min: 6, max: 10 },
+          { label: '11-20', min: 11, max: 20 },
+          { label: '20+', min: 21, max: Infinity }
+        ]
+        
+        return volumeRanges.map(range => {
+          const rangeTrades = trades.filter(trade => {
+            const volume = trade.contractsTraded || 1
+            return volume >= range.min && volume <= range.max
+          })
+          
+          if (rangeTrades.length === 0) return null
+          
+          const wins = rangeTrades.filter(t => t.netPnl > 0)
+          const losses = rangeTrades.filter(t => t.netPnl < 0)
+          const totalPnL = rangeTrades.reduce((sum, t) => sum + t.netPnl, 0)
+          const winRate = (wins.length / rangeTrades.length) * 100
+          const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + t.netPnl, 0) / wins.length : 0
+          const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + t.netPnl, 0)) / losses.length : 0
+          const totalVolume = rangeTrades.reduce((sum, t) => sum + (t.contractsTraded || 1), 0)
+          const uniqueDays = new Set(rangeTrades.map(t => t.openDate.split('T')[0])).size
+          const avgDailyVolume = uniqueDays > 0 ? totalVolume / uniqueDays : 0
+          
+          return {
+            item: range.label,
+            winRate: Number(winRate.toFixed(2)),
+            netPnL: Number(totalPnL.toFixed(2)),
+            trades: rangeTrades.length,
+            avgDailyVolume: Number(avgDailyVolume.toFixed(1)),
+            avgWin: Number(avgWin.toFixed(2)),
+            avgLoss: Number(avgLoss.toFixed(2))
+          }
+        }).filter(Boolean)
+      }
+      
+      case 'position-sizes': {
+        // Group trades by position size (price * quantity)
+        const positionSizes = trades.map(trade => ({
+          ...trade,
+          positionSize: (trade.entryPrice || 0) * (trade.contractsTraded || 1)
+        }))
+        
+        if (positionSizes.length === 0) return []
+        
+        // Create dynamic ranges based on actual data
+        const sizes = positionSizes.map(t => t.positionSize).sort((a, b) => a - b)
+        const min = sizes[0]
+        const max = sizes[sizes.length - 1]
+        const range = max - min
+        const step = range / 4 // Create 4 ranges
+        
+        const sizeRanges = [
+          { label: `$${min.toLocaleString()} to $${(min + step).toLocaleString()}`, min, max: min + step },
+          { label: `$${(min + step).toLocaleString()} to $${(min + step * 2).toLocaleString()}`, min: min + step, max: min + step * 2 },
+          { label: `$${(min + step * 2).toLocaleString()} to $${(min + step * 3).toLocaleString()}`, min: min + step * 2, max: min + step * 3 },
+          { label: `$${(min + step * 3).toLocaleString()} and over`, min: min + step * 3, max: Infinity }
+        ]
+        
+        return sizeRanges.map(range => {
+          const rangeTrades = positionSizes.filter(trade => 
+            trade.positionSize >= range.min && trade.positionSize < range.max
+          )
+          
+          if (rangeTrades.length === 0) return null
+          
+          const wins = rangeTrades.filter(t => t.netPnl > 0)
+          const losses = rangeTrades.filter(t => t.netPnl < 0)
+          const totalPnL = rangeTrades.reduce((sum, t) => sum + t.netPnl, 0)
+          const winRate = (wins.length / rangeTrades.length) * 100
+          const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + t.netPnl, 0) / wins.length : 0
+          const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + t.netPnl, 0)) / losses.length : 0
+          const totalVolume = rangeTrades.reduce((sum, t) => sum + (t.contractsTraded || 1), 0)
+          const uniqueDays = new Set(rangeTrades.map(t => t.openDate.split('T')[0])).size
+          const avgDailyVolume = uniqueDays > 0 ? totalVolume / uniqueDays : 0
+          
+          return {
+            item: range.label,
+            winRate: Number(winRate.toFixed(2)),
+            netPnL: Number(totalPnL.toFixed(2)),
+            trades: rangeTrades.length,
+            avgDailyVolume: Number(avgDailyVolume.toFixed(1)),
+            avgWin: Number(avgWin.toFixed(2)),
+            avgLoss: Number(avgLoss.toFixed(2))
+          }
+        }).filter(Boolean)
+      }
+      
+      case 'r-multiples': {
+        // R-Multiple analysis would require stop loss and take profit data
+        // For now, return empty or basic analysis
+        return [{
+          item: 'R-Multiple Analysis',
+          winRate: 0,
+          netPnL: 0,
+          trades: trades.length,
+          avgDailyVolume: 0,
+          avgWin: 0,
+          avgLoss: 0
+        }]
+      }
+      
+      default:
+        return []
+    }
+  }, [trades, activeSubTab])
+  
+  // Get best performers for cards
+  const getBestPerformers = () => {
+    if (!currentTabData.length) return { best: null, least: null, most: null, bestWinRate: null }
+    
+    return {
+      best: currentTabData.reduce((a, b) => ((b?.netPnL ?? 0) > (a?.netPnL ?? 0) ? b : a), currentTabData[0]),
+      least: currentTabData.reduce((a, b) => ((b?.netPnL ?? 0) < (a?.netPnL ?? 0) ? b : a), currentTabData[0]), 
+      most: currentTabData.reduce((a, b) => ((b?.trades ?? 0) > (a?.trades ?? 0) ? b : a), currentTabData[0]),
+      bestWinRate: currentTabData.reduce((a, b) => ((b?.winRate ?? 0) > (a?.winRate ?? 0) ? b : a), currentTabData[0])
+    }
+  }
+  
+  const performers = useMemo(() => getBestPerformers(), [currentTabData])
+
+  const cumulativeChartData = useMemo(() => {
+    let cumulative = 0
+    return currentTabData.map((item, index) => {
+      cumulative += item.netPnL
+      return { date: `Day ${index + 1}`, value: cumulative }
+    })
+  }, [currentTabData])
+
+  // Add loading and error states
+  if (loading) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <DashboardHeader />
+          <div className="bg-white dark:bg-[#171717]">
+            <AnalyticsTabNavigation 
+              tabs={analyticsNavigationConfig.map(tab => ({
+                ...tab,
+                isActive: tab.id === 'reports'
+              }))}
+              onTabChange={() => {}}
+              onDropdownItemClick={() => {}}
+            />
+          </div>
+          <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading risk analytics...</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <DashboardHeader />
+          <div className="bg-white dark:bg-[#171717]">
+            <AnalyticsTabNavigation 
+              tabs={analyticsNavigationConfig.map(tab => ({
+                ...tab,
+                isActive: tab.id === 'reports'
+              }))}
+              onTabChange={() => {}}
+              onDropdownItemClick={() => {}}
+            />
+          </div>
+          <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <p className="text-red-500 mb-4">Error loading risk data</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">{error}</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (!trades?.length) {
+    return (
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <DashboardHeader />
+          <div className="bg-white dark:bg-[#171717]">
+            <AnalyticsTabNavigation 
+              tabs={analyticsNavigationConfig.map(tab => ({
+                ...tab,
+                isActive: tab.id === 'reports'
+              }))}
+              onTabChange={() => {}}
+              onDropdownItemClick={() => {}}
+            />
+          </div>
+          <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <p className="text-gray-500 dark:text-gray-400 mb-4">No trading data available for risk analysis</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Import your CSV file to see risk metrics</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  // Mock series data for chart rendering (will be replaced with real data later)
+  const mockSeries = [{ date: '2024-01-01', value: 0 }]
+  const dailyNetSeries = mockSeries
+  const cumulativeNetSeries = mockSeries
+  const drawdownSeries = mockSeries
+  const volatilitySeries = mockSeries
+  const avgPositionSizeSeries = mockSeries
+  const winRateSeries = mockSeries
+  const tradeCountSeries = mockSeries
 
   // Charts: use categorical data for proper X-axis labeling
-  const leftChart: ChartShape = useMemo(() => ({
+  const leftChart: ChartShape = {
     title: 'Net P&L',
     timeframe: 'Day' as const,
-    data: getCategoricalData.leftChart
-  }), [getCategoricalData])
+    data: leftChartData
+  }
 
-  const rightChart: ChartShape = useMemo(() => ({
+  const rightChart: ChartShape = {
     title: 'Win%',
     timeframe: 'Day' as const,
-    data: getCategoricalData.rightChart
-  }), [getCategoricalData])
+    data: rightChartData
+  }
 
-  // Provide metric-specific series to PerformanceChart
-  const onDataRequest = useMemo(() => {
-    return (metric: string): ChartShape => {
-      const m = metric.toLowerCase()
-      if (m.includes('daily net p&l') && !m.includes('cumulative')) {
-        return { title: metric, timeframe: 'Day', data: dailyNetSeries }
-      }
-      if (m.includes('net p&l') && m.includes('cumulative')) {
-        return { title: metric, timeframe: 'Day', data: cumulativeNetSeries }
-      }
-      if (m.includes('drawdown')) {
-        return { title: metric, timeframe: 'Day', data: drawdownSeries }
-      }
-      if (m.includes('volatility')) {
-        return { title: metric, timeframe: 'Day', data: volatilitySeries }
-      }
-      if (m.includes('position size')) {
-        return { title: metric, timeframe: 'Day', data: avgPositionSizeSeries }
-      }
-      if (m.includes('win rate') || m.includes('win %') || m.includes('win rate consistency')) {
-        return { title: metric, timeframe: 'Day', data: winRateSeries }
-      }
-      if (m.includes('trading frequency') || m.includes('total trades') || m.includes('trade count')) {
-        return { title: metric, timeframe: 'Day', data: tradeCountSeries }
-      }
-      // Default to cumulative P&L timeline
-      return { title: metric, timeframe: 'Day', data: cumulativeNetSeries }
+  const onDataRequest = (requestedData: unknown) => {
+    console.log('Risk page data requested:', requestedData)
+    // For now, return the cached data
+    return {
+      metadata: {
+        totalTrades: currentTabData.length,
+        winRate: currentTabData.length ? 
+          (currentTabData.reduce((sum, item) => sum + (item.winRate || 0), 0) / currentTabData.length) : 0,
+        netPnl: currentTabData.reduce((sum, item) => sum + (item.netPnL || 0), 0),
+        period: 'Current Period'
+      },
+      series: leftChart.data
     }
-  }, [dailyNetSeries, cumulativeNetSeries, drawdownSeries, volatilitySeries, avgPositionSizeSeries, winRateSeries, tradeCountSeries])
+  }
+
+  // Charts: use categorical data for proper X-axis labeling (these are already defined above)
+
+  // Provide metric-specific series to PerformanceChart (duplicate removed, using the one defined above)
 
   // Helpers for JSX rendering
-  const lastCumVal = useMemo(() => (
-    cumulativeNetSeries.length ? cumulativeNetSeries[cumulativeNetSeries.length - 1].value : 0
-  ), [cumulativeNetSeries])
+  // const lastCumVal = useMemo(() => (
+  //   cumulativeNetSeries.length ? cumulativeNetSeries[cumulativeNetSeries.length - 1].value : 0
+  // ), [cumulativeNetSeries])
 
   const handleTabChange = (tabId: string) => {
     console.log('Active tab:', tabId)

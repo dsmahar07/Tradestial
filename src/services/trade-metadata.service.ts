@@ -21,20 +21,51 @@ class TradeMetadataService {
   private static instance: TradeMetadataService
   private data: TradeMetadataData = {}
   private listeners: Set<(data: TradeMetadataData) => void> = new Set()
+  private readonly STORAGE_KEY = 'tradestial-trade-metadata'
 
   public static getInstance(): TradeMetadataService {
     if (!TradeMetadataService.instance) {
       TradeMetadataService.instance = new TradeMetadataService()
-      // Initialize with some sample data
-      TradeMetadataService.instance.initializeSampleData()
+      // Load existing data from localStorage
+      TradeMetadataService.instance.loadFromStorage()
     }
     return TradeMetadataService.instance
   }
 
-  private initializeSampleData(): void {
-    // Initialize with empty data - no hardcoded tags
-    this.data = {}
+  private loadFromStorage(): void {
+    try {
+      if (typeof window !== 'undefined') {
+        const storedData = localStorage.getItem(this.STORAGE_KEY)
+        if (storedData) {
+          this.data = JSON.parse(storedData)
+          // Convert date strings back to Date objects
+          Object.values(this.data).forEach(metadata => {
+            metadata.lastUpdated = new Date(metadata.lastUpdated)
+          })
+          console.log(`📚 TradeMetadataService - Loaded ${Object.keys(this.data).length} trade metadata entries from storage`)
+        } else {
+          console.log('📚 TradeMetadataService - No stored metadata found, starting with empty data')
+          this.data = {}
+        }
+      } else {
+        this.data = {}
+      }
+    } catch (error) {
+      console.error('❌ TradeMetadataService - Error loading from localStorage:', error)
+      this.data = {}
+    }
     this.notify()
+  }
+
+  private saveToStorage(): void {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data))
+        console.log(`💾 TradeMetadataService - Saved ${Object.keys(this.data).length} trade metadata entries to storage`)
+      }
+    } catch (error) {
+      console.error('❌ TradeMetadataService - Error saving to localStorage:', error)
+    }
   }
 
   // Subscribe to metadata changes
@@ -45,9 +76,13 @@ class TradeMetadataService {
     return () => this.listeners.delete(callback)
   }
 
-  // Notify all listeners of data changes
+  // Notify all listeners of data changes and save to storage
   private notify(): void {
     this.listeners.forEach(callback => callback(this.data))
+    // Save to localStorage whenever data changes (except on initial load)
+    if (this.listeners.size > 0) {
+      this.saveToStorage()
+    }
   }
 
   // Get metadata for a specific trade

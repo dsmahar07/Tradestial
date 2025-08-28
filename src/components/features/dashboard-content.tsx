@@ -132,12 +132,12 @@ export function DashboardContent() {
           
           {/* Recent Trades + Calendar row */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-5 h-full">
+            <div className="lg:col-span-4 self-start">
               <Suspense fallback={<ChartSkeleton />}>
                 <RecentTradesTable />
               </Suspense>
             </div>
-            <div className="lg:col-span-7 h-full">
+            <div className="lg:col-span-8 h-full">
               <div className="h-full">
                 <TradeDashboardCalendar className="h-full" />
               </div>

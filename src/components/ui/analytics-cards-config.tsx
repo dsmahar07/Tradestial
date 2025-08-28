@@ -17,6 +17,7 @@ export interface AnalyticsCardConfig {
   donutData?: Array<{ name: string; value: number; color: string }>
   showHorizontalBars?: boolean
   horizontalBarsData?: Array<{ name: string; value: number; color: string }>
+  horizontalBarsFormatter?: (value: number, name: string) => string
   showCustomContent?: boolean
   customContent?: React.ReactNode
   showVerticalBars?: boolean
@@ -25,6 +26,13 @@ export interface AnalyticsCardConfig {
 
 // Get real-time data from DataStore
 export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
+  const trades = DataStore.getAllTrades()
+  
+  // If no trades, return empty state
+  if (trades.length === 0) {
+    return getEmptyAnalyticsCards()
+  }
+  
   const kpis = DataStore.calculateDashboardKPIs()
   const metrics = DataStore.calculateMetrics()
   const currentStreak = kpis.currentStreak
@@ -100,14 +108,130 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       ]
     },
     {
+      title: "Avg. Realized R-Multiple",
+      value: kpis.avgRealizedRMultiple.formatted,
+      change: 0,
+      changeLabel: `${metrics.tradesWithValidSLTP}/${metrics.totalTrades} trades with SL/TP`,
+      delay: 0.5,
+      icon: ExpectancyIcon,
+      customIcon: true,
+      valueColor: kpis.avgRealizedRMultiple.value >= 0 ? "#10b981" : "#ef4444",
+      showHorizontalBars: true,
+      horizontalBarsData: [
+        { name: 'Realized', value: Math.abs(kpis.avgRealizedRMultiple.value), color: kpis.avgRealizedRMultiple.value >= 0 ? '#10b981' : '#ef4444' },
+        { name: 'Planned', value: Math.abs(kpis.avgPlannedRMultiple.value), color: '#6b7280' }
+      ],
+      horizontalBarsFormatter: (v) => `${v.toFixed(2)}R`
+    },
+    {
       title: "Trade expectancy",
       value: kpis.tradeExpectancy.formatted,
       change: 0,
       changeLabel: "",
-      delay: 0.5,
+      delay: 0.6,
       icon: ExpectancyIcon,
       customIcon: true,
       valueColor: kpis.tradeExpectancy.value >= 0 ? "#10b981" : "#ef4444"
+    }
+  ]
+}
+
+// Empty state for when no trades are imported
+function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
+  return [
+    {
+      title: "NET PNL",
+      value: "$0.00",
+      change: 0,
+      changeLabel: "No trades imported",
+      delay: 0,
+      icon: NetPnlIcon,
+      customIcon: true,
+      valueColor: "#6b7280"
+    },
+    {
+      title: "Win Rate",
+      value: "0%",
+      change: 0,
+      changeLabel: "Import trades to see analytics",
+      delay: 0.1,
+      icon: OrdersIcon,
+      customIcon: true,
+      showSemicircularIndicator: true,
+      gaugeData: [
+        { name: 'Wins', value: 0, color: '#10b981' },
+        { name: 'Losses', value: 0, color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Profit Factor",
+      value: "0.00",
+      change: 0,
+      changeLabel: "Upload CSV to get started",
+      delay: 0.2,
+      icon: VisitorsIcon,
+      customIcon: true,
+      valueColor: "#6b7280",
+      showDonutIndicator: true,
+      donutData: [
+        { name: 'Profit', value: 0, color: '#10b981' },
+        { name: 'Loss', value: 0, color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Avg Win/Loss",
+      value: "0:0",
+      change: 0,
+      changeLabel: "Go to Import Data",
+      delay: 0.3,
+      icon: RefundIcon,
+      customIcon: true,
+      showHorizontalBars: true,
+      horizontalBarsData: [
+        { name: 'Avg Win', value: 0, color: '#10b981' },
+        { name: 'Avg Loss', value: 0, color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Current Streak",
+      value: "0",
+      change: 0,
+      changeLabel: "No streak",
+      delay: 0.4,
+      icon: StreakIcon,
+      customIcon: true,
+      valueColor: "#6b7280",
+      showVerticalBars: true,
+      verticalBarsData: [
+        { name: 'Win', value: 0, color: '#10b981' },
+        { name: 'Loss', value: 0, color: '#ef4444' }
+      ]
+    },
+    {
+      title: "Avg. Realized R-Multiple",
+      value: "0.00R",
+      change: 0,
+      changeLabel: "Set SL/TP in tracker",
+      delay: 0.5,
+      icon: ExpectancyIcon,
+      customIcon: true,
+      valueColor: "#6b7280",
+      showHorizontalBars: true,
+      horizontalBarsData: [
+        { name: 'Realized', value: 0, color: '#10b981' },
+        { name: 'Planned', value: 0, color: '#6b7280' }
+      ],
+      horizontalBarsFormatter: (v) => `${v.toFixed(2)}R`
+    },
+    {
+      title: "Trade Expectancy",
+      value: "$0.00",
+      change: 0,
+      changeLabel: "Import trades first",
+      delay: 0.6,
+      icon: ExpectancyIcon,
+      customIcon: true,
+      valueColor: "#6b7280"
     }
   ]
 }

@@ -1,3 +1,5 @@
+import { calculateRMultipleMetrics, calculateRMultipleExpectancy } from '@/utils/r-multiple'
+
 export interface Trade {
   id: string
   openDate: string
@@ -64,6 +66,15 @@ export interface Trade {
   returnPerPip?: string
   totalFees?: number
   totalSwap?: number
+  // Hypothetical exit enrichments (computed post-import)
+  hypotheticalExit1hPrice?: number
+  hypotheticalExit1hPnl?: number
+  hypotheticalExit1hPercent?: string
+  hypotheticalExit1hTime?: string
+  hypotheticalExit2hPrice?: number
+  hypotheticalExit2hPnl?: number
+  hypotheticalExit2hPercent?: string
+  hypotheticalExit2hTime?: string
 }
 
 export interface TradeMetrics {
@@ -90,6 +101,11 @@ export interface TradeMetrics {
   profitabilityIndex: number
   riskRewardRatio: number
   expectancy: number
+  // R-Multiple metrics
+  avgPlannedRMultiple: number
+  avgRealizedRMultiple: number
+  rMultipleExpectancy: number
+  tradesWithValidSLTP: number
 }
 
 export interface RunningPnlPoint {
@@ -97,135 +113,33 @@ export interface RunningPnlPoint {
   value: number
 }
 
-// Mock data - in production this would come from an API
-const mockTrades: Trade[] = [
-  {
-    id: '09-01-2025',
-    symbol: 'NQ',
-    openDate: 'Tue, Aug 12, 2025',
-    closeDate: 'Tue, Aug 12, 2025',
-    // Same-day expiration example for DTE = 0
-    expirationDate: 'Tue, Aug 12, 2025',
-    netPnl: 2025,
-    side: 'LONG',
-    contractsTraded: 101,
-    points: 25,
-    ticks: 405.0,
-    ticksPerContract: 405.0,
-    commissions: 0,
-    netRoi: 0.43,
-    grossPnl: 2025,
-    adjustedCost: 474440,
-    model: 'ICT 2022 Model',
-    zellaScale: 0,
-    priceMae: 23617,
-    priceMfe: 23967.25,
-    mae: 23617,
-    mfe: 23967.25,
-    runningPnl: null,
-    tradeRating: 5,
-    profitTarget: 0,
-    stopLoss: 0,
-    averageEntry: 23722,
-    averageExit: 23823.25,
-    entryTime: '19:48:37',
-    exitTime: '20:40:37',
-    status: 'WIN',
-    entryPrice: 23722,
-    exitPrice: 23823.25,
-    tags: ['Trend Following', 'US Session', 'Breakout']
-  },
-  {
-    id: '1',
-    openDate: '08/07/2025',
-    symbol: 'NQ',
-    status: 'WIN',
-    closeDate: '08/07/2025',
-    // 2 days till expiration example
-    expirationDate: '08/09/2025',
-    entryPrice: 23617.25,
-    exitPrice: 23619.25,
-    netPnl: 356.4,
-    netRoi: 0.01,
-    entryTime: '07:18:55',
-    exitTime: '07:21:03',
-    contractsTraded: 10,
-    adjustedCost: 4723450,
-    mae: 23617,
-    mfe: 23626.25,
-    zellaInsights: '',
-    zellaScale: 5,
-    tags: ['Scalp', 'US Open']
-  },
-  {
-    id: '2',
-    openDate: '08/07/2025',
-    symbol: 'NQ',
-    status: 'LOSS',
-    closeDate: '08/07/2025',
-    // 9 days till expiration example
-    expirationDate: '08/16/2025',
-    entryPrice: 23608.25,
-    exitPrice: 23607,
-    netPnl: -1022.96,
-    netRoi: -0.05,
-    entryTime: '08:15:12',
-    exitTime: '08:19:45',
-    contractsTraded: 3,
-    adjustedCost: 523450,
-    mae: 23605.5,
-    mfe: 23610.0,
-    zellaInsights: '',
-    zellaScale: 2,
-    tags: ['Reversal', 'Midday', 'Mistake:Chased']
-  }
-]
-
-// Mock running P&L data
-const mockRunningPnlData: RunningPnlPoint[] = [
-  { time: '19:48', value: 0 },
-  { time: '19:49', value: -200 },
-  { time: '19:50', value: -400 },
-  { time: '19:52', value: -150 },
-  { time: '19:55', value: 300 },
-  { time: '19:58', value: 500 },
-  { time: '20:00', value: 200 },
-  { time: '20:03', value: 800 },
-  { time: '20:05', value: 600 },
-  { time: '20:08', value: 1200 },
-  { time: '20:15', value: 1400 },
-  { time: '20:20', value: 1100 },
-  { time: '20:25', value: 1600 },
-  { time: '20:30', value: 1800 },
-  { time: '20:35', value: 2100 },
-  { time: '20:40', value: 2025 }
-]
+// NO MOCK DATA - All data comes from DataStore
 
 export class TradeDataService {
-  // Get all trades
+  // Get all trades from DataStore (single source of truth)
   static async getAllTrades(): Promise<Trade[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100))
-    return mockTrades
+    // Import DataStore dynamically to avoid circular dependency
+    const { DataStore } = await import('./data-store.service')
+    return DataStore.getAllTrades()
   }
 
   // Get trade by ID
   static async getTradeById(id: string): Promise<Trade | null> {
-    await new Promise(resolve => setTimeout(resolve, 50))
-    return mockTrades.find(trade => trade.id === id) || null
+    const { DataStore } = await import('./data-store.service')
+    const allTrades = DataStore.getAllTrades()
+    return allTrades.find(trade => trade.id === id) || null
   }
 
   // Get trades by symbol
   static async getTradesBySymbol(symbol: string): Promise<Trade[]> {
-    await new Promise(resolve => setTimeout(resolve, 50))
-    return mockTrades.filter(trade => trade.symbol === symbol)
+    const { DataStore } = await import('./data-store.service')
+    return DataStore.getTradesBySymbol(symbol)
   }
 
   // Get running P&L data for a trade
   static async getRunningPnlData(): Promise<RunningPnlPoint[]> {
-    await new Promise(resolve => setTimeout(resolve, 50))
-    // In production, this would be trade-specific data
-    return mockRunningPnlData
+    // Return empty array - this would come from real trade data in the future
+    return []
   }
 
   // Process running P&L data (add zero crossing points)
@@ -257,7 +171,7 @@ export class TradeDataService {
   }
 
   // Calculate trade metrics
-  static calculateMetrics(trades: Trade[]): TradeMetrics {
+  static calculateMetrics(trades: Trade[], getTradeMetadata?: (tradeId: string) => { profitTarget?: string; stopLoss?: string } | null): TradeMetrics {
     if (trades.length === 0) {
       return {
         totalTrades: 0,
@@ -282,19 +196,30 @@ export class TradeDataService {
         maxDrawdown: 0,
         profitabilityIndex: 0,
         riskRewardRatio: 0,
-        expectancy: 0
+        expectancy: 0,
+        avgPlannedRMultiple: 0,
+        avgRealizedRMultiple: 0,
+        rMultipleExpectancy: 0,
+        tradesWithValidSLTP: 0
       }
     }
 
-    const totalTrades = trades.length
-    const netCumulativePnl = trades.reduce((sum, trade) => sum + trade.netPnl, 0)
-    const winningTrades = trades.filter(trade => trade.status === 'WIN').length
-    const losingTrades = trades.filter(trade => trade.status === 'LOSS').length
+    // Ensure chronological order for order-dependent metrics (streaks, drawdown)
+    const sortedTrades = [...trades].sort((a, b) => {
+      const aTime = new Date(`${a.openDate} ${a.entryTime || '00:00:00'}`).getTime()
+      const bTime = new Date(`${b.openDate} ${b.entryTime || '00:00:00'}`).getTime()
+      return aTime - bTime
+    })
+
+    const totalTrades = sortedTrades.length
+    const netCumulativePnl = sortedTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
+    const winningTrades = sortedTrades.filter(trade => trade.status === 'WIN').length
+    const losingTrades = sortedTrades.filter(trade => trade.status === 'LOSS').length
     const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
     
     // Calculate average win and loss amounts
-    const winTrades = trades.filter(trade => trade.status === 'WIN')
-    const lossTrades = trades.filter(trade => trade.status === 'LOSS')
+    const winTrades = sortedTrades.filter(trade => trade.status === 'WIN')
+    const lossTrades = sortedTrades.filter(trade => trade.status === 'LOSS')
     
     const totalWinAmount = winTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
     const totalLossAmount = Math.abs(lossTrades.reduce((sum, trade) => sum + trade.netPnl, 0))
@@ -304,9 +229,9 @@ export class TradeDataService {
     const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : 0
 
     // Calculate additional metrics
-    const grossPnl = trades.reduce((sum, trade) => sum + (trade.grossPnl || trade.netPnl), 0)
-    const totalCommissions = trades.reduce((sum, trade) => sum + (trade.commissions || 0), 0)
-    const avgRoi = trades.reduce((sum, trade) => sum + trade.netRoi, 0) / totalTrades
+    const grossPnl = sortedTrades.reduce((sum, trade) => sum + (trade.grossPnl || trade.netPnl), 0)
+    const totalCommissions = sortedTrades.reduce((sum, trade) => sum + (trade.commissions || 0), 0)
+    const avgRoi = sortedTrades.reduce((sum, trade) => sum + trade.netRoi, 0) / totalTrades
     
     const maxWin = winTrades.length > 0 ? Math.max(...winTrades.map(t => t.netPnl)) : 0
     const maxLoss = lossTrades.length > 0 ? Math.min(...lossTrades.map(t => t.netPnl)) : 0
@@ -319,7 +244,7 @@ export class TradeDataService {
     let maxWinStreak = 0
     let maxLossStreak = 0
 
-    trades.forEach(trade => {
+    sortedTrades.forEach(trade => {
       if (trade.status === 'WIN') {
         currentWinStreak++
         currentLossStreak = 0
@@ -339,7 +264,7 @@ export class TradeDataService {
     let peak = 0
     let maxDrawdown = 0
 
-    trades.forEach(trade => {
+    sortedTrades.forEach(trade => {
       runningPnl += trade.netPnl
       peak = Math.max(peak, runningPnl)
       const drawdown = peak - runningPnl
@@ -352,6 +277,10 @@ export class TradeDataService {
     const profitabilityIndex = winRate / 100
     const riskRewardRatio = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
     const expectancy = (winRate / 100) * avgWinAmount - ((100 - winRate) / 100) * avgLossAmount
+
+    // Calculate R-Multiple metrics
+    const rMultipleMetrics = calculateRMultipleMetrics(trades, getTradeMetadata)
+    const rMultipleExpectancyData = calculateRMultipleExpectancy(trades, getTradeMetadata)
 
     return {
       totalTrades,
@@ -376,7 +305,11 @@ export class TradeDataService {
       maxDrawdown,
       profitabilityIndex,
       riskRewardRatio,
-      expectancy
+      expectancy,
+      avgPlannedRMultiple: rMultipleMetrics.avgPlannedRMultiple,
+      avgRealizedRMultiple: rMultipleMetrics.avgRealizedRMultiple,
+      rMultipleExpectancy: rMultipleExpectancyData.expectancy,
+      tradesWithValidSLTP: rMultipleMetrics.tradesWithValidSLTP
     }
   }
 

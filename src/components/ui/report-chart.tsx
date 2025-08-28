@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Button } from './button'
 import {
@@ -10,28 +10,98 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
 
-// Sample report data
-const reportData = [
-  { date: '06/19/25', winPercent: 100, avgWin: 4000, avgLoss: 0 },
-  { date: '06/22/25', winPercent: 100, avgWin: 4000, avgLoss: 0 },
-  { date: '06/24/25', winPercent: 100, avgWin: 4000, avgLoss: 0 },
-  { date: '06/26/25', winPercent: 80, avgWin: 3200, avgLoss: -400 },
-  { date: '06/29/25', winPercent: 80, avgWin: 3200, avgLoss: -600 },
-  { date: '07/01/25', winPercent: 60, avgWin: 2400, avgLoss: -800 },
-  { date: '07/03/25', winPercent: 50, avgWin: 2000, avgLoss: -800 },
-  { date: '07/08/25', winPercent: 60, avgWin: 2400, avgLoss: -1000 },
-  { date: '07/10/25', winPercent: 60, avgWin: 2400, avgLoss: -1200 },
-  { date: '07/15/25', winPercent: 50, avgWin: 2000, avgLoss: -1400 },
-  { date: '07/17/25', winPercent: 50, avgWin: 2000, avgLoss: -1600 },
-  { date: '07/22/25', winPercent: 50, avgWin: 2000, avgLoss: -1600 },
-  { date: '07/24/25', winPercent: 55, avgWin: 2200, avgLoss: -1600 },
-  { date: '07/29/25', winPercent: 55, avgWin: 2200, avgLoss: -1600 },
-  { date: '07/31/25', winPercent: 55, avgWin: 2200, avgLoss: -1600 },
-  { date: '08/05/25', winPercent: 50, avgWin: 2000, avgLoss: -1600 },
-  { date: '08/07/25', winPercent: 50, avgWin: 2000, avgLoss: -1600 },
-  { date: '08/12/25', winPercent: 50, avgWin: 2000, avgLoss: -1600 }
-]
+interface ReportDataPoint {
+  date: string
+  winPercent: number
+  avgWin: number
+  avgLoss: number
+}
+
+type TimePeriod = 'Day' | 'Week' | 'Month'
+
+// Generate report data from real trades
+const generateReportData = (trades: Trade[], period: TimePeriod): ReportDataPoint[] => {
+  if (trades.length === 0) return []
+
+  // Sort trades by date
+  const sortedTrades = [...trades].sort((a, b) => 
+    new Date(a.closeDate || a.openDate).getTime() - new Date(b.closeDate || b.openDate).getTime()
+  )
+
+  const reportData: ReportDataPoint[] = []
+  const groupedTrades: Record<string, Trade[]> = {}
+
+  // Group trades by time period
+  sortedTrades.forEach(trade => {
+    const tradeDate = new Date(trade.closeDate || trade.openDate)
+    let groupKey: string
+
+    switch (period) {
+      case 'Day':
+        groupKey = tradeDate.toISOString().split('T')[0] // YYYY-MM-DD
+        break
+      case 'Week':
+        const weekStart = new Date(tradeDate)
+        weekStart.setDate(tradeDate.getDate() - tradeDate.getDay())
+        groupKey = weekStart.toISOString().split('T')[0]
+        break
+      case 'Month':
+        groupKey = `${tradeDate.getFullYear()}-${String(tradeDate.getMonth() + 1).padStart(2, '0')}`
+        break
+      default:
+        groupKey = tradeDate.toISOString().split('T')[0]
+    }
+
+    if (!groupedTrades[groupKey]) {
+      groupedTrades[groupKey] = []
+    }
+    groupedTrades[groupKey].push(trade)
+  })
+
+  // Calculate metrics for each period
+  let runningTrades: Trade[] = []
+  
+  Object.keys(groupedTrades).sort().forEach(dateKey => {
+    runningTrades = [...runningTrades, ...groupedTrades[dateKey]]
+    
+    const winners = runningTrades.filter(t => t.netPnl > 0)
+    const losers = runningTrades.filter(t => t.netPnl < 0)
+    
+    const winPercent = runningTrades.length > 0 ? (winners.length / runningTrades.length) * 100 : 0
+    const avgWin = winners.length > 0 ? winners.reduce((sum, t) => sum + t.netPnl, 0) / winners.length : 0
+    const avgLoss = losers.length > 0 ? losers.reduce((sum, t) => sum + t.netPnl, 0) / losers.length : 0
+
+    // Format date for display
+    let displayDate: string
+    const date = new Date(dateKey)
+    
+    switch (period) {
+      case 'Day':
+        displayDate = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+        break
+      case 'Week':
+        displayDate = `W${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}`
+        break
+      case 'Month':
+        displayDate = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+        break
+      default:
+        displayDate = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+    }
+
+    reportData.push({
+      date: displayDate,
+      winPercent: Math.round(winPercent),
+      avgWin: Math.round(avgWin),
+      avgLoss: Math.round(avgLoss)
+    })
+  })
+
+  return reportData.slice(-18) // Show last 18 data points
+}
 
 // Custom Tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -57,6 +127,42 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export const ReportChart = React.memo(function ReportChart() {
+  const [trades, setTrades] = useState<Trade[]>([])
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('Day')
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    setTrades(DataStore.getAllTrades())
+    const unsubscribe = DataStore.subscribe(() => {
+      setTrades(DataStore.getAllTrades())
+    })
+    return unsubscribe
+  }, [])
+
+  // Generate report data from real trades
+  const reportData = useMemo(() => generateReportData(trades, selectedPeriod), [trades, selectedPeriod])
+
+  if (!trades.length) {
+    return (
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report</h3>
+            <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-[#2a2a2a] flex items-center justify-center">
+              <span className="text-xs text-gray-500 dark:text-gray-400">?</span>
+            </div>
+          </div>
+        </div>
+        <div className="h-[300px] flex items-center justify-center">
+          <div className="text-gray-500 dark:text-gray-400 text-center">
+            <div>No report data available</div>
+            <div className="text-sm mt-1">Import your CSV to see performance reports</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
       {/* Header */}
@@ -75,20 +181,29 @@ export const ReportChart = React.memo(function ReportChart() {
                 size="sm"
                 className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
               >
-                <span>Day</span>
+                <span>{selectedPeriod}</span>
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
             >
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+              <DropdownMenuItem 
+                className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+                onClick={() => setSelectedPeriod('Day')}
+              >
                 Day
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+              <DropdownMenuItem 
+                className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+                onClick={() => setSelectedPeriod('Week')}
+              >
                 Week
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+              <DropdownMenuItem 
+                className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+                onClick={() => setSelectedPeriod('Month')}
+              >
                 Month
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -150,7 +265,7 @@ export const ReportChart = React.memo(function ReportChart() {
               interval="preserveStartEnd"
             />
             
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={false} />
             
             {/* Win % Line - Green, uses percentage axis */}
             <Line

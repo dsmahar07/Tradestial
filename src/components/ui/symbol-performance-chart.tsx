@@ -19,7 +19,9 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
 
 interface SymbolPerformance {
   symbol: string
@@ -31,63 +33,62 @@ interface SymbolPerformance {
   volume: number
 }
 
-// Sample futures symbols performance data
-const symbolsData: SymbolPerformance[] = [
-  {
-    symbol: 'NQ',
-    name: 'NASDAQ-100',
-    pnl: 2850.75,
-    trades: 24,
-    winRate: 62.5,
-    avgTrade: 118.78,
-    volume: 48
-  },
-  {
-    symbol: 'ES',
-    name: 'S&P 500',
-    pnl: 1420.50,
-    trades: 18,
-    winRate: 55.6,
-    avgTrade: 78.92,
-    volume: 36
-  },
-  {
-    symbol: 'YM',
-    name: 'Dow Jones',
-    pnl: -245.25,
-    trades: 8,
-    winRate: 37.5,
-    avgTrade: -30.66,
-    volume: 16
-  },
-  {
-    symbol: 'RTY',
-    name: 'Russell 2000',
-    pnl: 890.25,
-    trades: 15,
-    winRate: 60.0,
-    avgTrade: 59.35,
-    volume: 30
-  },
-  {
-    symbol: 'CL',
-    name: 'Crude Oil',
-    pnl: 567.80,
-    trades: 12,
-    winRate: 58.3,
-    avgTrade: 47.32,
-    volume: 24
-  },
-  {
-    symbol: 'GC',
-    name: 'Gold',
-    pnl: 1125.40,
-    trades: 20,
-    winRate: 65.0,
-    avgTrade: 56.27,
-    volume: 40
+// Generate real symbols data from imported trades
+const generateSymbolsData = (trades: Trade[]): SymbolPerformance[] => {
+  if (trades.length === 0) return []
+
+  // Group trades by symbol
+  const symbolGroups = trades.reduce((acc, trade) => {
+    const symbol = trade.symbol.toUpperCase()
+    if (!acc[symbol]) {
+      acc[symbol] = []
+    }
+    acc[symbol].push(trade)
+    return acc
+  }, {} as Record<string, Trade[]>)
+
+  // Calculate metrics for each symbol
+  return Object.entries(symbolGroups).map(([symbol, symbolTrades]) => {
+    const totalPnL = symbolTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
+    const wins = symbolTrades.filter(trade => trade.netPnl > 0)
+    const winRate = symbolTrades.length > 0 ? (wins.length / symbolTrades.length) * 100 : 0
+    const avgTrade = symbolTrades.length > 0 ? totalPnL / symbolTrades.length : 0
+    const volume = symbolTrades.reduce((sum, trade) => sum + (trade.contractsTraded || 1), 0)
+    
+    return {
+      symbol,
+      name: getSymbolName(symbol),
+      pnl: totalPnL,
+      trades: symbolTrades.length,
+      winRate,
+      avgTrade,
+      volume
+    }
+  }).sort((a, b) => b.pnl - a.pnl) // Sort by P&L descending
+}
+
+// Get display name for symbol
+const getSymbolName = (symbol: string): string => {
+  const symbolNames: Record<string, string> = {
+    'NQ': 'NASDAQ-100',
+    'ES': 'S&P 500',
+    'YM': 'Dow Jones',
+    'RTY': 'Russell 2000',
+    'CL': 'Crude Oil',
+    'GC': 'Gold',
+    'SI': 'Silver',
+    'ZN': '10-Year Note',
+    'ZB': '30-Year Bond',
+    'EUR/USD': 'Euro/Dollar',
+    'GBP/USD': 'Pound/Dollar',
+    'USD/JPY': 'Dollar/Yen',
+    'BTC': 'Bitcoin',
+    'ETH': 'Ethereum',
+    // Add more symbols as needed
   }
-]
+  
+  return symbolNames[symbol] || symbol // Return symbol if no mapping found
+}
 
 const timeRanges = ['Today', 'This Week', 'This Month', 'All Time']
 const metrics = ['P&L', 'Trade Count', 'Win Rate', 'Avg Trade']
@@ -95,6 +96,82 @@ const metrics = ['P&L', 'Trade Count', 'Win Rate', 'Avg Trade']
 export function SymbolPerformanceChart() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('This Month')
   const [selectedMetric, setSelectedMetric] = useState('P&L')
+  const [trades, setTrades] = useState<Trade[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Load trades and subscribe to changes
+  useEffect(() => {
+    const loadData = () => {
+      try {
+        const allTrades = DataStore.getAllTrades()
+        setTrades(allTrades)
+      } catch (error) {
+        console.error('Failed to load trades for symbol performance:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+    
+    // Subscribe to data changes
+    const unsubscribe = DataStore.subscribe(loadData)
+    return unsubscribe
+  }, [])
+
+  // Filter trades based on selected time range
+  const filteredTrades = useMemo(() => {
+    if (trades.length === 0) return []
+    
+    const now = new Date()
+    const startDate = new Date()
+    
+    switch (selectedTimeRange) {
+      case 'Today':
+        startDate.setHours(0, 0, 0, 0)
+        break
+      case 'This Week':
+        startDate.setDate(now.getDate() - 7)
+        break  
+      case 'This Month':
+        startDate.setMonth(now.getMonth() - 1)
+        break
+      case 'All Time':
+        return trades
+    }
+    
+    return trades.filter(trade => {
+      const tradeDate = new Date(trade.closeDate || trade.openDate)
+      return tradeDate >= startDate
+    })
+  }, [trades, selectedTimeRange])
+
+  // Generate symbol data from filtered trades
+  const symbolsData = useMemo(() => {
+    return generateSymbolsData(filteredTrades)
+  }, [filteredTrades])
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-96 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500 dark:text-gray-400">Loading symbol data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!trades.length || !symbolsData.length) {
+    return (
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-96 flex items-center justify-center">
+        <div className="text-gray-500 dark:text-gray-400 text-center">
+          <div>No symbol data available</div>
+          <div className="text-sm mt-1">Import your CSV to see symbol performance</div>
+        </div>
+      </div>
+    )
+  }
 
   // Get data based on selected metric
   const getChartData = () => {

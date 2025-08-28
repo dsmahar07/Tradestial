@@ -98,23 +98,53 @@ export function PerformanceChart({
 
   // Format values for display
   const formatValue = useCallback((value: number): string => {
+    if (!isFinite(value)) return '0'
     if (value === 0) return '0'
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`
-    }
-    if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`
-    }
+    const abs = Math.abs(value)
+    if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+    if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+    // Show decimals for small magnitudes (helps R-multiple charts)
+    if (abs < 10) return value.toFixed(2)
     return value.toFixed(0)
   }, [])
 
+  // Determine if a metric name represents an R-multiple
+  const isRMultipleMetric = useCallback((name: string): boolean => /r-?multiple/i.test(name), [])
+
+  // Axis-aware tick formatters: add 'R' for R-multiple axes
+  const leftAxisIsR = useMemo(() => isRMultipleMetric(primaryMetric), [primaryMetric, isRMultipleMetric])
+  const rightAxisIsR = useMemo(
+    () => additionalMetrics.some((m) => isRMultipleMetric(m)),
+    [additionalMetrics, isRMultipleMetric]
+  )
+
+  const formatLeftAxisTick = useCallback((v: number) => {
+    const base = formatValue(v)
+    return leftAxisIsR ? `${base}R` : base
+  }, [formatValue, leftAxisIsR])
+
+  const formatRightAxisTick = useCallback((v: number) => {
+    const base = formatValue(v)
+    return rightAxisIsR ? `${base}R` : base
+  }, [formatValue, rightAxisIsR])
+
   // Format date labels for X-axis
   const formatDate = useCallback((dateString: string): string => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      day: '2-digit',
-      month: 'short'
-    })
+    // Handle YYYY-MM-DD safely without constructing a UTC Date
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [yyyy, mm, dd] = dateString.split('-')
+      // Map month to short name
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const monthIdx = Math.max(0, Math.min(11, parseInt(mm, 10) - 1))
+      return `${months[monthIdx]} ${dd}`
+    }
+    // Fallback to local parsing for other formats
+    const d = new Date(dateString)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+    }
+    // If not parseable, return as-is
+    return dateString
   }, [])
 
 
@@ -303,119 +333,60 @@ export function PerformanceChart({
   // Get all metrics (primary + additional)
   const allMetrics = useMemo(() => [primaryMetric, ...additionalMetrics], [primaryMetric, additionalMetrics])
 
-  // Improved data generation with better patterns
-  const generateMockDataForMetric = useCallback((metric: string) => {
-    if (metric === data.title) return data.data
-    
-    // If custom data request function is provided, use it
-    if (onDataRequest) {
-      const result = onDataRequest(metric)
-      if (result && typeof result === 'object' && 'data' in result) {
-        return result.data
-      }
-      // If it's a promise, we'll handle it later with proper async state management
+  // Get real data for metrics - with better fallback handling
+  const getRealMetricData = useCallback((metric: string) => {
+    // Synchronous accessor: only return immediately available data
+    if (metric === data.title) {
+      return data.data || []
     }
-    
-    const hash = metric.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0)
-      return a & a
-    }, 0)
-    
-    let seed = Math.abs(hash)
-    const seededRandom = () => {
-      seed = (seed * 9301 + 49297) % 233280
-      return seed / 233280
+    if (cachedData[metric]) {
+      return cachedData[metric]
     }
-    
-    // Enhanced pattern recognition and value generation for all metrics
-    const getPatternConfig = (metricName: string) => {
-      const lowerMetric = metricName.toLowerCase()
-      
-      // Profitability patterns
-      if (lowerMetric.includes('profit') || (lowerMetric.includes('win') && !lowerMetric.includes('%'))) {
-        return { base: 800, amplitude: 400, trend: 0.1, min: 0 }
-      }
-      if (lowerMetric.includes('loss') || lowerMetric.includes('drawdown')) {
-        return { base: -400, amplitude: 200, trend: -0.05, min: -2000 }
-      }
-      if (lowerMetric.includes('p&l') || lowerMetric.includes('pnl')) {
-        return { base: 200, amplitude: 600, trend: 0.05, min: -1000 }
-      }
-      if (lowerMetric.includes('expectancy')) {
-        return { base: 15, amplitude: 25, trend: 0.02, min: -50 }
-      }
-      
-      // Volume and activity patterns
-      if (lowerMetric.includes('volume')) {
-        return { base: 2.5, amplitude: 1.0, trend: 0.02, min: 0.1 }
-      }
-      if (lowerMetric.includes('trade count') || lowerMetric.includes('# of')) {
-        return { base: 15, amplitude: 8, trend: 0.01, min: 0 }
-      }
-      if (lowerMetric.includes('logged days') || lowerMetric.includes('breakeven days')) {
-        return { base: 20, amplitude: 5, trend: 0.01, min: 0 }
-      }
-      if (lowerMetric.includes('account balance')) {
-        return { base: 50000, amplitude: 15000, trend: 0.05, min: 10000 }
-      }
-      
-      // Time patterns
-      if (lowerMetric.includes('time') || lowerMetric.includes('duration')) {
-        return { base: 45, amplitude: 20, trend: 0.01, min: 5 }
-      }
-      
-      // Percentage patterns
-      if (lowerMetric.includes('win%') || lowerMetric.includes('rate') || lowerMetric.includes('%')) {
-        return { base: 55, amplitude: 25, trend: 0.05, min: 0, max: 100 }
-      }
-      
-      // Risk patterns
-      if (lowerMetric.includes('r-multiple') || lowerMetric.includes('factor')) {
-        return { base: 1.5, amplitude: 0.5, trend: 0.03, min: 0.1 }
-      }
-      
-      // Consecutive/streak patterns
-      if (lowerMetric.includes('consecutive') || lowerMetric.includes('max')) {
-        return { base: 5, amplitude: 3, trend: 0.01, min: 0 }
-      }
-      
-      // Default pattern
-      return { base: 500, amplitude: 300, trend: 0.02, min: 0 }
-    }
-    
-    const config = getPatternConfig(metric)
-    const cyclePeriod = 1 + seededRandom() * 1.5
-    
-    return data.data.map((point, index) => {
-      const t = index / data.data.length
-      const cyclical = Math.sin(t * Math.PI * 2 * cyclePeriod) * config.amplitude
-      const trendEffect = t * config.trend * config.base
-      const noise = (seededRandom() - 0.5) * config.amplitude * 0.3
-      
-      let value = config.base + cyclical + trendEffect + noise
-      
-      if (config.min !== undefined) value = Math.max(config.min, value)
-      if (config.max !== undefined) value = Math.min(config.max, value)
-      
-      return {
-        ...point,
-        value: Number(value.toFixed(2))
+    return []
+  }, [data, cachedData])
+
+  // Prefetch metric series when selections change (supports async onDataRequest)
+  useEffect(() => {
+    let cancelled = false
+    if (!onDataRequest) return
+
+    const toFetch = allMetrics.filter(m => m !== data.title && !cachedData[m])
+    if (toFetch.length === 0) return
+
+    toFetch.forEach((metric, idx) => {
+      try {
+        const res = onDataRequest(metric)
+        Promise.resolve(res)
+          .then((chartData) => {
+            if (cancelled) return
+            const series = (chartData && typeof chartData === 'object' && 'data' in chartData)
+              ? (chartData as any).data || []
+              : []
+            setCachedData(prev => {
+              // Avoid unnecessary state updates
+              if (prev[metric] === series) return prev
+              return { ...prev, [metric]: series }
+            })
+          })
+          .catch(() => {
+            if (cancelled) return
+            // On failure, cache empty array to avoid repeated fetch loops
+            setCachedData(prev => ({ ...prev, [metric]: [] }))
+          })
+      } catch (e) {
+        // Defensive: in case onDataRequest throws synchronously
+        setCachedData(prev => ({ ...prev, [metric]: [] }))
       }
     })
-  }, [data, onDataRequest])
 
-  // Get data for metrics with improved caching
+    return () => { cancelled = true }
+  }, [allMetrics, data.title, onDataRequest, cachedData])
+
+  // Get data for metrics from cache or base data
   const getMetricData = useCallback((metric: string) => {
     if (metric === data.title) return data.data
-    
-    if (!cachedData[metric]) {
-      const newData = generateMockDataForMetric(metric)
-      setCachedData(prev => ({ ...prev, [metric]: newData }))
-      return newData
-    }
-    
-    return cachedData[metric]
-  }, [data, cachedData, generateMockDataForMetric])
+    return cachedData[metric] || []
+  }, [data, cachedData])
 
   // Prepare chart data with proper scaling
   const chartData: ChartDataWithMetrics[] = useMemo(() => {
@@ -488,7 +459,11 @@ export function PerformanceChart({
                 </span>
               </div>
               <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                {formatValue(entry.value)}
+                {(() => {
+                  const val = formatValue(entry.value as number)
+                  const key = String(entry.dataKey || '')
+                  return /r-?multiple/i.test(key) ? `${val}R` : val
+                })()}
               </span>
             </div>
           ))}
@@ -966,11 +941,25 @@ export function PerformanceChart({
 
         {/* Chart */}
         <div className={`relative w-full ${height}`} ref={chartContainerRef}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart 
-              data={chartData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >              
+          {chartData.length === 0 ? (
+            // Empty state
+            <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600">
+              <div className="text-center">
+                <div className="text-gray-400 dark:text-gray-500 mb-2">
+                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">No data available</p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs">Import CSV data to see {primaryMetric.toLowerCase()}</p>
+              </div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart 
+                data={chartData} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >              
               <XAxis 
                 dataKey="date" 
                 tickFormatter={formatXAxisLabel}
@@ -984,7 +973,7 @@ export function PerformanceChart({
                 domain={yAxisDomains.left}
                 stroke="#6B7280" 
                 fontSize={11} 
-                tickFormatter={formatValue}
+                tickFormatter={formatLeftAxisTick}
                 axisLine={false}
                 tickLine={false}
                 tick={<CustomYAxisTick side="left" color={getChartColor(primaryMetric, 0)} />}
@@ -997,7 +986,7 @@ export function PerformanceChart({
                   domain={yAxisDomains.right}
                   stroke="#6B7280" 
                   fontSize={11} 
-                  tickFormatter={formatValue}
+                  tickFormatter={formatRightAxisTick}
                   axisLine={false}
                   tickLine={false}
                   tick={<CustomYAxisTick side="right" metrics={additionalMetrics} allMetrics={allMetrics} getChartColor={getChartColor} />}
@@ -1091,6 +1080,7 @@ export function PerformanceChart({
               })}
             </ComposedChart>
           </ResponsiveContainer>
+          )}
         </div>
 
         {/* Legend */}

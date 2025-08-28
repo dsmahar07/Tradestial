@@ -9,6 +9,7 @@ import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { cn } from '@/lib/utils'
 import { ChevronDown, TrendingUp, TrendingDown, Award, Activity } from 'lucide-react'
+import { useAnalytics } from '@/hooks/use-analytics'
 
 // Simple helpers
 function formatCurrency(n: number) {
@@ -19,6 +20,8 @@ function formatCurrency(n: number) {
 
 export default function SymbolsPage() {
   usePageTitle('Analytics - Symbols Report')
+  
+  const { trades, loading, error } = useAnalytics()
   
   // Tabs on the top nav
   const handleTabChange = (tabId: string) => {
@@ -61,107 +64,196 @@ export default function SymbolsPage() {
   
   const labels = getLabels()
   
-  // Dynamic data based on active sub-tab
-  const getDataForTab = () => {
+  // Calculate real data based on active sub-tab using actual trade data
+  const getDataForTab = useMemo(() => {
+    if (!trades?.length) return []
+
+    const getValue = (trade: any) => {
+      return pnlMetric === 'NET P&L' ? (trade.netPnl || 0) : (trade.grossPnl || trade.netPnl || 0)
+    }
+
     switch (subTab) {
-      case 'symbols':
-        return [
-          { item: 'NQ', trades: 3, netPnL: 1890, avgDailyVolume: 1.5, avgWin: 1035, avgLoss: 180, winRate: 66.67 },
-          { item: 'ES', trades: 2, netPnL: 0, avgDailyVolume: 1, avgWin: 12.5, avgLoss: -12.5, winRate: 50 },
-          { item: 'YM', trades: 5, netPnL: 1200, avgDailyVolume: 1.8, avgWin: 950, avgLoss: 380, winRate: 60 },
-          { item: 'RTY', trades: 6, netPnL: -200, avgDailyVolume: 2.5, avgWin: 600, avgLoss: 450, winRate: 45 }
+      case 'symbols': {
+        // Group by symbol
+        const symbolGroups: Record<string, any[]> = {}
+        trades.forEach(trade => {
+          if (!symbolGroups[trade.symbol]) symbolGroups[trade.symbol] = []
+          symbolGroups[trade.symbol].push(trade)
+        })
+
+        return Object.entries(symbolGroups).map(([symbol, symbolTrades]) => {
+          const wins = symbolTrades.filter(t => getValue(t) > 0)
+          const losses = symbolTrades.filter(t => getValue(t) < 0)
+          const winRate = symbolTrades.length > 0 ? (wins.length / symbolTrades.length) * 100 : 0
+          const totalPnl = symbolTrades.reduce((sum, t) => sum + getValue(t), 0)
+          const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + getValue(t), 0) / wins.length : 0
+          const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + getValue(t), 0)) / losses.length : 0
+          
+          // Calculate daily volume - group trades by day
+          const dailyGroups: Record<string, any[]> = {}
+          symbolTrades.forEach(trade => {
+            const day = trade.openDate.split('T')[0]
+            if (!dailyGroups[day]) dailyGroups[day] = []
+            dailyGroups[day].push(trade)
+          })
+          const avgDailyVolume = Object.keys(dailyGroups).length > 0 ? 
+            Object.values(dailyGroups).reduce((sum, dayTrades) => 
+              sum + dayTrades.reduce((s, t) => s + (t.contractsTraded || 0), 0), 0
+            ) / Object.keys(dailyGroups).length : 0
+
+          return {
+            item: symbol,
+            trades: symbolTrades.length,
+            netPnL: totalPnl,
+            avgDailyVolume: Number(avgDailyVolume.toFixed(1)),
+            avgWin: avgWin,
+            avgLoss: avgLoss,
+            winRate: Number(winRate.toFixed(2))
+          }
+        }).sort((a, b) => b.netPnL - a.netPnL) // Sort by P&L descending
+      }
+      
+      case 'instruments': {
+        // Group by instrument type
+        const instrumentGroups: Record<string, any[]> = {
+          'Future': [],
+          'Option': [],
+          'Stock': [],
+          'ETF': [],
+          'Other': []
+        }
+        
+        trades.forEach(trade => {
+          const instrument = trade.instrument || trade.instrumentType || 'Other'
+          let category = 'Other'
+          
+          if (instrument.toLowerCase().includes('future')) category = 'Future'
+          else if (instrument.toLowerCase().includes('option')) category = 'Option'
+          else if (instrument.toLowerCase().includes('stock')) category = 'Stock'
+          else if (instrument.toLowerCase().includes('etf')) category = 'ETF'
+          
+          instrumentGroups[category].push(trade)
+        })
+
+        return Object.entries(instrumentGroups)
+          .filter(([_, trades]) => trades.length > 0)
+          .map(([instrument, instrumentTrades]) => {
+            const wins = instrumentTrades.filter(t => getValue(t) > 0)
+            const losses = instrumentTrades.filter(t => getValue(t) < 0)
+            const winRate = instrumentTrades.length > 0 ? (wins.length / instrumentTrades.length) * 100 : 0
+            const totalPnl = instrumentTrades.reduce((sum, t) => sum + getValue(t), 0)
+            const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + getValue(t), 0) / wins.length : 0
+            const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + getValue(t), 0)) / losses.length : 0
+            
+            const dailyGroups: Record<string, any[]> = {}
+            instrumentTrades.forEach(trade => {
+              const day = trade.openDate.split('T')[0]
+              if (!dailyGroups[day]) dailyGroups[day] = []
+              dailyGroups[day].push(trade)
+            })
+            const avgDailyVolume = Object.keys(dailyGroups).length > 0 ? 
+              Object.values(dailyGroups).reduce((sum, dayTrades) => 
+                sum + dayTrades.reduce((s, t) => s + (t.contractsTraded || 0), 0), 0
+              ) / Object.keys(dailyGroups).length : 0
+
+            return {
+              item: instrument,
+              trades: instrumentTrades.length,
+              netPnL: totalPnl,
+              avgDailyVolume: Number(avgDailyVolume.toFixed(1)),
+              avgWin: avgWin,
+              avgLoss: avgLoss,
+              winRate: Number(winRate.toFixed(2))
+            }
+          }).sort((a, b) => b.netPnL - a.netPnL)
+      }
+      
+      case 'prices': {
+        // Group by price ranges
+        const priceRanges = [
+          { label: '<$2', min: 0, max: 2 },
+          { label: '$2-$4.99', min: 2, max: 4.99 },
+          { label: '$5-$9.99', min: 5, max: 9.99 },
+          { label: '$10-$19.99', min: 10, max: 19.99 },
+          { label: '$20-$49.99', min: 20, max: 49.99 },
+          { label: '$50-$99.99', min: 50, max: 99.99 },
+          { label: '$100-$499.99', min: 100, max: 499.99 },
+          { label: '$500-$999.99', min: 500, max: 999.99 },
+          { label: '$1,000-$4,999.99', min: 1000, max: 4999.99 },
+          { label: '>$5,000', min: 5000, max: Infinity }
         ]
-      case 'instruments':
-        return [
-          { item: 'Future', trades: 3, netPnL: 1890, avgDailyVolume: 1.5, avgWin: 1035, avgLoss: 180, winRate: 66.67 },
-          { item: 'Option', trades: 2, netPnL: -200, avgDailyVolume: 0.8, avgWin: 300, avgLoss: 400, winRate: 45 },
-          { item: 'Stock', trades: 6, netPnL: 800, avgDailyVolume: 2.2, avgWin: 450, avgLoss: 200, winRate: 60 },
-          { item: 'ETF', trades: 4, netPnL: 500, avgDailyVolume: 1.1, avgWin: 380, avgLoss: 180, winRate: 55 }
-        ]
-      case 'prices':
-        return [
-          { item: '>$4,999.99', trades: 3, netPnL: 1890, avgDailyVolume: 0, avgWin: 0, avgLoss: 0, winRate: 66.67 },
-          { item: '<$2', trades: 0, netPnL: 0, avgDailyVolume: 0, avgWin: 0, avgLoss: 0, winRate: 0 },
-          { item: '$2-$4.99', trades: 0, netPnL: 0, avgDailyVolume: 0, avgWin: 0, avgLoss: 0, winRate: 0 },
-          { item: '$5-$9.99', trades: 0, netPnL: 0, avgDailyVolume: 0, avgWin: 0, avgLoss: 0, winRate: 0 }
-        ]
+
+        const priceGroups: Record<string, any[]> = {}
+        priceRanges.forEach(range => {
+          priceGroups[range.label] = []
+        })
+
+        trades.forEach(trade => {
+          const price = trade.entryPrice || 0
+          const range = priceRanges.find(r => price >= r.min && price <= r.max)
+          if (range) {
+            priceGroups[range.label].push(trade)
+          }
+        })
+
+        return Object.entries(priceGroups)
+          .filter(([_, trades]) => trades.length > 0)
+          .map(([priceRange, rangeTrades]) => {
+            const wins = rangeTrades.filter(t => getValue(t) > 0)
+            const losses = rangeTrades.filter(t => getValue(t) < 0)
+            const winRate = rangeTrades.length > 0 ? (wins.length / rangeTrades.length) * 100 : 0
+            const totalPnl = rangeTrades.reduce((sum, t) => sum + getValue(t), 0)
+            const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + getValue(t), 0) / wins.length : 0
+            const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + getValue(t), 0)) / losses.length : 0
+
+            return {
+              item: priceRange,
+              trades: rangeTrades.length,
+              netPnL: totalPnl,
+              avgDailyVolume: 0, // Not applicable for price ranges
+              avgWin: avgWin,
+              avgLoss: avgLoss,
+              winRate: Number(winRate.toFixed(2))
+            }
+          }).sort((a, b) => b.netPnL - a.netPnL)
+      }
+      
       default:
         return []
     }
-  }
+  }, [trades, subTab, pnlMetric])
   
-  const symbolStats = getDataForTab()
+  const symbolStats = getDataForTab
 
-  const bestPerforming = useMemo(() => symbolStats.reduce((a, b) => (b.netPnL > a.netPnL ? b : a), symbolStats[0]), [symbolStats])
-  const leastPerforming = useMemo(() => symbolStats.reduce((a, b) => (b.netPnL < a.netPnL ? b : a), symbolStats[0]), [symbolStats])
-  const mostActive = useMemo(() => symbolStats.reduce((a, b) => (b.trades > a.trades ? b : a), symbolStats[0]), [symbolStats])
-  const bestWinRate = useMemo(() => symbolStats.reduce((a, b) => (b.winRate > a.winRate ? b : a), symbolStats[0]), [symbolStats])
+  const bestPerforming = useMemo(() => 
+    symbolStats.length > 0 ? symbolStats.reduce((a, b) => (b.netPnL > a.netPnL ? b : a), symbolStats[0]) : null, [symbolStats])
+  const leastPerforming = useMemo(() => 
+    symbolStats.length > 0 ? symbolStats.reduce((a, b) => (b.netPnL < a.netPnL ? b : a), symbolStats[0]) : null, [symbolStats])
+  const mostActive = useMemo(() => 
+    symbolStats.length > 0 ? symbolStats.reduce((a, b) => (b.trades > a.trades ? b : a), symbolStats[0]) : null, [symbolStats])
+  const bestWinRate = useMemo(() => 
+    symbolStats.length > 0 ? symbolStats.reduce((a, b) => (b.winRate > a.winRate ? b : a), symbolStats[0]) : null, [symbolStats])
 
-  // Generate categorical data based on active sub-tab
+  // Generate categorical chart data based on real trade data
   const getCategoricalChartData = useMemo(() => {
-    switch (subTab) {
-      case 'symbols':
-        return {
-          loggedDaysChart: [
-            { date: '2024-01-01', value: 24 }, // NQ
-            { date: '2024-01-02', value: 18 }, // ES
-            { date: '2024-01-03', value: 22 }, // YM
-            { date: '2024-01-04', value: 15 }  // RTY
-          ],
-          avgDailyNetPnLChart: [
-            { date: '2024-01-01', value: 820 },  // NQ
-            { date: '2024-01-02', value: 0 },    // ES
-            { date: '2024-01-03', value: 680 },  // YM
-            { date: '2024-01-04', value: -120 }  // RTY
-          ]
-        }
-      case 'instruments':
-        return {
-          loggedDaysChart: [
-            { date: '2024-01-01', value: 24 }, // Future
-            { date: '2024-01-02', value: 12 }, // Option
-            { date: '2024-01-03', value: 20 }, // Stock
-            { date: '2024-01-04', value: 16 }  // ETF
-          ],
-          avgDailyNetPnLChart: [
-            { date: '2024-01-01', value: 820 },  // Future
-            { date: '2024-01-02', value: -80 },  // Option
-            { date: '2024-01-03', value: 450 },  // Stock
-            { date: '2024-01-04', value: 280 }   // ETF
-          ]
-        }
-      case 'prices':
-        return {
-          loggedDaysChart: [
-            { date: '2024-01-01', value: 24 }, // >$4,999.99
-            { date: '2024-01-02', value: 0 },  // <$2
-            { date: '2024-01-03', value: 0 },  // $2-$4.99
-            { date: '2024-01-04', value: 0 }   // $5-$9.99
-          ],
-          avgDailyNetPnLChart: [
-            { date: '2024-01-01', value: 820 },  // >$4,999.99
-            { date: '2024-01-02', value: 0 },    // <$2
-            { date: '2024-01-03', value: 0 },    // $2-$4.99
-            { date: '2024-01-04', value: 0 }     // $5-$9.99
-          ]
-        }
-      default:
-        return {
-          loggedDaysChart: [
-            { date: '2024-01-01', value: 24 },
-            { date: '2024-01-02', value: 18 },
-            { date: '2024-01-03', value: 22 },
-            { date: '2024-01-04', value: 15 }
-          ],
-          avgDailyNetPnLChart: [
-            { date: '2024-01-01', value: 820 },
-            { date: '2024-01-02', value: 0 },
-            { date: '2024-01-03', value: 680 },
-            { date: '2024-01-04', value: -120 }
-          ]
-        }
+    if (!trades?.length || !symbolStats.length) {
+      return {
+        loggedDaysChart: [],
+        avgDailyNetPnLChart: []
+      }
     }
-  }, [subTab])
+
+    return {
+      loggedDaysChart: symbolStats.map((stat, index) => ({
+        date: `2024-01-${(index + 1).toString().padStart(2, '0')}`, // Placeholder dates for chart
+        value: stat.trades
+      })),
+      avgDailyNetPnLChart: symbolStats.map((stat, index) => ({
+        date: `2024-01-${(index + 1).toString().padStart(2, '0')}`, // Placeholder dates for chart
+        value: stat.trades > 0 ? Math.round(stat.netPnL / Math.max(1, stat.trades)) : 0 // Avg P&L per trade as proxy for daily
+      }))
+    }
+  }, [trades, symbolStats])
 
   // Charts: Use categorical data for proper X-axis labeling
   const loggedDaysChart = {
@@ -182,25 +274,78 @@ export default function SymbolsPage() {
   const [matrixMetric, setMatrixMetric] = useState<MatrixMetric>('P&L')
   
   const getCrossAnalysisData = () => {
-    switch (subTab) {
-      case 'symbols':
-        return {
-          'NQ': [0,0,0,0,0,0,0,1890,0,0,0,0].map((v) => (matrixMetric === 'Trades' ? Math.max(0, Math.round(v/630)) : matrixMetric === 'Win rate' ? (v > 0 ? 66.67 : 0) : v)),
-          'ES': [0,0,0,0,0,12.5,12.5,0,0,0,0,0].map((v, i) => (matrixMetric === 'Trades' ? Math.max(0, Math.round(v/12)) : v))
-        }
-      case 'instruments':
-        return {
-          'Future': [0,0,0,0,0,0,0,1890,0,0,0,0].map((v) => (matrixMetric === 'Trades' ? Math.max(0, Math.round(v/630)) : matrixMetric === 'Win rate' ? (v > 0 ? 66.67 : 0) : v)),
-          'Option': [0,0,0,0,0,0,0,0,0,0,0,0].map((v, i) => (matrixMetric === 'Trades' ? 0 : v))
-        }
-      case 'prices':
-        return {
-          '>$4,999.99': [0,0,0,0,0,0,0,1890,0,0,0,0].map((v) => (matrixMetric === 'Trades' ? Math.max(0, Math.round(v/630)) : matrixMetric === 'Win rate' ? (v > 0 ? 66.67 : 0) : v)),
-          '<$2': [0,0,0,0,0,0,0,0,0,0,0,0].map((v, i) => (matrixMetric === 'Trades' ? 0 : v))
-        }
-      default:
-        return {}
+    if (!trades?.length || !symbolStats.length) return {}
+
+    const getValue = (trade: any) => {
+      return pnlMetric === 'NET P&L' ? (trade.netPnl || 0) : (trade.grossPnl || trade.netPnl || 0)
     }
+
+    // Create monthly data for each category in symbolStats
+    const result: Record<string, number[]> = {}
+
+    symbolStats.forEach(stat => {
+      const categoryTrades = trades.filter(trade => {
+        switch (subTab) {
+          case 'symbols':
+            return trade.symbol === stat.item
+          case 'instruments':
+            const instrument = trade.instrument || trade.instrumentType || 'Other'
+            let category = 'Other'
+            if (instrument.toLowerCase().includes('future')) category = 'Future'
+            else if (instrument.toLowerCase().includes('option')) category = 'Option'
+            else if (instrument.toLowerCase().includes('stock')) category = 'Stock'
+            else if (instrument.toLowerCase().includes('etf')) category = 'ETF'
+            return category === stat.item
+          case 'prices':
+            const price = trade.entryPrice || 0
+            if (stat.item === '<$2') return price < 2
+            if (stat.item === '$2-$4.99') return price >= 2 && price <= 4.99
+            if (stat.item === '$5-$9.99') return price >= 5 && price <= 9.99
+            if (stat.item === '$10-$19.99') return price >= 10 && price <= 19.99
+            if (stat.item === '$20-$49.99') return price >= 20 && price <= 49.99
+            if (stat.item === '$50-$99.99') return price >= 50 && price <= 99.99
+            if (stat.item === '$100-$499.99') return price >= 100 && price <= 499.99
+            if (stat.item === '$500-$999.99') return price >= 500 && price <= 999.99
+            if (stat.item === '$1,000-$4,999.99') return price >= 1000 && price <= 4999.99
+            if (stat.item === '>$5,000') return price >= 5000
+            return false
+          default:
+            return false
+        }
+      })
+
+      // Group trades by month and calculate metric for each month
+      const monthlyData: number[] = []
+      
+      for (let month = 0; month < 12; month++) {
+        const monthTrades = categoryTrades.filter(trade => {
+          const tradeDate = new Date(trade.openDate)
+          return tradeDate.getMonth() === month
+        })
+
+        let value = 0
+        if (monthTrades.length > 0) {
+          switch (matrixMetric) {
+            case 'Trades':
+              value = monthTrades.length
+              break
+            case 'Win rate':
+              const wins = monthTrades.filter(t => getValue(t) > 0).length
+              value = Number(((wins / monthTrades.length) * 100).toFixed(1))
+              break
+            case 'P&L':
+              value = Number(monthTrades.reduce((sum, t) => sum + getValue(t), 0).toFixed(0))
+              break
+          }
+        }
+        
+        monthlyData.push(value)
+      }
+
+      result[stat.item] = monthlyData
+    })
+
+    return result
   }
   
   const crossValues: Record<string, number[]> = useMemo(() => getCrossAnalysisData(), [subTab, matrixMetric])
@@ -229,6 +374,17 @@ export default function SymbolsPage() {
                 Performance analysis by trading symbols and instruments
               </p>
             </div>
+
+            {/* Loading / Error */}
+            {loading && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 animate-pulse mb-4">Loading symbols data...</div>
+            )}
+            {error && !loading && (
+              <div className="text-sm text-red-600 dark:text-red-400 mb-4">{error}</div>
+            )}
+            {!loading && !error && !trades?.length && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">No trade data available. Please import your CSV data first.</div>
+            )}
 
             {/* Toolbar: left sub-tabs + right controls in same line */}
             <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
@@ -311,45 +467,45 @@ export default function SymbolsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Best performing {labels.singular}</div>
-                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{bestPerforming?.item}</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{bestPerforming?.item || '—'}</div>
                   </div>
                   <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
-                <div className="mt-2 text-xs text-gray-500">{bestPerforming?.trades} trades</div>
+                <div className="mt-2 text-xs text-gray-500">{bestPerforming?.trades || 0} trades</div>
                 <div className="mt-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">{formatCurrency(bestPerforming?.netPnL || 0)}</div>
               </div>
               <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Least performing {labels.singular}</div>
-                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{leastPerforming?.item}</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{leastPerforming?.item || '—'}</div>
                   </div>
                   <TrendingDown className="w-5 h-5 text-rose-500" />
                 </div>
-                <div className="mt-2 text-xs text-gray-500">{leastPerforming?.trades} trades</div>
+                <div className="mt-2 text-xs text-gray-500">{leastPerforming?.trades || 0} trades</div>
                 <div className="mt-1 text-rose-600 dark:text-rose-400 text-sm font-semibold">{formatCurrency(leastPerforming?.netPnL || 0)}</div>
               </div>
               <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Most active {labels.singular}</div>
-                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{mostActive?.item}</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{mostActive?.item || '—'}</div>
                   </div>
                   <Activity className="w-5 h-5 text-indigo-500" />
                 </div>
-                <div className="mt-2 text-xs text-gray-500">{mostActive?.trades} trades</div>
-                <div className="mt-1 text-gray-700 dark:text-gray-300 text-sm font-semibold">Avg daily vol {mostActive?.avgDailyVolume}</div>
+                <div className="mt-2 text-xs text-gray-500">{mostActive?.trades || 0} trades</div>
+                <div className="mt-1 text-gray-700 dark:text-gray-300 text-sm font-semibold">Avg daily vol {mostActive?.avgDailyVolume || 0}</div>
               </div>
               <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Best win rate</div>
-                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{bestWinRate?.item}</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{bestWinRate?.item || '—'}</div>
                   </div>
                   <Award className="w-5 h-5 text-amber-500" />
                 </div>
-                <div className="mt-2 text-xs text-gray-500">{bestWinRate?.trades} trades</div>
-                <div className="mt-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">{bestWinRate?.winRate}%</div>
+                <div className="mt-2 text-xs text-gray-500">{bestWinRate?.trades || 0} trades</div>
+                <div className="mt-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">{bestWinRate?.winRate || 0}%</div>
               </div>
             </div>
 
