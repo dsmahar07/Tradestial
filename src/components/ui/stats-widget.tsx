@@ -147,14 +147,20 @@ export function StatsWidget({
     <>
       {/* Net P&L with dynamic color left border */}
       <div className="mb-6 relative">
-        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-r ${
-          trade && trade.netPnl >= 0 ? 'bg-teal-500' : 'bg-red-500'
-        }`}></div>
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-1 rounded-r"
+          style={{
+            backgroundColor: trade && trade.netPnl >= 0 ? '#10b981' : '#ef4444'
+          }}
+        ></div>
         <div className="pl-4 text-center">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Net P&L</div>
-          <div className={`text-2xl font-bold ${
-            trade && trade.netPnl >= 0 ? 'text-teal-500' : 'text-red-500'
-          }`}>
+          <div 
+            className="text-2xl font-bold"
+            style={{
+              color: trade && trade.netPnl >= 0 ? '#10b981' : '#ef4444'
+            }}
+          >
             {trade ? `${trade.netPnl >= 0 ? '+' : ''}$${Math.abs(trade.netPnl).toFixed(2)}` : '$0.00'}
           </div>
         </div>
@@ -167,9 +173,12 @@ export function StatsWidget({
       <div className="space-y-2 text-sm">
         <div className="flex justify-between items-center py-1">
           <span className="text-gray-500 dark:text-gray-400">Side</span>
-          <span className={`font-bold ${
-            trade?.side === 'LONG' ? 'text-teal-500' : trade?.side === 'SHORT' ? 'text-red-600' : 'text-gray-600'
-          } dark:text-gray-300`}>
+          <span 
+            className="font-bold dark:text-gray-300"
+            style={{
+              color: trade?.side === 'LONG' ? '#10b981' : trade?.side === 'SHORT' ? '#ef4444' : '#6b7280'
+            }}
+          >
             {trade?.side || 'UNKNOWN'}
           </span>
         </div>
@@ -211,18 +220,24 @@ export function StatsWidget({
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Net ROI</span>
-          <span className={`font-bold ${
-            trade && trade.netRoi >= 0 ? 'text-green-600' : 'text-red-600'
-          } dark:text-gray-300`}>
+          <span 
+            className="font-bold dark:text-gray-300"
+            style={{
+              color: trade && trade.netRoi >= 0 ? '#10b981' : '#ef4444'
+            }}
+          >
             {trade ? `${trade.netRoi >= 0 ? '+' : ''}${trade.netRoi.toFixed(2)}%` : '0.00%'}
           </span>
         </div>
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Gross P&L</span>
-          <span className={`font-bold ${
-            (trade ? (trade.grossPnl ?? 0) : 0) >= 0 ? 'text-green-600' : 'text-red-600'
-          } dark:text-gray-300`}>
+          <span 
+            className="font-bold dark:text-gray-300"
+            style={{
+              color: (trade ? (trade.grossPnl ?? 0) : 0) >= 0 ? '#10b981' : '#ef4444'
+            }}
+          >
             {(() => {
               const gp = trade ? (trade.grossPnl ?? trade.netPnl ?? 0) : 0
               const sign = gp >= 0 ? '+' : ''

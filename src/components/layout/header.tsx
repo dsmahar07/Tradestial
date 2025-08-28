@@ -80,7 +80,7 @@ export function DashboardHeader() {
   const { title, description } = getPageInfo()
 
   return (
-    <header className="bg-gray-50 dark:bg-[#1C1C1C] text-gray-900 dark:text-white px-6 py-3 border-b border-gray-200 dark:border-[#2a2a2a]">
+    <header className="bg-white dark:bg-[#1C1C1C] text-gray-900 dark:text-white px-6 py-2">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h1>
         <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{description}</p>

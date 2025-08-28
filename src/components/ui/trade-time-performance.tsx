@@ -189,8 +189,6 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
     color: d.y >= 0 ? '#10b981' : '#ef4444'
   }))
 
-  const tooltipBg = isDark ? 'bg-[#171717]' : 'bg-white'
-  const tooltipBorder = isDark ? 'border-gray-600' : 'border-gray-200'
 
   // Build hourly x-axis ticks for better readability
   const startHour = Math.floor(minX)
@@ -321,7 +319,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                   // Safety check for trade object
                   if (!trade || typeof trade !== 'object') {
                     return (
-                      <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-3 py-2 text-sm shadow focus:outline-none`}>
+                      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                         <div className="font-medium text-gray-900 dark:text-white mb-1">
                           Trade Data
                         </div>
@@ -340,7 +338,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                     : 'Unknown Date'
                   
                   return (
-                    <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-3 py-2 text-sm shadow focus:outline-none`}>
+                    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                       <div className="font-medium text-gray-900 dark:text-white mb-1">
                         {trade.symbol || 'Unknown Symbol'}
                       </div>
@@ -361,7 +359,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                 } catch (error) {
                   console.error('Error rendering Trade Time Performance tooltip:', error)
                   return (
-                    <div className={`${tooltipBg} border ${tooltipBorder} rounded-md px-3 py-2 text-sm shadow focus:outline-none`}>
+                    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                       <div className="text-gray-600 dark:text-gray-400">
                         Unable to load trade details
                       </div>

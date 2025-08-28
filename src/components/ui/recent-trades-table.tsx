@@ -350,20 +350,20 @@ export function RecentTradesTable() {
                   </td>
                   <td className="py-4 px-2 text-right">
                     <div className="flex flex-col items-end">
-                      <span className={cn(
-                        "text-sm font-medium",
-                        trade.pnl >= 0 
-                          ? "text-green-600 dark:text-green-400" 
-                          : "text-red-600 dark:text-red-400"
-                      )}>
+                      <span 
+                        className="text-sm font-medium"
+                        style={{
+                          color: trade.pnl >= 0 ? "#10b981" : "#ef4444"
+                        }}
+                      >
                         {formatCurrency(trade.pnl)}
                       </span>
-                      <span className={cn(
-                        "text-xs",
-                        trade.pnl >= 0 
-                          ? "text-green-500 dark:text-green-400" 
-                          : "text-red-500 dark:text-red-400"
-                      )}>
+                      <span 
+                        className="text-xs"
+                        style={{
+                          color: trade.pnl >= 0 ? "#10b981" : "#ef4444"
+                        }}
+                      >
                         {formatPercentage(trade.pnlPercentage)}
                       </span>
                     </div>
@@ -397,12 +397,12 @@ export function RecentTradesTable() {
               <div className="text-xs text-gray-500 dark:text-gray-400">Losing Trades</div>
             </div>
             <div>
-              <div className={cn(
-                "text-lg font-semibold",
-                recentTrades.reduce((sum, t) => sum + t.pnl, 0) >= 0
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-red-600 dark:text-red-400"
-              )}>
+              <div 
+                className="text-lg font-semibold"
+                style={{
+                  color: recentTrades.reduce((sum, t) => sum + t.pnl, 0) >= 0 ? "#10b981" : "#ef4444"
+                }}
+              >
                 {formatCurrency(recentTrades.reduce((sum, t) => sum + t.pnl, 0))}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Total P&L</div>

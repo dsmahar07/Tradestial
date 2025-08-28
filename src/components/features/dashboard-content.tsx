@@ -75,21 +75,7 @@ export function DashboardContent() {
 
         {/* Charts Row - Lazy loaded */}
         <div className="space-y-6">
-          {/* Top Row: PNL Overview + Cumulative PNL */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Suspense fallback={<ChartSkeleton />}>
-                <PnlOverviewChart />
-              </Suspense>
-            </div>
-            <div>
-              <Suspense fallback={<ChartSkeleton />}>
-                <CumulativePnlChart />
-              </Suspense>
-            </div>
-          </div>
-          
-          {/* Equal Size Widgets Row */}
+          {/* Top Row: SymbolPerformanceChart + AdvanceRadar + AccountBalanceChart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Suspense fallback={<ChartSkeleton />}>
               <SymbolPerformanceChart />
@@ -102,28 +88,40 @@ export function DashboardContent() {
             </Suspense>
           </div>
           
-          {/* Secondary Equal Size Widgets Row */}
+          {/* Second Row: TradingStreakHeatmap + DrawdownChart + CumulativePnlChart */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="space-y-6">
+            <Suspense fallback={<ChartSkeleton />}>
+              <TradingStreakHeatmap />
+            </Suspense>
+            <Suspense fallback={<ChartSkeleton />}>
+              <DrawdownChart />
+            </Suspense>
+            <Suspense fallback={<ChartSkeleton />}>
+              <CumulativePnlChart />
+            </Suspense>
+          </div>
+          
+          {/* Third Row: CumulativePnlBar + ReportChart + ProgressTrackerHeatmap */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Suspense fallback={<ChartSkeleton />}>
+              <CumulativePnlBar />
+            </Suspense>
+            <Suspense fallback={<ChartSkeleton />}>
+              <ReportChart />
+            </Suspense>
+            <Suspense fallback={<ChartSkeleton />}>
+              <ProgressTrackerHeatmap />
+            </Suspense>
+          </div>
+
+          {/* Fourth Row: PNL Overview (large) + Trade Time Performance */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
               <Suspense fallback={<ChartSkeleton />}>
-                <TradingStreakHeatmap />
-              </Suspense>
-              <Suspense fallback={<ChartSkeleton />}>
-                <DrawdownChart />
+                <PnlOverviewChart />
               </Suspense>
             </div>
-            <div className="space-y-6">
-              <Suspense fallback={<ChartSkeleton />}>
-                <CumulativePnlBar />
-              </Suspense>
-              <Suspense fallback={<ChartSkeleton />}>
-                <ReportChart />
-              </Suspense>
-            </div>
-            <div className="space-y-6">
-              <Suspense fallback={<ChartSkeleton />}>
-                <ProgressTrackerHeatmap />
-              </Suspense>
+            <div>
               <Suspense fallback={<ChartSkeleton />}>
                 <TradeTimePerformance />
               </Suspense>

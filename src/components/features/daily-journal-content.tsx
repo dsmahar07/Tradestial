@@ -688,9 +688,12 @@ export function DailyJournalContent() {
                         {card.date}
                       </span>
                     </button>
-                    <div className={`text-lg font-semibold ${
-                      card.isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }`}>
+                    <div 
+                      className="text-lg font-semibold"
+                      style={{
+                        color: card.isProfit ? '#10b981' : '#ef4444'
+                      }}
+                    >
                       Net P&L ${card.netPnl}
                     </div>
                   </div>
@@ -756,9 +759,12 @@ export function DailyJournalContent() {
                                   return (
                                     <div className="bg-background border rounded-lg p-2">
                                       <p className="text-xs font-medium">{data.time}</p>
-                                      <p className={`text-xs font-medium ${
-                                        data.value >= 0 ? "text-emerald-500" : "text-red-500"
-                                      }`}>
+                                      <p 
+                                        className="text-xs font-medium"
+                                        style={{
+                                          color: data.value >= 0 ? "#10b981" : "#ef4444"
+                                        }}
+                                      >
                                         ${data.value}
                                       </p>
                                     </div>
@@ -1070,14 +1076,22 @@ export function DailyJournalContent() {
                               )}
                               {visibleColumns['net-pnl'] && (
                                 <td className="px-4 py-4 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[130px]">
-                                  <span className={trade.netPnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                  <span 
+                                    style={{
+                                      color: trade.netPnl >= 0 ? '#10b981' : '#ef4444'
+                                    }}
+                                  >
                                     {formatCurrency(trade.netPnl)}
                                   </span>
                                 </td>
                               )}
                               {visibleColumns['net-roi'] && (
                                 <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[100px]">
-                                  <span className={trade.netRoi >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                  <span 
+                                    style={{
+                                      color: trade.netRoi >= 0 ? '#10b981' : '#ef4444'
+                                    }}
+                                  >
                                     {trade.netRoi.toFixed(2)}%
                                   </span>
                                 </td>

@@ -46,7 +46,7 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       delay: 0,
       icon: NetPnlIcon,
       customIcon: true,
-      valueColor: kpis.netPnl.isPositive ? "#1FC16B" : "#ef4444"
+      valueColor: kpis.netPnl.isPositive ? "#10b981" : "#ef4444"
     },
     {
       title: "Winrate",
@@ -108,27 +108,11 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       ]
     },
     {
-      title: "Avg. Realized R-Multiple",
-      value: kpis.avgRealizedRMultiple.formatted,
-      change: 0,
-      changeLabel: `${metrics.tradesWithValidSLTP}/${metrics.totalTrades} trades with SL/TP`,
-      delay: 0.5,
-      icon: ExpectancyIcon,
-      customIcon: true,
-      valueColor: kpis.avgRealizedRMultiple.value >= 0 ? "#10b981" : "#ef4444",
-      showHorizontalBars: true,
-      horizontalBarsData: [
-        { name: 'Realized', value: Math.abs(kpis.avgRealizedRMultiple.value), color: kpis.avgRealizedRMultiple.value >= 0 ? '#10b981' : '#ef4444' },
-        { name: 'Planned', value: Math.abs(kpis.avgPlannedRMultiple.value), color: '#6b7280' }
-      ],
-      horizontalBarsFormatter: (v) => `${v.toFixed(2)}R`
-    },
-    {
       title: "Trade expectancy",
       value: kpis.tradeExpectancy.formatted,
       change: 0,
       changeLabel: "",
-      delay: 0.6,
+      delay: 0.5,
       icon: ExpectancyIcon,
       customIcon: true,
       valueColor: kpis.tradeExpectancy.value >= 0 ? "#10b981" : "#ef4444"
@@ -208,27 +192,11 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       ]
     },
     {
-      title: "Avg. Realized R-Multiple",
-      value: "0.00R",
-      change: 0,
-      changeLabel: "Set SL/TP in tracker",
-      delay: 0.5,
-      icon: ExpectancyIcon,
-      customIcon: true,
-      valueColor: "#6b7280",
-      showHorizontalBars: true,
-      horizontalBarsData: [
-        { name: 'Realized', value: 0, color: '#10b981' },
-        { name: 'Planned', value: 0, color: '#6b7280' }
-      ],
-      horizontalBarsFormatter: (v) => `${v.toFixed(2)}R`
-    },
-    {
       title: "Trade Expectancy",
       value: "$0.00",
       change: 0,
       changeLabel: "Import trades first",
-      delay: 0.6,
+      delay: 0.5,
       icon: ExpectancyIcon,
       customIcon: true,
       valueColor: "#6b7280"
