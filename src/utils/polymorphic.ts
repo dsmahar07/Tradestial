@@ -4,6 +4,7 @@ import * as React from 'react';
 // while still forwarding valid props for the rendered element via `as`.
 export type PolymorphicComponentProps<
   T extends React.ElementType,
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   OwnProps = {}
 > = OwnProps & {
   as?: T;

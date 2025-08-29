@@ -9,6 +9,7 @@ import { PerformanceChart } from '@/components/analytics/performance-chart'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { cn } from '@/lib/utils'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useAnalytics } from '@/hooks/use-analytics'
 import type { Trade } from '@/services/trade-data.service'
 import type { PerformanceChart as ChartShape, ChartDataPoint } from '@/types/performance'
@@ -157,7 +158,7 @@ export default function TagsPage() {
         setSummaryRows(rows)
 
         setError(null)
-      } catch (e) {
+      } catch {
         if (!isMounted) return
         setError('Failed to load tags data')
       } finally {
@@ -325,7 +326,7 @@ export default function TagsPage() {
                 data={leftChart} 
                 onDataRequest={onDataRequest}
                 contextInfo={{
-                  getPeriodLabel: (date: string, index: number) => {
+                  getPeriodLabel: (date: string) => {
                     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                   }
                 }}
@@ -334,7 +335,7 @@ export default function TagsPage() {
                 data={rightChart} 
                 onDataRequest={onDataRequest}
                 contextInfo={{
-                  getPeriodLabel: (date: string, index: number) => {
+                  getPeriodLabel: (date: string) => {
                     return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                   }
                 }}

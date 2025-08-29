@@ -13,6 +13,7 @@ import {
 import { PencilIcon, SwatchIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Trade, RunningPnlPoint } from '@/services/trade-data.service'
 import { chartColorPalette } from '@/config/theme'
+import { modelStatsService } from '@/services/model-stats.service'
 
 interface StatsWidgetProps {
   trade: Trade | null
@@ -50,6 +51,8 @@ export function StatsWidget({
   const [selectedMistakesTag, setSelectedMistakesTag] = useState('')
   const [selectedCustomTag, setSelectedCustomTag] = useState('')
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [strategies, setStrategies] = useState<Array<{ id: string; name: string }>>([])
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('')
 
   useEffect(() => {
     const checkDarkMode = () => {
@@ -71,6 +74,53 @@ export function StatsWidget({
       mediaQuery.removeEventListener('change', checkDarkMode)
     }
   }, [])
+
+  // Load strategies and get assigned model for current trade
+  useEffect(() => {
+    const STRATEGIES_KEY = 'tradestial:strategies'
+
+    const readStrategies = () => {
+      try {
+        const raw = localStorage.getItem(STRATEGIES_KEY)
+        const parsed = raw ? JSON.parse(raw) : []
+        if (Array.isArray(parsed)) {
+          setStrategies(parsed.map((s: any) => ({ id: String(s.id), name: String(s.name || 'Untitled') })))
+          return parsed as Array<{ id: string; name: string }>
+        }
+      } catch {}
+      setStrategies([])
+      return [] as Array<{ id: string; name: string }>
+    }
+
+    const init = () => {
+      const list = readStrategies()
+      
+      // Always check if current trade is assigned to a model
+      if (trade && trade.id) {
+        const assignedModelId = modelStatsService.getTradeModel(trade.id)
+        if (assignedModelId && list.find(s => s.id === assignedModelId)) {
+          setSelectedStrategyId(assignedModelId)
+        } else {
+          // No model assigned to this trade
+          setSelectedStrategyId('')
+        }
+      } else {
+        setSelectedStrategyId('')
+      }
+    }
+
+    init()
+
+    const refresh = () => init()
+    window.addEventListener('tradestial:strategies-updated', refresh as EventListener)
+    window.addEventListener('tradestial:model-stats-updated', refresh as EventListener)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('tradestial:strategies-updated', refresh as EventListener)
+      window.removeEventListener('tradestial:model-stats-updated', refresh as EventListener)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [trade?.id])
 
   // Helper function to safely parse currency values
   const parseCurrency = (value: any): number => {
@@ -258,20 +308,75 @@ export function StatsWidget({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200 bg-white dark:bg-gray-800">
-                <span className="font-bold text-gray-600 dark:text-gray-300">ICT 2022 Model</span>
+                <span className="font-bold text-gray-600 dark:text-gray-300">
+                  {(() => {
+                    const current = strategies.find(s => s.id === selectedStrategyId)
+                    return current ? current.name : 'No model selected'
+                  })()}
+                </span>
                 <span className="ml-1 text-blue-500">🔗</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 p-1">
-              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer">
-                <span className="text-blue-500">🔗</span>
-                View Model Details
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer">
-                <span className="text-gray-500">📊</span>
-                Change Model
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer">
+              {selectedStrategyId && (
+                <>
+                  <DropdownMenuItem
+                    className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
+                    onClick={() => {
+                      window.location.href = `/model/${selectedStrategyId}`
+                    }}
+                  >
+                    <span className="text-blue-500">🔗</span>
+                    View Model Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
+                    onClick={() => {
+                      if (trade && trade.id && selectedStrategyId) {
+                        modelStatsService.removeTradeFromModel(trade.id, selectedStrategyId)
+                        setSelectedStrategyId('')
+                        console.log(`Removed trade ${trade.id} from model`)
+                        
+                        // Notify others that model stats have been updated
+                        try { window.dispatchEvent(new Event('tradestial:model-stats-updated')) } catch {}
+                      }
+                    }}
+                  >
+                    <span className="text-red-500">❌</span>
+                    Remove Assignment
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {strategies.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-gray-500">No models found</div>
+              ) : (
+                strategies.map((s) => (
+                  <DropdownMenuItem
+                    key={s.id}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
+                    onClick={() => {
+                      // Assign current trade to selected model
+                      if (trade && trade.id) {
+                        modelStatsService.assignTradeToModel(trade.id, s.id)
+                        setSelectedStrategyId(s.id)
+                        console.log(`Assigned trade ${trade.id} to model ${s.name} (${s.id})`)
+                        
+                        // Notify others that model stats have been updated
+                        try { window.dispatchEvent(new Event('tradestial:model-stats-updated')) } catch {}
+                      }
+                    }}
+                  >
+                    <span className={`inline-block h-2 w-2 rounded-full ${selectedStrategyId===s.id?'bg-[#3559E9]':'bg-gray-300'}`} />
+                    <span className="truncate">{s.name}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
+                onClick={() => { window.location.href = '/model' }}
+              >
                 <span className="text-gray-500">➕</span>
                 Create New Model
               </DropdownMenuItem>

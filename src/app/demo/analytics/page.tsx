@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { DynamicAnalyticsDemo } from '@/components/demo/dynamic-analytics-demo'
 import { usePageTitle } from '@/hooks/use-page-title'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'

@@ -4,6 +4,8 @@ import { ThemeProvider } from '@/hooks/use-theme'
 import { PerformanceMonitor } from '@/components/features/performance-monitor'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
+import '@radix-ui/themes/styles.css'
+import { Theme } from '@radix-ui/themes'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -72,10 +74,12 @@ export default function RootLayout({
           defaultTheme="light"
           storageKey="tradestial-ui-theme"
         >
-          <PerformanceMonitor />
-          <div className="min-h-screen w-full">
-            {children}
-          </div>
+          <Theme appearance="inherit" radius="medium" className="font-sans">
+            <PerformanceMonitor />
+            <div className="min-h-screen w-full">
+              {children}
+            </div>
+          </Theme>
         </ThemeProvider>
       </body>
     </html>

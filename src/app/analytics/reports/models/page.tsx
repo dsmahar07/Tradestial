@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, TrendingUp, TrendingDown, Activity, Award } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'

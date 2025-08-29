@@ -8,8 +8,11 @@ import { CleanSelect } from '@/components/ui/select'
 import { NotebookEditor } from '@/components/features/notes/NotebookEditor'
 import type { Note } from '@/app/notes/page'
 import { getImportedTrades, TradeRecord } from '@/components/modals/ImportTradesModal'
+import { modelStatsService } from '@/services/model-stats.service'
+import { DataStore } from '@/services/data-store.service'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { ModelChart } from '@/components/ui/model-chart'
 
 type Frequency = 'Always' | 'Often' | 'Sometimes' | 'Rarely'
 
@@ -42,7 +45,8 @@ function writeStrategies(next: StrategyModel[]) {
 }
 
 function readAssignments(): Record<string, string[]> {
-  try { const raw = localStorage.getItem(ASSIGNMENTS_KEY); return raw ? JSON.parse(raw) : {} } catch { return {} }
+  // Use the modelStatsService to get assignments instead of direct localStorage
+  return modelStatsService.getAllAssignments()
 }
 
 function computeStats(trades: TradeRecord[]): { total: number; wins: number; losses: number; winRate: number; netPnL: number; avgWinner: number; avgLoser: number; profitFactor: number; expectancy: number } {
@@ -65,25 +69,63 @@ export default function StrategyDetailPage() {
   const [tab, setTab] = useState<'stats'|'rules'|'trades'|'backtesting'|'notes'>('stats')
   const [trades, setTrades] = useState<TradeRecord[]>([])
   const [assignments, setAssignments] = useState<Record<string, string[]>>({})
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0)
 
   useEffect(() => {
     setStrategies(readStrategies())
     setAssignments(readAssignments())
-    setTrades(getImportedTrades() || [])
+    setTrades(DataStore.getAllTrades())
     const onUpdated = () => setStrategies(readStrategies())
+    const onStatsUpdated = () => {
+      // Force re-render to refresh stats
+      setTrades(DataStore.getAllTrades())
+      setAssignments(readAssignments())
+      setStatsRefreshTrigger(prev => prev + 1)
+    }
     window.addEventListener('tradestial:strategies-updated', onUpdated as EventListener)
+    window.addEventListener('tradestial:model-stats-updated', onStatsUpdated as EventListener)
     window.addEventListener('storage', onUpdated)
-    return () => { window.removeEventListener('tradestial:strategies-updated', onUpdated as EventListener); window.removeEventListener('storage', onUpdated) }
+    return () => { 
+      window.removeEventListener('tradestial:strategies-updated', onUpdated as EventListener)
+      window.removeEventListener('tradestial:model-stats-updated', onStatsUpdated as EventListener)
+      window.removeEventListener('storage', onUpdated) 
+    }
   }, [])
 
   const assignedTrades = useMemo(() => {
-    const ids = new Set(assignments[id] || [])
+    // Get assigned trade IDs from the ModelStatsService instead of legacy assignments
+    const assignedTradeIds = modelStatsService.getModelTrades(id)
+    const ids = new Set(assignedTradeIds)
     return trades.filter(t => ids.has((t as any).id))
-  }, [assignments, id, trades])
+  }, [id, trades, assignments, statsRefreshTrigger])
 
-  const stats = useMemo(() => computeStats(assignedTrades), [assignedTrades])
+  const stats = useMemo(() => {
+    // Always compute fresh stats here to avoid any cache staleness
+    // This ensures the KPIs update immediately after assignments change
+    return modelStatsService.calculateModelStats(id, trades, false)
+  }, [id, trades, statsRefreshTrigger])
 
   const currency = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(0)}`
+
+  // Compute average hold time (in minutes) for assigned trades
+  const avgHoldTimeMin = useMemo(() => {
+    const withTimes = assignedTrades.filter((t: any) => t.entryTime && t.exitTime)
+    if (withTimes.length === 0) return 0
+    const durations = withTimes.map((t: any) => {
+      const entry = new Date(`${t.openDate} ${t.entryTime}`)
+      const exit = new Date(`${t.closeDate} ${t.exitTime}`)
+      return Math.max(0, (exit.getTime() - entry.getTime()) / (1000 * 60))
+    })
+    const sum = durations.reduce((s: number, d: number) => s + d, 0)
+    return sum / durations.length
+  }, [assignedTrades])
+
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${Math.round(minutes)}m`
+    const h = Math.floor(minutes / 60)
+    const m = Math.round(minutes % 60)
+    return `${h}h ${m}m`
+  }
 
   function updateStrategy(partial: Partial<StrategyModel>) {
     const next = strategies.map(s => s.id === id ? { ...s, ...partial, updatedAt: Date.now() } : s)
@@ -113,11 +155,11 @@ export default function StrategyDetailPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C] p-6">
-          <div className="max-w-7xl mx-auto space-y-4">
+          <div className="w-full max-w-none mx-auto space-y-4">
           {/* Header card */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl p-4 border border-gray-200 dark:border-[#2a2a2a]">
+          <div className="bg-white dark:bg-[#171717] rounded-xl p-8 min-h-64 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className="h-24 w-40 rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="h-40 w-72 rounded-lg overflow-hidden flex items-center justify-center">
                 {strategy.image ? (
                   <div className="w-full h-full bg-gray-200 dark:bg-[#222] rounded-lg overflow-hidden flex items-center justify-center">
                     <img 
@@ -149,17 +191,20 @@ export default function StrategyDetailPage() {
                 )}
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold">{strategy.name}</div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-3 text-sm">
+                <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-2xl md:text-3xl leading-tight truncate">{strategy.name}</div>
+                {strategy.description ? (
+                  <p className="mt-1 text-sm md:text-base text-gray-600 dark:text-gray-300 truncate">{strategy.description}</p>
+                ) : null}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8 mt-6 pt-4 border-t border-gray-200 dark:border-[#2a2a2a] text-sm">
                   <Metric label="Win rate" value={`${stats.winRate.toFixed(0)}%`} />
                   <Metric label="Trades" value={`${stats.total}`} />
                   <Metric label="Profit factor" value={`${Number.isFinite(stats.profitFactor) ? stats.profitFactor.toFixed(2) : '∞'}`} />
                   <Metric label="Daily win rate" value={`${stats.winRate.toFixed(0)}%`} />
-                  <Metric label="Avg trade duration" value={`0`} />
+                  <Metric label="Avg trade duration" value={`${formatDuration(avgHoldTimeMin)}`} />
                   <Metric label="Win/Loss" value={`${stats.wins}/${stats.losses}`} />
                 </div>
               </div>
-              <div>
+              <div className="self-start ml-auto">
                 <Button size="sm" className="bg-[#3559E9] hover:bg-[#2947d1] text-white">Actions</Button>
               </div>
             </div>
@@ -170,14 +215,14 @@ export default function StrategyDetailPage() {
             <div className="px-4 pt-3 border-b border-gray-100 dark:border-[#2a2a2a]">
               <div className="flex gap-4 text-sm">
                 {(['stats','rules','trades','backtesting','notes'] as const).map(t => (
-                  <button key={t} onClick={() => setTab(t)} className={`pb-3 -mb-px border-b-2 ${tab===t?'border-[#6366f1] text-gray-900 dark:text-white':'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>{t[0].toUpperCase()+t.slice(1)}</button>
+                  <button key={t} onClick={() => setTab(t)} className={`pb-3 -mb-px border-b-2 font-semibold ${tab===t?'border-[#6366f1] text-gray-900 dark:text-white':'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>{t[0].toUpperCase()+t.slice(1)}</button>
                 ))}
               </div>
             </div>
 
             <div className="p-4">
               {tab === 'stats' && (
-                <div className="h-64 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">No data to show here</div>
+                <ModelStatsAnalytics modelId={id} modelName={strategy.name} stats={stats} assignedTrades={assignedTrades} />
               )}
 
               {tab === 'rules' && (
@@ -200,14 +245,21 @@ export default function StrategyDetailPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {assignedTrades.map((t:any) => (
-                            <tr key={t.id} className="border-t border-gray-100 dark:border-[#2a2a2a]">
-                              <td className="px-2 py-2">{t.id}</td>
-                              <td className="px-2 py-2">{t.symbol || '-'}</td>
-                              <td className={`px-2 py-2 ${t.pnl>=0?'text-emerald-600':'text-red-600'}`}>{currency(t.pnl)}</td>
-                              <td className="px-2 py-2">{t.date? new Date(t.date).toLocaleDateString(): '-'}</td>
-                            </tr>
-                          ))}
+                          {assignedTrades.map((t:any) => {
+                            const rawPnL = typeof t.netPnl === 'number'
+                              ? t.netPnl
+                              : (typeof t.pnl === 'number' ? t.pnl : parseFloat(String((t.pnl ?? t.netPnl ?? 0))))
+                            const pnl = Number.isFinite(rawPnL) ? rawPnL : 0
+                            const pnlClass = pnl >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'
+                            return (
+                              <tr key={t.id} className="border-t border-gray-100 dark:border-[#2a2a2a]">
+                                <td className="px-2 py-2">{t.id}</td>
+                                <td className="px-2 py-2 font-semibold text-gray-500/80 dark:text-gray-400/70">{t.symbol || '-'}</td>
+                                <td className={`px-2 py-2 font-semibold ${pnlClass}`}>{currency(pnl)}</td>
+                                <td className="px-2 py-2 font-semibold text-gray-500/80 dark:text-gray-400/70">{(t.openDate || t.closeDate) ? new Date(t.openDate || t.closeDate).toLocaleDateString() : '-'}</td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -234,11 +286,154 @@ export default function StrategyDetailPage() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-      <div className="text-gray-900 dark:text-white font-semibold">{value}</div>
+      <div className="text-sm font-semibold text-gray-600 dark:text-gray-300 leading-snug">{label}</div>
+      <div className="text-lg md:text-xl text-gray-900 dark:text-white font-semibold leading-tight">{value}</div>
     </div>
   )
 }
+
+function ModelStatsAnalytics({ 
+  modelId, 
+  modelName, 
+  stats, 
+  assignedTrades 
+}: { 
+  modelId: string
+  modelName: string
+  stats: any
+  assignedTrades: any[]
+}) {
+  const currency = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(0)}`
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${Math.round(minutes)}m`
+    const h = Math.floor(minutes / 60)
+    const m = Math.round(minutes % 60)
+    return `${h}h ${m}m`
+  }
+  const avgHoldTimeMin = (() => {
+    const withTimes = assignedTrades.filter((t: any) => t.entryTime && t.exitTime)
+    if (withTimes.length === 0) return 0
+    const durations = withTimes.map((t: any) => {
+      const entry = new Date(`${t.openDate} ${t.entryTime}`)
+      const exit = new Date(`${t.closeDate} ${t.exitTime}`)
+      return Math.max(0, (exit.getTime() - entry.getTime()) / (1000 * 60))
+    })
+    const sum = durations.reduce((s: number, d: number) => s + d, 0)
+    return sum / durations.length
+  })()
+  
+  // Calculate additional analytics
+  const bestTrade = assignedTrades.reduce((best, trade) => {
+    const pnl = typeof trade.pnl === 'number' ? trade.pnl : parseFloat(String(trade.pnl || 0))
+    const bestPnl = typeof best?.pnl === 'number' ? best.pnl : parseFloat(String(best?.pnl || 0))
+    return pnl > bestPnl ? trade : best
+  }, assignedTrades[0])
+
+  const worstTrade = assignedTrades.reduce((worst, trade) => {
+    const pnl = typeof trade.pnl === 'number' ? trade.pnl : parseFloat(String(trade.pnl || 0))
+    const worstPnl = typeof worst?.pnl === 'number' ? worst.pnl : parseFloat(String(worst?.pnl || 0))
+    return pnl < worstPnl ? trade : worst
+  }, assignedTrades[0])
+
+  // Show debug info - but ONLY show "no trades" if we actually have no assigned trades
+  if (assignedTrades.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="h-64 flex flex-col items-center justify-center text-center">
+          <div className="text-4xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Trades Assigned</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Assign trades to this model from the tracker page to see analytics
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 font-sans">
+      {/* Cumulative P&L Chart */}
+      <ModelChart trades={assignedTrades} height={480} />
+
+      {/* Simple Metrics Grid - 4 columns by 2 rows */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 lg:[&>*]:border-l lg:[&>*]:border-gray-200 lg:dark:[&>*]:border-[#2a2a2a] lg:[&>*:first-child]:border-l-0 [&_h3]:font-semibold">
+        {/* Row 1 */}
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Net P&L</h3>
+          </div>
+          <p className={`text-2xl font-bold ${stats.netPnL >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'}`}>
+            {currency(stats.netPnL)}
+          </p>
+          <p className="text-sm text-gray-500">({stats.netPnL >= 0 ? '+' : ''}{((stats.netPnL / Math.abs(stats.netPnL || 1)) * 100 || 0).toFixed(2)}%)</p>
+        </div>
+
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Profit factor</h3>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {Number.isFinite(stats.profitFactor) ? stats.profitFactor.toFixed(2) : '∞'}
+          </p>
+          <p className="text-sm text-gray-500">
+            ({currency(stats.avgWinner * stats.wins)}/{currency(Math.abs(stats.avgLoser * stats.losses))})
+          </p>
+        </div>
+
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Avg net trade P&L</h3>
+          </div>
+          {(() => {
+            const avgNetPerTrade = stats.total ? stats.netPnL / stats.total : 0
+            const cls = avgNetPerTrade >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'
+            return (
+              <p className={`text-2xl font-bold ${cls}`}>{currency(avgNetPerTrade)}</p>
+            )
+          })()}
+        </div>
+
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Max daily net drawdown</h3>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">$0</p>
+        </div>
+
+        {/* Row 2 */}
+        <div className="p-4 min-h-32 lg:!border-l-0">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Win %</h3>
+          </div>
+          <p className="text-2xl font-bold text-gray-500/80 dark:text-gray-400/70">{stats.winRate.toFixed(0)}%</p>
+          <p className="text-sm text-gray-500">({stats.wins}/{stats.losses})</p>
+        </div>
+
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Trade expectancy</h3>
+          </div>
+          <p className={`text-2xl font-bold ${stats.expectancy >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'}`}>{currency(stats.expectancy)}</p>
+        </div>
+
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Avg hold time</h3>
+          </div>
+          <p className="text-2xl font-bold text-gray-500/80 dark:text-gray-400/70">{formatDuration(avgHoldTimeMin)}</p>
+        </div>
+
+        <div className="p-4 min-h-32">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm text-gray-600 dark:text-gray-300">Avg daily net drawdown</h3>
+          </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">$0</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 function StrategyNotes({ strategyId }: { strategyId: string }) {
   // Multi-note system scoped to a strategy

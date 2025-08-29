@@ -93,6 +93,17 @@ export function ProgressTrackerContent() {
   const [isDayFinished, setIsDayFinished] = useState(false)
   const [isRulesDialogOpen, setIsRulesDialogOpen] = useState(false)
 
+  // History of daily progress: key YYYY-MM-DD -> { completed, total, score }
+  const [history, setHistory] = useState<Record<string, { completed: number; total: number; score: number }>>({})
+
+  // Helpers
+  const toKey = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   // Check if today is a trading day
   const isTradingDay = useMemo(() => {
     const today = new Date().getDay()
@@ -245,6 +256,69 @@ export function ProgressTrackerContent() {
     return progressMetrics.percentage === 100 ? 1 : 0
   }, [progressMetrics.percentage])
 
+  // Load persisted state on mount
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      const tRules = window.localStorage.getItem('progress:tradingRules')
+      const mRules = window.localStorage.getItem('progress:manualRules')
+      const tDays = window.localStorage.getItem('progress:tradingDays')
+      const tComp = window.localStorage.getItem('progress:todayCompletions')
+      const hist = window.localStorage.getItem('progress:history')
+      if (tRules) setTradingRules(JSON.parse(tRules))
+      if (mRules) setManualRules(JSON.parse(mRules))
+      if (tDays) setTradingDays(JSON.parse(tDays))
+      if (tComp) setTodayCompletions(JSON.parse(tComp))
+      if (hist) setHistory(JSON.parse(hist))
+    } catch {}
+  }, [])
+
+  // Persist key states
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage.setItem('progress:tradingRules', JSON.stringify(tradingRules))
+    } catch {}
+  }, [tradingRules])
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage.setItem('progress:manualRules', JSON.stringify(manualRules))
+    } catch {}
+  }, [manualRules])
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage.setItem('progress:tradingDays', JSON.stringify(tradingDays))
+    } catch {}
+  }, [tradingDays])
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage.setItem('progress:todayCompletions', JSON.stringify(todayCompletions))
+    } catch {}
+  }, [todayCompletions])
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      window.localStorage.setItem('progress:history', JSON.stringify(history))
+    } catch {}
+  }, [history])
+
+  // Update today's history entry when metrics change
+  useEffect(() => {
+    const key = toKey(new Date())
+    setHistory(prev => {
+      const entry = {
+        completed: progressMetrics.completed,
+        total: progressMetrics.total,
+        score: Math.round(progressMetrics.percentage)
+      }
+      const next = { ...prev, [key]: entry }
+      return next
+    })
+  }, [progressMetrics.completed, progressMetrics.total])
+
   // Finish My Day functionality
   const finishMyDay = () => {
     if (progressMetrics.percentage === 100) {
@@ -281,6 +355,7 @@ export function ProgressTrackerContent() {
     setTodayCompletions({})
     setIsDayFinished(false)
     setManualRules(prev => prev.map(rule => ({ ...rule, completed: false })))
+    setHistory({})
     // In a real app, this would also clear historical data
     console.log('Progress reset!')
   }
@@ -374,6 +449,7 @@ export function ProgressTrackerContent() {
               todayScore={progressMetrics.percentage}
               todayCompleted={progressMetrics.completed}
               todayTotal={progressMetrics.total}
+              history={history}
             />
           </div>
           

@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { modelStatsService } from '@/services/model-stats.service'
+import { DataStore } from '@/services/data-store.service'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Button } from '@/components/ui/button'
 import { ModelModelsTable } from '@/components/features/model-models-table'
@@ -39,7 +41,7 @@ const OverviewStatsCard = ({
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-lg p-4">
+    <div className="bg-white dark:bg-[#171717] rounded-lg p-4 min-h-32">
       <div className="flex items-start justify-between mb-3">
         <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center`}>
           <Icon className="w-4 h-4 text-white" />
@@ -63,9 +65,16 @@ const OverviewStatsCard = ({
 }
 
 export function ModelOverview() {
+  console.log('ModelOverview component mounting...')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('models')
+  const [summaryStats, setSummaryStats] = useState({
+    bestPerforming: null as any,
+    leastPerforming: null as any,
+    mostActive: null as any,
+    bestWinRate: null as any
+  })
 
   const handleModelCreated = () => {
     setIsCreateOpen(false)
@@ -73,15 +82,49 @@ export function ModelOverview() {
     window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
   }
 
+  // Load summary stats
+  useEffect(() => {
+    console.log('ModelOverview useEffect triggered')
+    
+    const loadStats = () => {
+      console.log('=== ModelOverview Loading Stats ===')
+      const trades = DataStore.getAllTrades()
+      console.log('ModelOverview: Loading stats with trades:', trades.length)
+      if (trades.length > 0) {
+        console.log('First trade sample:', trades[0])
+      }
+      const summary = modelStatsService.getSummaryStats(trades)
+      console.log('ModelOverview: Summary stats result:', summary)
+      setSummaryStats(summary)
+      console.log('=== End ModelOverview Loading Stats ===')
+    }
+
+    // Add a small delay to ensure all services are ready
+    setTimeout(() => {
+      console.log('ModelOverview: Starting delayed stats load...')
+      // Also run debug function to see state
+      if ((window as any).debugModelStats) {
+        (window as any).debugModelStats()
+      }
+      loadStats()
+    }, 100)
+
+    // Listen for stats updates
+    const handleStatsUpdate = () => loadStats()
+    window.addEventListener('tradestial:model-stats-updated', handleStatsUpdate)
+    window.addEventListener('tradestial:strategies-updated', handleStatsUpdate)
+
+    return () => {
+      window.removeEventListener('tradestial:model-stats-updated', handleStatsUpdate)
+      window.removeEventListener('tradestial:strategies-updated', handleStatsUpdate)
+    }
+  }, [])
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            My Models
-          </h1>
-        </div>
+        <div />
         <div className="flex items-center space-x-3">
           <Button 
             onClick={() => setIsMarketplaceOpen(true)}
@@ -103,34 +146,46 @@ export function ModelOverview() {
       </div>
 
       {/* Overview Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <OverviewStatsCard
           title="Best performing model"
-          value="ICT 2022 Model"
-          subtitle="1 trade • $400"
-          trend="up"
+          value={summaryStats.bestPerforming?.name || "No data"}
+          subtitle={summaryStats.bestPerforming 
+            ? `${summaryStats.bestPerforming.stats.total} trade${summaryStats.bestPerforming.stats.total !== 1 ? 's' : ''} • $${summaryStats.bestPerforming.stats.netPnL.toFixed(0)}`
+            : "No models with trades"
+          }
+          trend={summaryStats.bestPerforming?.stats.netPnL > 0 ? "up" : summaryStats.bestPerforming?.stats.netPnL < 0 ? "down" : "neutral"}
           icon={TrendingUp}
           color="green"
         />
         <OverviewStatsCard
           title="Least performing model"
-          value="ICT 2022 Model" 
-          subtitle="1 trade • $400"
-          trend="down"
+          value={summaryStats.leastPerforming?.name || "No data"}
+          subtitle={summaryStats.leastPerforming 
+            ? `${summaryStats.leastPerforming.stats.total} trade${summaryStats.leastPerforming.stats.total !== 1 ? 's' : ''} • $${summaryStats.leastPerforming.stats.netPnL.toFixed(0)}`
+            : "No models with trades"
+          }
+          trend={summaryStats.leastPerforming?.stats.netPnL > 0 ? "up" : summaryStats.leastPerforming?.stats.netPnL < 0 ? "down" : "neutral"}
           icon={TrendingDown}
           color="blue"
         />
         <OverviewStatsCard
           title="Most active model"
-          value="ICT 2022 Model"
-          subtitle="1 trade"
+          value={summaryStats.mostActive?.name || "No data"}
+          subtitle={summaryStats.mostActive 
+            ? `${summaryStats.mostActive.stats.total} trade${summaryStats.mostActive.stats.total !== 1 ? 's' : ''}`
+            : "No models with trades"
+          }
           icon={Activity}
           color="orange"
         />
         <OverviewStatsCard
           title="Best win rate"
-          value="ICT 2022 Model"
-          subtitle="100% / 1 trade"
+          value={summaryStats.bestWinRate?.name || "No data"}
+          subtitle={summaryStats.bestWinRate 
+            ? `${summaryStats.bestWinRate.stats.winRate.toFixed(0)}% / ${summaryStats.bestWinRate.stats.total} trade${summaryStats.bestWinRate.stats.total !== 1 ? 's' : ''}`
+            : "No models with trades"
+          }
           icon={Target}
           color="purple"
         />

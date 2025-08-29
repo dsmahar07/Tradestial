@@ -175,7 +175,38 @@ export function RecentTradesTable() {
         pnl: trade.netPnl,
         pnlPercentage: trade.netRoi || 0,
         timestamp: formatTimestamp(trade.closeDate || trade.openDate),
-        duration: calculateTradeDuration(trade.entryTime, trade.exitTime, trade.openDate, trade.closeDate)?.formatted || 'N/A',
+        duration: (() => {
+          const durationResult = calculateTradeDuration(trade.entryTime, trade.exitTime, trade.openDate, trade.closeDate)
+          
+          // Extra debugging for suspicious durations
+          const formatted = durationResult?.formatted || 'N/A'
+          if (durationResult && durationResult.totalMinutes > 12 * 60) {
+            console.warn('⚠️ SUSPICIOUS LONG DURATION detected:', {
+              tradeId: trade.id,
+              symbol: trade.symbol,
+              entryTime: trade.entryTime,
+              exitTime: trade.exitTime,
+              openDate: trade.openDate,
+              closeDate: trade.closeDate,
+              calculatedMinutes: durationResult.totalMinutes,
+              calculatedHours: durationResult.hours,
+              formatted: formatted,
+              rawTrade: trade
+            })
+          }
+          
+          console.debug('🔍 Trade duration calculation:', {
+            tradeId: trade.id,
+            symbol: trade.symbol,
+            entryTime: trade.entryTime,
+            exitTime: trade.exitTime,
+            openDate: trade.openDate,
+            closeDate: trade.closeDate,
+            result: formatted
+          })
+          
+          return formatted
+        })(),
         status: 'CLOSED' as const
       }))
     

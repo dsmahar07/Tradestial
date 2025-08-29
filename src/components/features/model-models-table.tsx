@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { getImportedTrades, TradeRecord } from '@/components/modals/ImportTradesModal'
+import { modelStatsService } from '@/services/model-stats.service'
+import { DataStore } from '@/services/data-store.service'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MoreHorizontal, ArrowUpDown, Edit, Copy, Share, Trash2 } from 'lucide-react'
@@ -44,14 +46,8 @@ function readStrategies(): Strategy[] {
 }
 
 function readAssignments(): Record<string, string[]> {
-  try {
-    const raw = localStorage.getItem(ASSIGNMENTS_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? parsed : {}
-  } catch {
-    return {}
-  }
+  // Use the modelStatsService to get assignments instead of direct localStorage
+  return modelStatsService.getAllAssignments()
 }
 
 function computeStats(trades: TradeRecord[], tradeIds: string[] | undefined): StrategyStats {
@@ -199,16 +195,25 @@ export function ModelModelsTable() {
     setMounted(true)
     setStrategies(readStrategies())
     setAssignments(readAssignments())
-    setTrades(getImportedTrades() || [])
+    setTrades(DataStore.getAllTrades())
 
     const refresh = () => {
       setStrategies(readStrategies())
       setAssignments(readAssignments())
     }
+    
+    const refreshStats = () => {
+      // Force re-render by updating state and refreshing trade data
+      setTrades(DataStore.getAllTrades())
+      setStrategies(prev => [...prev])
+    }
+    
     window.addEventListener('tradestial:strategies-updated', refresh as EventListener)
+    window.addEventListener('tradestial:model-stats-updated', refreshStats as EventListener)
     window.addEventListener('storage', refresh)
     return () => {
       window.removeEventListener('tradestial:strategies-updated', refresh as EventListener)
+      window.removeEventListener('tradestial:model-stats-updated', refreshStats as EventListener)
       window.removeEventListener('storage', refresh)
     }
   }, [])
@@ -229,7 +234,7 @@ export function ModelModelsTable() {
   const rows = useMemo(() => {
     const mapped = strategies.map(s => ({
       strategy: s,
-      stats: computeStats(trades, assignments[s.id])
+      stats: modelStatsService.calculateModelStats(s.id, trades, false) // Don't cache during render
     }))
     
     if (!sortField) return mapped
@@ -421,13 +426,13 @@ export function ModelModelsTable() {
                 </td>
                 <td className="px-4 py-3 text-right text-gray-900 dark:text-white">0</td>
                 <td className="px-4 py-3 text-right text-gray-900 dark:text-white">-</td>
-                <td className="px-4 py-3 text-right text-gray-900 dark:text-white">${Math.abs(stats.avgLoser).toFixed(0)}</td>
-                <td className="px-4 py-3 text-right text-gray-900 dark:text-white">${stats.avgWinner.toFixed(0)}</td>
-                <td className={"px-4 py-3 text-right font-medium " + (stats.netPnL >= 0 ? 'text-cyan-400' : 'text-red-600')}>{currency(stats.netPnL)}</td>
-                <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{Number.isFinite(stats.profitFactor) ? stats.profitFactor.toFixed(1) : '0.0'}</td>
-                <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{stats.total}</td>
-                <td className={"px-4 py-3 text-right font-medium " + (stats.expectancy >= 0 ? 'text-cyan-400' : 'text-red-600')}>{currency(stats.expectancy)}</td>
-                <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{stats.winRate.toFixed(0)}%</td>
+                <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-semibold">${Math.abs(stats.avgLoser).toFixed(0)}</td>
+                <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-semibold">${stats.avgWinner.toFixed(0)}</td>
+                <td className={"px-4 py-3 text-right font-medium " + (stats.netPnL >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}>{currency(stats.netPnL)}</td>
+                <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-semibold">{Number.isFinite(stats.profitFactor) ? stats.profitFactor.toFixed(1) : '0.0'}</td>
+                <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-semibold">{stats.total}</td>
+                <td className={"px-4 py-3 text-right font-medium " + (stats.expectancy >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}>{currency(stats.expectancy)}</td>
+                <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-semibold">{stats.winRate.toFixed(0)}%</td>
                 <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                   {/* Three dots button */}
                   <button 
@@ -507,7 +512,7 @@ export function ModelModelsTable() {
                   e.stopPropagation()
                   if (isDev) console.debug('Share clicked for:', openDropdownId)
                   const strategy = strategies.find(s => s.id === openDropdownId)
-                  const stats = strategy ? computeStats(trades, assignments[strategy.id]) : null
+                  const stats = strategy ? modelStatsService.calculateModelStats(strategy.id, trades, false) : null
                   if (strategy && stats) handleShare(strategy, stats)
                   setOpenDropdownId(null)
                 }}

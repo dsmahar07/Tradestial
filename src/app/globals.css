@@ -42,6 +42,7 @@
     @apply border-border;
   }
   html {
+    @apply font-sans;
     text-rendering: optimizeLegibility;
     font-kerning: normal;
     font-variant-ligatures: common-ligatures contextual;
@@ -53,12 +54,16 @@
     -moz-osx-font-smoothing: auto;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     text-rendering: optimizeLegibility;
     font-kerning: normal;
     font-variant-ligatures: common-ligatures contextual;
     font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
     font-optical-sizing: auto;
+  }
+  /* Ensure form controls inherit Inter */
+  button, input, select, textarea {
+    font-family: inherit;
   }
   
   /* Remove focus outlines from SVG elements in charts */
@@ -68,6 +73,7 @@
   /* Improve text precision inside SVG charts */
   svg text {
     text-rendering: geometricPrecision;
+    font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 }
 

@@ -136,7 +136,7 @@ export default function SymbolsPage() {
         })
 
         return Object.entries(instrumentGroups)
-          .filter(([_, trades]) => trades.length > 0)
+          .filter(([, trades]) => trades.length > 0)
           .map(([instrument, instrumentTrades]) => {
             const wins = instrumentTrades.filter(t => getValue(t) > 0)
             const losses = instrumentTrades.filter(t => getValue(t) < 0)
@@ -197,7 +197,7 @@ export default function SymbolsPage() {
         })
 
         return Object.entries(priceGroups)
-          .filter(([_, trades]) => trades.length > 0)
+          .filter(([, trades]) => trades.length > 0)
           .map(([priceRange, rangeTrades]) => {
             const wins = rangeTrades.filter(t => getValue(t) > 0)
             const losses = rangeTrades.filter(t => getValue(t) < 0)
@@ -348,7 +348,7 @@ export default function SymbolsPage() {
     return result
   }
   
-  const crossValues: Record<string, number[]> = useMemo(() => getCrossAnalysisData(), [subTab, matrixMetric])
+  const crossValues: Record<string, number[]> = useMemo(() => getCrossAnalysisData(), [subTab, matrixMetric, getCrossAnalysisData])
 
   return (
     <div className="flex min-h-screen">

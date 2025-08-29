@@ -155,7 +155,7 @@ export default function WinsLossesPage() {
         { label: 'Max consecutive losses', value: String(maxLosses) }
       ] as StatRow[]
     }
-  }, [trades, pnlMetric])
+  }, [trades, pnlMetric, pnlOf])
 
   // Axis formatter
   const formatAxisCurrency = (value: number): string => {

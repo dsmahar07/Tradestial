@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { modelStatsService } from '@/services/model-stats.service'
+import { getImportedTrades } from '@/components/modals/ImportTradesModal'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Button } from '@/components/ui/button'
 import { X, TrendingUp, Plus, Minus, Upload, Smile } from 'lucide-react'
@@ -360,7 +362,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter your model name (e.g., ICT 2024 Strategy)"
-                className="w-full h-11 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-4 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full h-11 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-4 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
                 required
               />
             </div>
@@ -373,7 +375,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe your trading model and methodology (optional)"
                 rows={3}
-                className="w-full rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-4 py-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+                className="w-full rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-4 py-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0 resize-none"
               />
             </div>
 
@@ -406,7 +408,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                           value={group.title}
                           onChange={(e) => updateGroupTitle(group.id, e.target.value)}
                           placeholder="Rule group name (e.g., Entry Conditions)"
-                          className="flex-1 h-9 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          className="flex-1 h-9 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
                         />
                         <Button
                           type="button"
@@ -426,7 +428,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                               value={rule}
                               onChange={(e) => updateRule(group.id, ruleIndex, e.target.value)}
                               placeholder="Enter trading rule (e.g., Price above VWAP)"
-                              className="flex-1 h-9 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              className="flex-1 h-9 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
                             />
                             <Button
                               type="button"

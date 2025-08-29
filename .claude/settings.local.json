@@ -12,7 +12,8 @@
       "Bash(node:*)",
       "Bash(del debug-duration-test.js)",
       "Bash(npx tsc:*)",
-      "Bash(del \"src\\components\\analytics\\performance-chart-broken.tsx\")"
+      "Bash(del \"src\\components\\analytics\\performance-chart-broken.tsx\")",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

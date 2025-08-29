@@ -9,10 +9,47 @@ export class DataStore {
   private static trades: Trade[] = []
   private static listeners: Array<() => void> = []
   private static startingBalance: number = 10000 // Default starting balance
+  private static isInitialized: boolean = false
 
   // Memory safety limits
   private static readonly MAX_TRADES = 50000 // cap total in-memory trades to prevent OOM
   private static readonly MAX_LISTENERS = 100 // avoid runaway subscriptions
+  
+  // Storage key for persisting trades
+  private static readonly TRADES_STORAGE_KEY = 'tradestial:trades-data'
+
+  // Initialize DataStore - load persisted trades from localStorage
+  private static initialize(): void {
+    if (this.isInitialized || typeof window === 'undefined') return
+    
+    try {
+      const stored = localStorage.getItem(this.TRADES_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          this.trades = parsed.slice(-this.MAX_TRADES) // Respect limits
+          console.log(`DataStore: Loaded ${this.trades.length} trades from localStorage`)
+        }
+      }
+    } catch (error) {
+      console.warn('DataStore: Failed to load trades from localStorage:', error)
+      this.trades = []
+    }
+    
+    this.isInitialized = true
+  }
+
+  // Persist trades to localStorage
+  private static persistTrades(): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      localStorage.setItem(this.TRADES_STORAGE_KEY, JSON.stringify(this.trades))
+      console.log(`DataStore: Persisted ${this.trades.length} trades to localStorage`)
+    } catch (error) {
+      console.warn('DataStore: Failed to persist trades to localStorage:', error)
+    }
+  }
 
   // Format a Date to YYYY-MM-DD using local timezone
   private static formatLocalYMD(d: Date): string {
@@ -24,6 +61,8 @@ export class DataStore {
 
   // Add trades from CSV import
   static async addTrades(newTrades: Partial<Trade>[], clearExisting: boolean = false): Promise<void> {
+    this.initialize()
+    
     const validTrades = newTrades
       .filter(trade => this.validateTrade(trade))
       .map(trade => this.normalizeTradeData(trade as Trade))
@@ -41,11 +80,13 @@ export class DataStore {
       }
     }
 
+    this.persistTrades()
     this.notifyListeners()
   }
 
   // Get all trades
   static getAllTrades(): Trade[] {
+    this.initialize()
     return [...this.trades]
   }
 
@@ -56,17 +97,22 @@ export class DataStore {
 
   // Upsert updates for existing trades by id (used by enrichment pipeline)
   static async upsertTrades(partials: Partial<Trade>[]): Promise<void> {
+    this.initialize()
+    
     if (!partials || partials.length === 0) return
     const byId = new Map(partials.filter(p => p.id).map(p => [p.id as string, p]))
     this.trades = this.trades.map(t => {
       const patch = byId.get(t.id)
       return patch ? { ...t, ...patch } : t
     })
+    
+    this.persistTrades()
     this.notifyListeners()
   }
 
   // Get trades by date range
   static getTradesByDateRange(startDate: Date, endDate: Date): Trade[] {
+    this.initialize()
     const startYMD = this.formatLocalYMD(startDate)
     const endYMD = this.formatLocalYMD(endDate)
     return this.trades.filter(trade => {
@@ -77,6 +123,7 @@ export class DataStore {
 
   // Get trades by symbol
   static getTradesBySymbol(symbol: string): Trade[] {
+    this.initialize()
     return this.trades.filter(trade =>
       trade.symbol.toLowerCase() === symbol.toLowerCase()
     )
@@ -84,6 +131,7 @@ export class DataStore {
 
   // Calculate comprehensive metrics
   static calculateMetrics(trades?: Trade[]): TradeMetrics {
+    this.initialize()
     const tradesToAnalyze = trades || this.trades
     
     // Get metadata function from TradeMetadataService

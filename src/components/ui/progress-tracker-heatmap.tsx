@@ -16,53 +16,24 @@ interface ProgressTrackerHeatmapProps {
   todayScore?: number
   todayCompleted?: number
   todayTotal?: number
+  history?: Record<string, { completed: number; total: number; score: number }>
 }
 
-// Generate calendar data for July and August
-const generateCalendarData = (): ProgressData[] => {
-  const data: ProgressData[] = []
-  const currentYear = 2024
-  
-  // Generate data for July and August
-  for (let month = 6; month <= 7; month++) {
-    const daysInMonth = new Date(currentYear, month + 1, 0).getDate()
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, month, day)
-      const isToday = date.toDateString() === new Date().toDateString()
-      const isPast = date < new Date()
-      
-      let score = 0
-      let completed = 0
-      let total = 0
-      
-      if (isPast && !isToday) {
-        const seed = day + month * 31
-        const random = (seed * 9301 + 49297) % 233280 / 233280 // Faster pseudo-random
-        
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6
-        const activityChance = isWeekend ? 0.3 : 0.7
-        
-        if (random < activityChance) {
-          total = Math.floor(random * 7) + 3
-          completed = Math.floor(random * total * 1.2)
-          completed = Math.min(completed, total)
-          score = total > 0 ? Math.round((completed / total) * 100) : 0
-        }
-      } else if (isToday) {
-        total = 6
-        completed = 0 // Current actual progress
-        score = Math.round((completed / total) * 100)
-      }
-      
-      data.push({ date, score, completed, total })
-    }
-  }
-  
-  return data
+const toKey = (d: Date) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-// Get color intensity based on score - matching design exactly
+const startOfWeekSun = (d: Date) => {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const day = date.getDay() // 0 = Sun
+  date.setDate(date.getDate() - day)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
 const getIntensity = (score: number): string => {
   if (score === 0) return 'bg-gray-100 dark:bg-gray-700'
   if (score <= 20) return 'bg-blue-200 dark:bg-blue-900'
@@ -75,23 +46,20 @@ const getIntensity = (score: number): string => {
 export function ProgressTrackerHeatmap({ 
   todayScore = 0, 
   todayCompleted = 0, 
-  todayTotal = 0 
+  todayTotal = 0,
+  history = {}
 }: ProgressTrackerHeatmapProps = {}) {
-  const progressData = useMemo(() => generateCalendarData(), [])
   const gridAreaRef = useRef<HTMLDivElement | null>(null)
   const firstRowCellsRef = useRef<HTMLDivElement | null>(null)
   const [cellSize, setCellSize] = useState<number>(16)
 
-  // Simplified cell size calculation - removed ResizeObserver for better performance
   useEffect(() => {
     const computeSize = () => {
-      // Use a fixed, responsive cell size instead of dynamic calculation
-      setCellSize(16) // Default optimal size
+      setCellSize(16) 
     }
     computeSize()
   }, [])
   
-  // Get today's data - use real data from props
   const todayData = useMemo(() => {
     return {
       date: new Date(),
@@ -100,9 +68,30 @@ export function ProgressTrackerHeatmap({
       total: todayTotal
     }
   }, [todayScore, todayCompleted, todayTotal])
-  
-  // No additional processing needed for the new layout
-  
+
+  const weeks = useMemo(() => {
+    const today = new Date()
+    const startThisWeek = startOfWeekSun(today)
+    const weeks: Date[] = []
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(startThisWeek)
+      d.setDate(d.getDate() - i * 7)
+      weeks.push(d)
+    }
+    return weeks
+  }, [])
+
+  const historyWithToday = useMemo(() => {
+    const merged = { ...history }
+    const k = toKey(todayData.date)
+    merged[k] = {
+      completed: todayData.completed,
+      total: todayData.total,
+      score: todayData.total > 0 ? Math.round((todayData.completed / todayData.total) * 100) : 0,
+    }
+    return merged
+  }, [history, todayData])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -150,31 +139,21 @@ export function ProgressTrackerHeatmap({
                   className="flex gap-1.5 pl-2 items-center flex-nowrap"
                   ref={dayIndex === 0 ? firstRowCellsRef : undefined}
                 >
-                  {Array.from({ length: 12 }, (_, weekIndex) => {
-                    // Generate some sample data
-                    const seed = dayIndex * 12 + weekIndex
-                    const random = Math.sin(seed) * 10000
-                    const normalizedRandom = random - Math.floor(random)
-                    
-                    let intensity = ''
-                    if (normalizedRandom < 0.2) {
-                      intensity = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600'
-                    } else if (normalizedRandom < 0.4) {
-                      intensity = 'bg-blue-100 dark:bg-blue-900/20'
-                    } else if (normalizedRandom < 0.6) {
-                      intensity = 'bg-blue-200 dark:bg-blue-800/40'
-                    } else if (normalizedRandom < 0.8) {
-                      intensity = 'bg-blue-400 dark:bg-blue-600'
-                    } else {
-                      intensity = 'bg-blue-600 dark:bg-blue-500'
-                    }
-                    
+                  {weeks.map((startOfWeek, weekIndex) => {
+                    const cellDate = new Date(startOfWeek)
+                    cellDate.setDate(cellDate.getDate() + dayIndex)
+                    const key = toKey(cellDate)
+                    const entry = historyWithToday[key]
+                    const score = entry?.score ?? 0
+                    const title = `${cellDate.toDateString()} — ${entry ? `${entry.completed}/${entry.total} (${score}%)` : 'No data'}`
+                    const intensity = entry ? getIntensity(score) : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600'
+
                     return (
                       <div
                         key={weekIndex}
                         className={`rounded-[4px] ${intensity}`}
                         style={{ width: `${cellSize}px`, height: `${cellSize}px`, flex: '0 0 auto' }}
-                        title={`Week ${weekIndex + 1}, ${dayName}`}
+                        title={title}
                       />
                     )
                   })}

@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/fancy-select'
 import { cn } from '@/lib/utils'
 import { Root as FancyButton } from '@/components/ui/fancy-button'
+import { TIMEZONE_REGIONS, getCurrentTimezone, formatTimezoneOffset } from '@/utils/timezones'
 
 interface TradingRule {
   id: string
@@ -36,16 +37,36 @@ interface RulesDialogProps {
   onResetProgress?: () => void
 }
 
-// Get user's local timezone info (GMT offset and IANA name)
-function getUserTimezone() {
-  const d = new Date()
-  const offsetMin = -d.getTimezoneOffset() // minutes east of UTC
-  const sign = offsetMin >= 0 ? '+' : '-'
-  const abs = Math.abs(offsetMin)
-  const hh = String(Math.floor(abs / 60)).padStart(2, '0')
-  const mm = String(abs % 60).padStart(2, '0')
-  const name = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
-  return { offset: `GMT${sign}${hh}:${mm}`, name }
+// Get user's selected timezone from settings with proper labeling
+function getUserSelectedTimezone() {
+  let offsetMin = -new Date().getTimezoneOffset() // default to browser timezone
+  
+  // Try to get user's selected timezone from localStorage
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('import:timezoneOffsetMinutes')
+      if (stored != null && stored !== '') {
+        offsetMin = parseInt(stored)
+      }
+    }
+  } catch {}
+  
+  // Find the timezone label from our timezone regions
+  for (const [regionName, timezones] of Object.entries(TIMEZONE_REGIONS)) {
+    const found = timezones.find((tz) => tz.value === offsetMin)
+    if (found) {
+      return `${found.label} — ${formatTimezoneOffset(offsetMin)}`
+    }
+  }
+  
+  // Fallback to current timezone if not found in regions
+  const currentTz = getCurrentTimezone()
+  if (currentTz.value === offsetMin) {
+    return `${currentTz.label} — ${formatTimezoneOffset(offsetMin)}`
+  }
+  
+  // Final fallback
+  return `Custom Timezone — ${formatTimezoneOffset(offsetMin)}`
 }
 
 const DAYS = [
@@ -59,10 +80,38 @@ const DAYS = [
 ]
 
 const TIME_OPTIONS = [
-  '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
-  '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
+  { value: '06:00', label: '6:00 AM' },
+  { value: '06:30', label: '6:30 AM' },
+  { value: '07:00', label: '7:00 AM' },
+  { value: '07:30', label: '7:30 AM' },
+  { value: '08:00', label: '8:00 AM' },
+  { value: '08:30', label: '8:30 AM' },
+  { value: '09:00', label: '9:00 AM' },
+  { value: '09:30', label: '9:30 AM' },
+  { value: '10:00', label: '10:00 AM' },
+  { value: '10:30', label: '10:30 AM' },
+  { value: '11:00', label: '11:00 AM' },
+  { value: '11:30', label: '11:30 AM' },
+  { value: '12:00', label: '12:00 PM' },
+  { value: '12:30', label: '12:30 PM' },
+  { value: '13:00', label: '1:00 PM' },
+  { value: '13:30', label: '1:30 PM' },
+  { value: '14:00', label: '2:00 PM' },
+  { value: '14:30', label: '2:30 PM' },
+  { value: '15:00', label: '3:00 PM' },
+  { value: '15:30', label: '3:30 PM' },
+  { value: '16:00', label: '4:00 PM' },
+  { value: '16:30', label: '4:30 PM' },
+  { value: '17:00', label: '5:00 PM' },
+  { value: '17:30', label: '5:30 PM' },
+  { value: '18:00', label: '6:00 PM' },
+  { value: '18:30', label: '6:30 PM' },
+  { value: '19:00', label: '7:00 PM' },
+  { value: '19:30', label: '7:30 PM' },
+  { value: '20:00', label: '8:00 PM' },
+  { value: '20:30', label: '8:30 PM' },
+  { value: '21:00', label: '9:00 PM' },
+  { value: '21:30', label: '9:30 PM' }
 ]
 
 const MANUAL_RULE_DAYS = ['Daily', 'Mon-Fri', 'Weekends']
@@ -164,10 +213,7 @@ export function RulesDialog({
                       Set trading hours in a 24-hour format.
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {(() => {
-                        const tz = getUserTimezone()
-                        return `Your current timezone: ${tz.offset}${tz.name ? ` ${tz.name}` : ''}`
-                      })()}
+                      Your current timezone: {getUserSelectedTimezone()}
                     </p>
                   </div>
                   <Switch
@@ -187,12 +233,12 @@ export function RulesDialog({
                         }
                       })}
                     >
-                      <SelectTrigger className="w-20">
+                      <SelectTrigger className="w-[70px] h-8 text-xs whitespace-nowrap overflow-hidden">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {TIME_OPTIONS.map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
+                          <SelectItem key={time.value} value={time.value}>{time.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -207,12 +253,12 @@ export function RulesDialog({
                         }
                       })}
                     >
-                      <SelectTrigger className="w-20">
+                      <SelectTrigger className="w-[70px] h-8 text-xs whitespace-nowrap overflow-hidden">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {TIME_OPTIONS.map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
+                          <SelectItem key={time.value} value={time.value}>{time.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -221,20 +267,42 @@ export function RulesDialog({
               </div>
 
               {/* Start my day by */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">Start my day by</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    The time you should start your day by and enter your starting journal entry before your trading session.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">09:30</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Start my day by</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      The time you should start your day by and enter your starting journal entry before your trading session.
+                    </p>
+                  </div>
                   <Switch
                     checked={tradingRules.find(r => r.type === 'start_day')?.enabled || false}
                     onCheckedChange={(checked) => updateTradingRule('2', { enabled: checked })}
                   />
                 </div>
+                
+                {tradingRules.find(r => r.type === 'start_day')?.enabled && (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={tradingRules.find(r => r.type === 'start_day')?.config?.time || '08:30'}
+                      onValueChange={(value) => updateTradingRule('2', { 
+                        config: { 
+                          ...tradingRules.find(r => r.type === 'start_day')?.config,
+                          time: value 
+                        }
+                      })}
+                    >
+                      <SelectTrigger className="w-[70px] h-8 text-xs whitespace-nowrap overflow-hidden">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_OPTIONS.map(time => (
+                          <SelectItem key={time.value} value={time.value}>{time.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Link trades to playbook */}

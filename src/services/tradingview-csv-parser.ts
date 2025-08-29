@@ -123,6 +123,7 @@ export class TradingViewCsvParser {
     row: string[],
     map: Record<string, number>,
     rowIndex: number,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _options?: { preferredDateFormat?: string; timezoneOffsetMinutes?: number }
   ): Trade | null {
     const timeStr = this.getField(row, map, 'Time')

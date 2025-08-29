@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ bars: [] }, { status: 200 })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ bars: [] }, { status: 200 })
   }
 }
