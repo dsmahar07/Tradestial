@@ -4,13 +4,16 @@ import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { NotebookEditor } from '@/components/features/notes/NotebookEditor'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { ProgressWidget } from '@/components/ui/progress-widget'
-import { CalendarWidget } from '@/components/ui/calendar-widget'
+import TradingViewWidget from '@/components/ui/tradingview-widget'
 import { themeColors } from '@/config/theme'
 import { PageLoading } from '@/components/ui/loading-spinner'
+import { DataStore } from '@/services/data-store.service'
+import JournalHeaderStats from '@/components/ui/journal-header-stats'
+import JournalTradesTable from '@/components/ui/journal-trades-table'
 
 export interface Note {
   id: string
@@ -27,6 +30,13 @@ function JournalPageContent() {
   usePageTitle('Journal')
   const searchParams = useSearchParams()
   const dateParam = searchParams.get('date') // Format: YYYY-MM-DD
+  const [selectedYMD, setSelectedYMD] = useState<string>(() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  })
   
   // Helper function to get initial title based on date param or current date
   const getInitialTitle = () => {
@@ -81,6 +91,7 @@ function JournalPageContent() {
             parsedDate.getMonth() === month - 1 && 
             parsedDate.getDate() === day) {
           targetDate = parsedDate
+          setSelectedYMD(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
         }
       }
       
@@ -126,6 +137,11 @@ function JournalPageContent() {
       title: formattedDate,
       updatedAt: new Date().toISOString()
     }))
+
+    const y = selectedDate.getFullYear()
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0')
+    const d = String(selectedDate.getDate()).padStart(2, '0')
+    setSelectedYMD(`${y}-${m}-${d}`)
   }
 
 
@@ -143,6 +159,69 @@ function JournalPageContent() {
       updatedAt: new Date().toISOString()
     }))
   }
+
+  // Re-compute when data store updates
+  const [, setDataTick] = useState(0)
+  useEffect(() => {
+    const unsub = DataStore.subscribe(() => setDataTick(t => t + 1))
+    return unsub
+  }, [])
+
+  // Pull trades for the selected day and compute stats + intraday chart
+  const { headerNode, netPnl } = useMemo(() => {
+    const ymd = selectedYMD
+    const [y, m, d] = ymd.split('-').map(n => parseInt(n, 10))
+    const dayDate = new Date(y, m - 1, d)
+    const trades = DataStore.getTradesByDateRange(dayDate, dayDate)
+
+    // Stats
+    const totalTrades = trades.length
+    const winners = trades.filter(t => t.netPnl > 0).length
+    const losers = trades.filter(t => t.netPnl < 0).length
+    const winrate = totalTrades > 0 ? `${Math.round((winners / totalTrades) * 100)}%` : '0%'
+    const grossPnl = trades.reduce((s, t) => s + (t.grossPnl ?? t.netPnl), 0)
+    const commissions = trades.reduce((s, t) => s + (t.commissions ?? 0), 0)
+    const volume = trades.reduce((s, t) => s + (t.contractsTraded ?? 0), 0)
+    const avgWin = winners > 0 ? trades.filter(t => t.netPnl > 0).reduce((s, t) => s + t.netPnl, 0) / winners : 0
+    const avgLoss = losers > 0 ? Math.abs(trades.filter(t => t.netPnl < 0).reduce((s, t) => s + t.netPnl, 0)) / losers : 0
+    const profitFactor = avgLoss > 0 ? +(avgWin / avgLoss).toFixed(2) : 0
+
+    // Intraday cumulative PnL points using entryTime or closeTime fallback
+    const points = trades
+      .map(t => ({
+        time: (t.entryTime || t.openTime || t.closeTime || '16:00')?.slice(0,5),
+        pnl: t.netPnl
+      }))
+      .sort((a, b) => a.time.localeCompare(b.time))
+
+    let running = 0
+    const chartData = points.map(p => {
+      running += p.pnl
+      return { time: p.time, value: Math.round(running) }
+    })
+
+    const netPnl = Math.round(trades.reduce((sum, t) => sum + (t.netPnl || 0), 0))
+    const headerNode = (
+      <div className="px-0">
+        <JournalHeaderStats
+          chartData={chartData}
+          stats={{
+            totalTrades,
+            winners,
+            losers,
+            winrate,
+            grossPnl: Math.round(grossPnl),
+            volume,
+            commissions: Math.round(commissions),
+            profitFactor
+          }}
+        />
+        <JournalTradesTable trades={trades} />
+      </div>
+    )
+
+    return { headerNode, netPnl }
+  }, [selectedYMD, setDataTick])
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-[var(--color-bg-dark,#1C1C1C)]">
@@ -166,6 +245,9 @@ function JournalPageContent() {
                 onDeleteNote={handleDeleteNote}
                 useDatePicker={true}
                 onDateChange={handleDateChange}
+                headerStats={headerNode}
+                netPnlValue={netPnl}
+                netPnlIsProfit={netPnl >= 0}
               />
             </motion.div>
 
@@ -183,11 +265,9 @@ function JournalPageContent() {
                 emptyMessage="No active rules today"
               />
 
-              <CalendarWidget 
-                title="Calendar"
-                hasEvents={false}
-                emptyMessage="No economic events available for current filters."
-              />
+              <div className="bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl overflow-hidden shadow-lg p-3">
+                <TradingViewWidget />
+              </div>
             </motion.div>
           </div>
         </main>

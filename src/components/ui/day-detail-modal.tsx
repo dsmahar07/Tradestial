@@ -88,23 +88,56 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Minimal sanitizer to strip scripts, event handlers, and unsafe URLs
+  const sanitizeHtml = useCallback((dirty: string): string => {
+    if (!dirty) return ''
+    try {
+      const doc = new DOMParser().parseFromString(dirty, 'text/html')
+      const nodes = doc.body.querySelectorAll('*')
+      nodes.forEach((el) => {
+        const tag = el.tagName.toLowerCase()
+        if (tag === 'script' || tag === 'style') {
+          el.remove()
+          return
+        }
+        ;[...el.attributes].forEach((attr) => {
+          const name = attr.name.toLowerCase()
+          const val = (attr.value || '').trim()
+          if (name.startsWith('on')) el.removeAttribute(attr.name)
+          if ((name === 'src' || name === 'href') && val) {
+            const lower = val.toLowerCase()
+            const http = lower.startsWith('http://') || lower.startsWith('https://')
+            const dataImg = lower.startsWith('data:image/')
+            const local = lower.startsWith('/') || lower.startsWith('./')
+            if (!(http || dataImg || local)) el.removeAttribute(attr.name)
+            if (name === 'href' && lower.startsWith('javascript:')) el.removeAttribute(attr.name)
+          }
+        })
+      })
+      return doc.body.innerHTML
+    } catch {
+      return ''
+    }
+  }, [])
+
   const storageKey = date ? `day-note:${new Date(date).toISOString().split('T')[0]}` : undefined
 
   // Load note when date changes or modal opens
   useEffect(() => {
     if (!storageKey) return
     const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
-    setNoteContent(saved || '')
+    const safe = sanitizeHtml(saved || '')
+    setNoteContent(safe)
     // sync editor DOM
     if (editorRef.current) {
-      editorRef.current.innerHTML = saved || ''
+      editorRef.current.innerHTML = safe
     }
-  }, [storageKey, open])
+  }, [storageKey, open, sanitizeHtml])
 
   const handleSaveNote = () => {
     if (!storageKey) return
     const content = editorRef.current?.innerHTML ?? noteContent
-    localStorage.setItem(storageKey, content || '')
+    localStorage.setItem(storageKey, sanitizeHtml(content || ''))
   }
 
   // Auto-save with debounce when content changes
@@ -112,10 +145,10 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     if (!storageKey) return
     const timer = setTimeout(() => {
       const content = editorRef.current?.innerHTML ?? noteContent
-      localStorage.setItem(storageKey, content || '')
+      localStorage.setItem(storageKey, sanitizeHtml(content || ''))
     }, 1000)
     return () => clearTimeout(timer)
-  }, [noteContent, storageKey])
+  }, [noteContent, storageKey, sanitizeHtml])
 
   // Ensure save on close/unmount
   useEffect(() => {
@@ -123,15 +156,19 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     if (!open) return
     return () => {
       const content = editorRef.current?.innerHTML ?? noteContent
-      localStorage.setItem(storageKey, content || '')
+      localStorage.setItem(storageKey, sanitizeHtml(content || ''))
     }
-  }, [open, storageKey, noteContent])
+  }, [open, storageKey, noteContent, sanitizeHtml])
 
   const onEditorInput = useCallback(() => {
     if (editorRef.current) {
-      setNoteContent(editorRef.current.innerHTML)
+      const safe = sanitizeHtml(editorRef.current.innerHTML)
+      if (editorRef.current.innerHTML !== safe) {
+        editorRef.current.innerHTML = safe
+      }
+      setNoteContent(safe)
     }
-  }, [])
+  }, [sanitizeHtml])
 
   const exec = (command: string, value?: string) => {
     try {
@@ -147,7 +184,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     const range = selection.getRangeAt(0)
     range.deleteContents()
     const el = document.createElement('div')
-    el.innerHTML = html
+    el.innerHTML = sanitizeHtml(html)
     const frag = document.createDocumentFragment()
     let node: ChildNode | null
     let lastNode: ChildNode | null = null
@@ -169,7 +206,9 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     const reader = new FileReader()
     reader.onload = () => {
       const src = String(reader.result)
-      insertHTMLAtCursor(`<img src="${src}" style="max-width:100%;height:auto;border-radius:8px;" />`)
+      if (src.startsWith('data:image/')) {
+        insertHTMLAtCursor(`<img src="${src}" style="max-width:100%;height:auto;border-radius:8px;" alt="Uploaded image" />`)
+      }
       onEditorInput()
     }
     reader.readAsDataURL(file)
@@ -361,7 +400,13 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Insert image via URL */}
                   <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => {
                     const url = prompt('Paste image URL')
-                    if (url) insertHTMLAtCursor(`<img src='${url}' style='max-width:100%;height:auto;border-radius:8px;' />`)
+                    if (url) {
+                      const u = url.trim()
+                      const lower = u.toLowerCase()
+                      if (lower.startsWith('http://') || lower.startsWith('https://')) {
+                        insertHTMLAtCursor(`<img src='${u}' style='max-width:100%;height:auto;border-radius:8px;' alt='Image' />`)
+                      }
+                    }
                   }}><ImagePlus className="w-4 h-4" /></Button>
 
                   {/* Hidden file input for image upload */}

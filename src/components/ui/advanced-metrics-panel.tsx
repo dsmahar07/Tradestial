@@ -123,7 +123,7 @@ const riskMetricsDetailed = [
 export function AdvancedMetricsPanel() {
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'performance': return 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400'
+      case 'performance': return 'bg-[#10B981]/10 dark:bg-[#10B981]/20 text-[#10B981] dark:text-[#10B981]'
       case 'risk': return 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400'
       case 'efficiency': return 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
       default: return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
@@ -131,7 +131,7 @@ export function AdvancedMetricsPanel() {
   }
 
   const getTrendColor = (trend: number) => {
-    return trend > 0 ? 'text-green-500' : 'text-red-500'
+    return trend > 0 ? 'text-[#10B981]' : 'text-red-500'
   }
 
   const categories = [
@@ -157,7 +157,7 @@ export function AdvancedMetricsPanel() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>
           <span className="text-xs text-gray-500 dark:text-gray-400">All systems operational</span>
         </div>
       </div>

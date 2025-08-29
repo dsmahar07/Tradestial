@@ -3,6 +3,7 @@ import './globals.css'
 import { ThemeProvider } from '@/hooks/use-theme'
 import { PerformanceMonitor } from '@/components/features/performance-monitor'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -47,35 +48,24 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#6b21a8" />
         <meta name="theme-color" content="#6b21a8" />
         
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('tradestial-ui-theme');
-                  
-                  // Clear any existing theme classes first
-                  document.documentElement.classList.remove('light', 'dark');
-                  
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    // Default to light (including when theme is null/undefined)
-                    document.documentElement.classList.add('light');
-                    if (!theme) {
-                      localStorage.setItem('tradestial-ui-theme', 'light');
-                    }
-                  }
-                } catch (e) {
-                  // Fallback to light theme
-                  document.documentElement.classList.remove('light', 'dark');
-                  document.documentElement.classList.add('light');
-                  localStorage.setItem('tradestial-ui-theme', 'light');
-                }
-              })();
-            `,
-          }}
-        />
+        <Script id="tradestial-set-theme" strategy="beforeInteractive">{
+          `(() => {
+            try {
+              const theme = localStorage.getItem('tradestial-ui-theme');
+              document.documentElement.classList.remove('light', 'dark');
+              if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+              } else {
+                document.documentElement.classList.add('light');
+                if (!theme) localStorage.setItem('tradestial-ui-theme', 'light');
+              }
+            } catch (e) {
+              document.documentElement.classList.remove('light', 'dark');
+              document.documentElement.classList.add('light');
+              try { localStorage.setItem('tradestial-ui-theme', 'light'); } catch (_) {}
+            }
+          })();`
+        }</Script>
       </head>
       <body className={`${inter.variable} font-sans subpixel-antialiased overflow-x-hidden bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider

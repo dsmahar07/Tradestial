@@ -45,12 +45,56 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
 
+  // Very small sanitizer: removes scripts/styles, event handlers, and javascript: URLs
+  const sanitizeHtml = useCallback((dirty: string): string => {
+    if (!dirty) return ''
+    try {
+      const doc = new DOMParser().parseFromString(dirty, 'text/html')
+      const walk = (root: ParentNode) => {
+        const elements = root.querySelectorAll('*')
+        elements.forEach((el) => {
+          // Remove script/style and potentially dangerous elements
+          if (el.tagName.toLowerCase() === 'script' || el.tagName.toLowerCase() === 'style') {
+            el.remove()
+            return
+          }
+          // Strip on* handlers
+          ;[...el.attributes].forEach((attr) => {
+            const name = attr.name.toLowerCase()
+            const value = attr.value
+            if (name.startsWith('on')) {
+              el.removeAttribute(attr.name)
+              return
+            }
+            if ((name === 'href' || name === 'src') && value) {
+              const v = value.trim().replace(/\u0000/g, '')
+              const lower = v.toLowerCase()
+              const isAllowedDataImg = lower.startsWith('data:image/')
+              const isHttp = lower.startsWith('http://') || lower.startsWith('https://')
+              if (!(isHttp || isAllowedDataImg || lower.startsWith('/') || lower.startsWith('./'))) {
+                el.removeAttribute(attr.name)
+              }
+              if (name === 'href' && lower.startsWith('javascript:')) {
+                el.removeAttribute(attr.name)
+              }
+            }
+          })
+        })
+      }
+      walk(doc.body)
+      return doc.body.innerHTML
+    } catch {
+      return dirty
+    }
+  }, [])
+
   // Load content when value changes
   useEffect(() => {
     const noteContent = value || ''
-    setContent(noteContent)
+    const safe = sanitizeHtml(noteContent)
+    setContent(safe)
     setIsEditing(false)
-  }, [value])
+  }, [value, sanitizeHtml])
 
   // Manage editor innerHTML directly to prevent content loss
   useEffect(() => {
@@ -96,7 +140,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
     try {
       const target = e.currentTarget
       if (target) {
-        let newContent = target.innerHTML || ''
+        let newContent = sanitizeHtml(target.innerHTML || '')
         newContent = newContent.replace(/[\u200B-\u200D\uFEFF]/g, '')
         
         if (newContent !== content && isEditing) {
@@ -106,7 +150,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
     } catch (error) {
       console.error('Error in handleEditorInput:', error)
     }
-  }, [content, isEditing])
+  }, [content, isEditing, sanitizeHtml])
 
   const handleEditorBlur = useCallback((e: React.FocusEvent) => {
     const relatedTarget = e.relatedTarget as HTMLElement
@@ -129,7 +173,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
         range.deleteContents()
 
         if (htmlPaste) {
-          document.execCommand('insertHTML', false, htmlPaste)
+          document.execCommand('insertHTML', false, sanitizeHtml(htmlPaste))
         } else if (plainPaste) {
           const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu
           
@@ -137,7 +181,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
             const convertedContent = plainPaste.replace(emojiRegex, (emoji) => {
               return getAppleEmojiHTML(emoji)
             })
-            document.execCommand('insertHTML', false, convertedContent)
+            document.execCommand('insertHTML', false, sanitizeHtml(convertedContent))
           } else {
             const textNode = document.createTextNode(plainPaste)
             range.insertNode(textNode)
@@ -151,7 +195,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
 
         setTimeout(() => {
           if (editorRef.current) {
-            const newContent = editorRef.current.innerHTML
+            const newContent = sanitizeHtml(editorRef.current.innerHTML)
             setContent(newContent)
             setIsEditing(true)
           }
@@ -202,7 +246,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
 
       setTimeout(() => {
         if (editorRef.current) {
-          const newContent = editorRef.current.innerHTML
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
           setContent(newContent)
           setIsEditing(true)
         }
@@ -211,7 +255,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
     } catch (error) {
       console.error(`Error executing command ${command}:`, error)
     }
-  }, [])
+  }, [sanitizeHtml])
 
   const getAppleEmojiHTML = useCallback((emoji: string) => {
     const getEmojiCodepoints = (emoji: string): string[] => {
@@ -234,7 +278,10 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
     if (codepoints.length === 0) return emoji
     
     const primaryCodepoint = codepoints[0].padStart(4, '0')
-    return `<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${primaryCodepoint}.png" alt="${emoji}" class="inline-block w-5 h-5 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; vertical-align: text-bottom; margin: 0 1px;" onerror="this.onerror=null; this.src='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${primaryCodepoint}.png';" />`
+    const apple = `https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${primaryCodepoint}.png`
+    const twemoji = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${primaryCodepoint}.png`
+    // No inline event handlers; rely on standard loading behavior
+    return `<img src="${apple}" alt="${emoji}" class="inline-block w-5 h-5 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; vertical-align: text-bottom; margin: 0 1px;" />`
   }, [])
 
   const insertContent = useCallback((content: string) => {
@@ -248,14 +295,14 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
       
       if (isEmoji && content.length <= 2) {
         const emojiHTML = getAppleEmojiHTML(content)
-        document.execCommand('insertHTML', false, emojiHTML)
+        document.execCommand('insertHTML', false, sanitizeHtml(emojiHTML))
       } else {
-        document.execCommand('insertHTML', false, content)
+        document.execCommand('insertHTML', false, sanitizeHtml(content))
       }
 
       setTimeout(() => {
         if (editorRef.current) {
-          const newContent = editorRef.current.innerHTML
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
           setContent(newContent)
         }
       }, 0)
@@ -263,7 +310,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
     } catch (error) {
       console.error('Error inserting content:', error)
     }
-  }, [getAppleEmojiHTML])
+  }, [getAppleEmojiHTML, sanitizeHtml])
 
   const handleImageUpload = useCallback(() => {
     if (!editorRef.current) return
@@ -277,8 +324,11 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
         const reader = new FileReader()
         reader.onload = (e) => {
           const imageUrl = e.target?.result as string
-          const imageHtml = `<div><img src="${imageUrl}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" alt="Uploaded image" /></div><p><br></p>`
-          insertContent(imageHtml)
+          const safeUrl = typeof imageUrl === 'string' && imageUrl.startsWith('data:image/') ? imageUrl : ''
+          if (safeUrl) {
+            const imageHtml = `<div><img src="${safeUrl}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" alt="Uploaded image" /></div><p><br></p>`
+            insertContent(imageHtml)
+          }
         }
         reader.readAsDataURL(file)
       }
@@ -291,8 +341,12 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
     if (url) {
       const selection = window.getSelection()
       const selectedText = selection?.toString() || url
-      const linkHtml = `<a href="${url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${selectedText}</a>`
-      insertContent(linkHtml)
+      const safeUrl = url.trim()
+      const lower = safeUrl.toLowerCase()
+      if (lower.startsWith('http://') || lower.startsWith('https://')) {
+        const linkHtml = `<a href="${safeUrl}" style="color: #3b82f6; text-decoration: underline;" target="_blank" rel="noopener noreferrer">${selectedText}</a>`
+        insertContent(linkHtml)
+      }
     }
   }, [insertContent])
 

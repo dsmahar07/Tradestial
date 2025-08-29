@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, TrendingUp, TrendingDown, Activity, Award } from 'lucide-react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'
@@ -314,7 +314,7 @@ export default function ModelsPage() {
 
             {/* Loading / Error Indicators */}
             {loading && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 animate-pulse">Loading models data...</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
             )}
             {error && !loading && (
               <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
@@ -370,11 +370,11 @@ export default function ModelsPage() {
                         <tr key={row.model} className="border-b border-gray-100 dark:border-gray-800">
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{row.model}</td>
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{row.winRate.toFixed(2)}%</td>
-                          <td className={cn('py-4 px-6 text-sm font-medium', row.netPnl >= 0 ? 'text-green-600' : 'text-red-600')}>${Math.abs(row.netPnl).toLocaleString()}</td>
+                          <td className={cn('py-4 px-6 text-sm font-semibold', row.netPnl >= 0 ? 'text-[#10B981] dark:text-[#10B981]' : 'text-rose-600 dark:text-rose-400')}>${Math.abs(row.netPnl).toLocaleString()}</td>
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{row.tradeCount}</td>
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{row.avgDailyVolume.toFixed(2)}</td>
-                          <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">${Math.abs(row.avgWin).toFixed(2)}</td>
-                          <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">${Math.abs(row.avgLoss).toFixed(2)}</td>
+                          <td className="py-4 px-6 text-sm text-[#10B981] dark:text-[#10B981]">${Math.abs(row.avgWin).toFixed(2)}</td>
+                          <td className="py-4 px-6 text-sm text-rose-600 dark:text-rose-400">${Math.abs(row.avgLoss).toFixed(2)}</td>
                         </tr>
                       ))
                     )}

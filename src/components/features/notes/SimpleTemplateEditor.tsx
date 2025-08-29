@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { TradeJournalingTemplate } from '@/types/templates'
@@ -62,19 +63,52 @@ export function SimpleTemplateEditor({ template, onSave, onCancel }: SimpleTempl
   const [isLoading, setIsLoading] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
 
+  // Lightweight HTML sanitizer to remove scripts, event handlers, and unsafe URLs
+  const sanitizeHtml = useCallback((dirty: string): string => {
+    if (!dirty) return ''
+    try {
+      const doc = new DOMParser().parseFromString(dirty, 'text/html')
+      const all = doc.body.querySelectorAll('*')
+      all.forEach((el) => {
+        const tag = el.tagName.toLowerCase()
+        if (tag === 'script' || tag === 'style') {
+          el.remove()
+          return
+        }
+        Array.from(el.attributes).forEach((attr) => {
+          const name = attr.name.toLowerCase()
+          const val = (attr.value || '').trim()
+          if (name.startsWith('on')) el.removeAttribute(attr.name)
+          if ((name === 'href' || name === 'src') && val) {
+            const lower = val.toLowerCase()
+            const http = lower.startsWith('http://') || lower.startsWith('https://')
+            const dataImg = lower.startsWith('data:image/')
+            const local = lower.startsWith('/') || lower.startsWith('./')
+            if (!(http || dataImg || local)) el.removeAttribute(attr.name)
+            if (name === 'href' && lower.startsWith('javascript:')) el.removeAttribute(attr.name)
+          }
+        })
+      })
+      return doc.body.innerHTML
+    } catch {
+      return ''
+    }
+  }, [])
+
   useEffect(() => {
     const initialContent = generateInitialContent(template)
-    setContent(initialContent)
+    const safe = sanitizeHtml(initialContent)
+    setContent(safe)
     if (editorRef.current) {
-      editorRef.current.innerHTML = initialContent
+      editorRef.current.innerHTML = safe
     }
-  }, [template])
+  }, [template, sanitizeHtml])
 
   const handleSave = async () => {
     setIsLoading(true)
     try {
       const editorContent = editorRef.current?.innerHTML || content
-      onSave(editorContent)
+      onSave(sanitizeHtml(editorContent || ''))
     } finally {
       setIsLoading(false)
     }
@@ -82,7 +116,11 @@ export function SimpleTemplateEditor({ template, onSave, onCancel }: SimpleTempl
 
   const handleEditorChange = () => {
     if (editorRef.current) {
-      setContent(editorRef.current.innerHTML)
+      const safe = sanitizeHtml(editorRef.current.innerHTML)
+      if (editorRef.current.innerHTML !== safe) {
+        editorRef.current.innerHTML = safe
+      }
+      setContent(safe)
     }
   }
 

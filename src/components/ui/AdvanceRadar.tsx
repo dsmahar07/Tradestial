@@ -57,7 +57,8 @@ const AdvanceRadar: React.FC = () => {
 
       // Indicator maxima: [6500, 16000, 30000, 38000, 52000, 25000]
       const consistencyVal = Math.min(6500, Math.max(0, (consistencyPct / 100) * 6500))
-      const winRateVal = Math.min(16000, Math.max(0, (winRatePct / 100) * 16000))
+      // Treat 65% win rate as full scale to emphasize high win rates
+      const winRateVal = Math.min(16000, Math.max(0, (winRatePct / 65) * 16000))
       const profitFactorCapped = Math.min(profitFactor, 4) // cap at 4
       const profitFactorVal = Math.min(30000, Math.max(0, (profitFactorCapped / 4) * 30000))
       const riskRewardCapped = Math.min(riskReward, 3)
@@ -81,16 +82,31 @@ const AdvanceRadar: React.FC = () => {
       ]
     }
 
+    // Prepare overlay point data for per-indicator tooltip
+    const indicatorNames = ['Consistency', 'Win Rate', 'Profit Factor', 'Risk Management', 'Avg Win/Loss', 'Max Drawdown']
+    const valuesForPoints = computeRadarValues()
+    const indicatorPointsData = indicatorNames.map((name, idx) => ({
+      name,
+      // Keep only one dimension value; hide others using null so only one symbol renders and no center artifact
+      value: valuesForPoints.map((v, i) => (i === idx ? v : null)) as any
+    }))
+
     option = {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
+        triggerOn: 'mousemove|click',
+        confine: true,
         backgroundColor: isDarkMode ? '#171717' : '#ffffff',
         borderColor: isDarkMode ? '#2a2a2a' : '#e5e7eb',
         textStyle: {
           color: isDarkMode ? '#ffffff' : '#374151'
         },
         formatter: (params: any) => {
+          const p = Array.isArray(params) ? params[0] : params
+          const dimIndex = typeof p?.dimensionIndex === 'number' ? p.dimensionIndex : null
+          if (dimIndex === null) return '' // only show tooltip on dots
+
           const trades = DataStore.getAllTrades()
           const m = DataStore.calculateMetrics(trades)
           const consistencyBase = (m.profitabilityIndex ?? (m.winRate / 100))
@@ -99,17 +115,36 @@ const AdvanceRadar: React.FC = () => {
           const profitFactor = m.profitFactor || 0
           const avgWinAmount = m.avgWinAmount || 0
           const avgLossAmount = m.avgLossAmount || 0
+          const riskReward = m.riskRewardRatio || (avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0)
           const maxDrawdown = m.maxDrawdown || 0
-          
-          const lines = [
-            `<div>Consistency: <b>${consistencyPct}%</b></div>`,
-            `<div>Win Rate: <b>${winRatePct.toFixed(1)}%</b></div>`,
-            `<div>Profit Factor: <b>${profitFactor.toFixed(2)}</b></div>`,
-            `<div>Risk Management: <b>Good</b></div>`,
-            `<div>Avg Win/Loss: <b>${formatCurrencyValue(avgWinAmount)} / ${formatCurrencyValue(Math.abs(avgLossAmount))}</b></div>`,
-            `<div>Max Drawdown: <b>${formatCurrencyValue(maxDrawdown)}</b></div>`
-          ]
-          return lines.join('')
+
+          const indicatorNames = ['Consistency', 'Win Rate', 'Profit Factor', 'Risk Management', 'Avg Win/Loss', 'Max Drawdown']
+          const indicatorName = indicatorNames[dimIndex] || ''
+
+          let valueHtml = ''
+          switch (dimIndex) {
+            case 0:
+              valueHtml = `<b>${consistencyPct}%</b>`
+              break
+            case 1:
+              valueHtml = `<b>${winRatePct.toFixed(1)}%</b>`
+              break
+            case 2:
+              valueHtml = `<b>${profitFactor.toFixed(2)}</b>`
+              break
+            case 3:
+              valueHtml = `<b>RR ${Number.isFinite(riskReward) ? riskReward.toFixed(2) : '—'}</b>`
+              break
+            case 4:
+              valueHtml = `<b>${formatCurrencyValue(avgWinAmount)} / ${formatCurrencyValue(Math.abs(avgLossAmount))}</b>`
+              break
+            case 5:
+              valueHtml = `<b>${formatCurrencyValue(maxDrawdown)}</b>`
+              break
+            default:
+              valueHtml = ''
+          }
+          return indicatorName ? `<div>${indicatorName}: ${valueHtml}</div>` : ''
         }
       },
       radar: {
@@ -123,8 +158,10 @@ const AdvanceRadar: React.FC = () => {
           { name: 'Max Drawdown', max: 25000 }
         ],
         axisName: {
-          color: isDarkMode ? '#d1d5db' : '#4b5563',
-          fontSize: 12
+          color: isDarkMode ? 'rgba(209, 213, 219, 0.7)' : 'rgba(75, 85, 99, 0.6)',
+          fontSize: 12,
+          fontWeight: 500,
+          fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"'
         },
         splitLine: {
           lineStyle: {
@@ -149,31 +186,93 @@ const AdvanceRadar: React.FC = () => {
         {
           name: 'Performance',
           type: 'radar',
+          tooltip: { show: false },
           data: [
             {
               value: computeRadarValues(),
               name: 'Current Performance',
-              lineStyle: { 
-                width: 2,
-                color: '#335CFF'
+              lineStyle: {
+                width: 0,
+                color: 'transparent'
               },
               areaStyle: { 
-                color: "rgba(91, 44, 201, 0.7)" 
+                color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
+                  { offset: 0, color: 'rgba(53, 89, 233, 0.82)' },
+                  { offset: 1, color: 'rgba(53, 89, 233, 0.50)' }
+                ])
               },
               symbol: 'circle',
               symbolSize: 6,
               itemStyle: {
-                color: '#693EE0',
-                borderColor: '#ffffff',
+                color: '#ffffff',
+                borderColor: '#3559E9',
                 borderWidth: 2
               }
             }
           ]
+        },
+        // Overlay series: one symbol per indicator to enable per-dot tooltips
+        {
+          name: 'Indicator Points',
+          type: 'radar',
+          data: indicatorPointsData,
+          lineStyle: { width: 0 },
+          areaStyle: { opacity: 0 },
+          symbol: 'circle',
+          symbolSize: 12, // larger invisible hit area for easier hover
+          itemStyle: {
+            color: 'rgba(0,0,0,0)',
+            borderColor: 'rgba(0,0,0,0)',
+            borderWidth: 0
+          },
+          zlevel: 3,
+          z: 3,
+          tooltip: {
+            show: true,
+            backgroundColor: isDarkMode ? '#171717' : '#ffffff',
+            borderColor: isDarkMode ? '#2a2a2a' : '#e5e7eb',
+            textStyle: { color: isDarkMode ? '#ffffff' : '#374151' },
+            formatter: (p: any) => {
+              const trades = DataStore.getAllTrades()
+              const m = DataStore.calculateMetrics(trades)
+              const consistencyBase = (m.profitabilityIndex ?? (m.winRate / 100))
+              const consistencyPct = Math.round((consistencyBase || 0) * 100)
+              const winRatePct = m.winRate || 0
+              const profitFactor = m.profitFactor || 0
+              const avgWinAmount = m.avgWinAmount || 0
+              const avgLossAmount = m.avgLossAmount || 0
+              const riskReward = m.riskRewardRatio || (avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0)
+              const maxDrawdown = m.maxDrawdown || 0
+
+              const name = p?.name || ''
+              let valueHtml = ''
+              switch (name) {
+                case 'Consistency':
+                  valueHtml = `<b>${consistencyPct}%</b>`; break
+                case 'Win Rate':
+                  valueHtml = `<b>${winRatePct.toFixed(1)}%</b>`; break
+                case 'Profit Factor':
+                  valueHtml = `<b>${profitFactor.toFixed(2)}</b>`; break
+                case 'Risk Management':
+                  valueHtml = `<b>RR ${Number.isFinite(riskReward) ? riskReward.toFixed(2) : '—'}</b>`; break
+                case 'Avg Win/Loss':
+                  valueHtml = `<b>${formatCurrencyValue(avgWinAmount)} / ${formatCurrencyValue(Math.abs(avgLossAmount))}</b>`; break
+                case 'Max Drawdown':
+                  valueHtml = `<b>${formatCurrencyValue(maxDrawdown)}</b>`; break
+                default:
+                  valueHtml = ''
+              }
+              return name ? `<div>${name}: ${valueHtml}</div>` : ''
+            }
+          }
         }
       ]
     };
 
-    option && myChart.setOption(option);
+    if (option) {
+      // notMerge: true ensures we replace series structure (needed after adding overlay points series)
+      myChart.setOption(option, true);
+    }
 
     // Window resize + element resize provide crisp re-layout without blurriness
     const handleResize = () => myChart.resize();

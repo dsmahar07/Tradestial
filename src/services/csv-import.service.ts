@@ -36,6 +36,13 @@ export interface ImportResult {
 
 export class CSVImportService {
   private static brokerConfigs: Map<string, BrokerConfig> = new Map()
+  private static readonly ALLOWED_MIME_TYPES = new Set([
+    'text/csv',
+    'application/csv',
+    'text/plain', // some browsers set CSV as plain text
+    'application/vnd.ms-excel', // legacy CSV MIME used by some systems
+  ])
+  private static readonly MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024 // 15MB limit to avoid OOM
 
   static {
     // Initialize broker configurations
@@ -54,8 +61,48 @@ export class CSVImportService {
     const startTime = performance.now()
 
     try {
+      // Validate file type and size strictly
+      const mime = (file.type || '').toLowerCase()
+      const name = (file.name || '').toLowerCase()
+      const hasCsvExt = name.endsWith('.csv')
+      const isAllowedMime = this.ALLOWED_MIME_TYPES.has(mime) || mime === '' // some environments omit type
+      if (!hasCsvExt || !isAllowedMime) {
+        return {
+          success: false,
+          trades: [],
+          errors: [
+            `Invalid file type. Only CSV files are allowed. Received: name="${file.name}" type="${file.type || 'unknown'}"`
+          ],
+          warnings: [],
+          metadata: { broker: brokerId || 'unknown', originalRowCount: 0, processedRowCount: 0, skippedRowCount: 0, parseTime: 0 }
+        }
+      }
+      if (file.size > this.MAX_FILE_SIZE_BYTES) {
+        return {
+          success: false,
+          trades: [],
+          errors: [
+            `CSV too large (${Math.round(file.size/1024/1024)}MB). Max allowed is ${Math.round(this.MAX_FILE_SIZE_BYTES/1024/1024)}MB.`
+          ],
+          warnings: [],
+          metadata: { broker: brokerId || 'unknown', originalRowCount: 0, processedRowCount: 0, skippedRowCount: 0, parseTime: 0 }
+        }
+      }
+
       // Read file content
       const csvContent = await file.text()
+
+      // Quick structural validation to ensure it looks like CSV
+      const firstLine = csvContent.split('\n', 1)[0]
+      if (!firstLine || !firstLine.includes(',')) {
+        return {
+          success: false,
+          trades: [],
+          errors: ['Invalid CSV: header row not detected or missing comma-separated fields.'],
+          warnings: [],
+          metadata: { broker: brokerId || 'unknown', originalRowCount: 0, processedRowCount: 0, skippedRowCount: 0, parseTime: 0 }
+        }
+      }
       
       // Detect broker if not specified
       const detectedBroker = brokerId || this.detectBroker(csvContent)
@@ -94,6 +141,7 @@ export class CSVImportService {
       await this.updateAnalytics(trades)
 
       const parseTime = performance.now() - startTime
+      
 
       return {
         success: parseResult.errors.length === 0,
@@ -144,6 +192,15 @@ export class CSVImportService {
     sampleRows: string[][]
     detectedBroker?: string
   }> {
+    // Validate before preview
+    const mime = (file.type || '').toLowerCase()
+    const name = (file.name || '').toLowerCase()
+    if (!name.endsWith('.csv') || !(this.ALLOWED_MIME_TYPES.has(mime) || mime === '')) {
+      throw new Error('Only CSV files are supported for preview')
+    }
+    if (file.size > this.MAX_FILE_SIZE_BYTES) {
+      throw new Error(`CSV too large. Max allowed is ${Math.round(this.MAX_FILE_SIZE_BYTES/1024/1024)}MB`)
+    }
     const csvContent = await file.text()
     const lines = csvContent.trim().split('\n')
     
@@ -185,10 +242,7 @@ export class CSVImportService {
       },
       dateFormat: 'MM/DD/YYYY',
       transformations: {
-        'P/L': (value: string) => {
-          // Handle comma-separated values like "2,150.00"
-          return parseFloat(value.replace(/,/g, '')) || 0
-        },
+        'P/L': (value: string) => parseFloat(value.replace(/,/g, '')) || 0,
         'Trade Date': (value: string) => {
           // Convert YYYY-MM-DD to standard format
           return value
@@ -326,6 +380,10 @@ export class CSVImportService {
           if (typeof v === 'number') return v
           const cleaned = String(v).replace(/[$,%]/g, '').replace(/[()]/g, '-')
           const n = parseFloat(cleaned)
+          // Log precision-critical netPnl values
+          if (Math.abs(n) > 100 && String(v).includes('netPnl')) {
+            console.log(`CSV Import: netPnl parsed: ${v} -> cleaned: ${cleaned} -> parsed: ${n}`)
+          }
           return isNaN(n) ? undefined : n
         }
 
@@ -416,6 +474,9 @@ export class CSVImportService {
       
       // Replace with new trades (not add to existing)
       await analytics.updateTrades(trades)
+      
+      // Wait for all data preparation to complete
+      await analytics.waitForDataPreparation()
       
       // Invalidate related cache entries
       AnalyticsCacheService.invalidate('trades:*')

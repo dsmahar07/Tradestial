@@ -488,6 +488,7 @@ export class DataParserService {
    */
   private static normalizeTradeData(tradeData: any): Trade {
     const toNum = (v: any) => {
+      if (v === null || v === undefined || v === '') return 0
       const n = parseFloat(v)
       return isNaN(n) ? 0 : n
     }

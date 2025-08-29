@@ -27,28 +27,28 @@ export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
       value: `$${data.totalPnl.toLocaleString()}`,
       change: data.totalPnlChange,
       icon: DollarSign,
-      color: data.totalPnl >= 0 ? 'text-green-600' : 'text-red-600'
+      color: data.totalPnl >= 0 ? 'text-[#10B981]' : 'text-red-600'
     },
     {
       title: 'Win Rate',
       value: `${data.winRate.toFixed(1)}%`,
       change: data.winRateChange,
       icon: Target,
-      color: data.winRate >= 50 ? 'text-green-600' : 'text-orange-600'
+      color: data.winRate >= 50 ? 'text-[#10B981]' : 'text-orange-600'
     },
     {
       title: 'Profit Factor',
       value: `${data.profitFactor.toFixed(2)}`,
       change: data.profitFactorChange,
       icon: BarChart3,
-      color: data.profitFactor >= 1.5 ? 'text-green-600' : data.profitFactor >= 1 ? 'text-orange-600' : 'text-red-600'
+      color: data.profitFactor >= 1.5 ? 'text-[#10B981]' : data.profitFactor >= 1 ? 'text-orange-600' : 'text-red-600'
     },
     {
       title: 'Avg Trade',
       value: `$${data.avgTrade.toFixed(2)}`,
       change: data.avgTradeChange,
       icon: TrendingUp,
-      color: data.avgTrade >= 0 ? 'text-green-600' : 'text-red-600'
+      color: data.avgTrade >= 0 ? 'text-[#10B981]' : 'text-red-600'
     },
     {
       title: 'Total Trades',
@@ -62,7 +62,7 @@ export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
       value: data.sharpeRatio.toFixed(2),
       change: data.sharpeRatioChange,
       icon: BarChart3,
-      color: data.sharpeRatio >= 1 ? 'text-green-600' : data.sharpeRatio >= 0.5 ? 'text-orange-600' : 'text-red-600'
+      color: data.sharpeRatio >= 1 ? 'text-[#10B981]' : data.sharpeRatio >= 0.5 ? 'text-orange-600' : 'text-red-600'
     }
   ]
 
@@ -94,7 +94,7 @@ export function AnalyticsOverviewCards({ data }: AnalyticsOverviewCardsProps) {
             
             <div className="flex items-center space-x-2">
               <div className={`flex items-center space-x-1 text-xs ${
-                card.change > 0 ? 'text-green-500' : card.change < 0 ? 'text-red-500' : 'text-gray-500'
+                card.change > 0 ? 'text-[#10B981]' : card.change < 0 ? 'text-red-500' : 'text-gray-500'
               }`}>
                 {card.change > 0 ? (
                   <TrendingUp className="w-3 h-3" />

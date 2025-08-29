@@ -30,7 +30,8 @@ function TradingViewEconomicCalendar({
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-events.js'
     script.type = 'text/javascript'
     script.async = true
-    script.innerHTML = JSON.stringify({
+    // Use textContent to avoid innerHTML
+    script.textContent = JSON.stringify({
       colorTheme,
       isTransparent,
       locale,
@@ -40,13 +41,13 @@ function TradingViewEconomicCalendar({
       height
     })
 
-    // Clear any existing content
-    container.current.innerHTML = ''
+    // Clear any existing content safely
+    container.current.textContent = ''
     container.current.appendChild(script)
 
     return () => {
       if (container.current) {
-        container.current.innerHTML = ''
+        container.current.textContent = ''
       }
     }
   }, [colorTheme, isTransparent, locale, countryFilter, importanceFilter, width, height])

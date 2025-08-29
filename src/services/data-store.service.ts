@@ -8,6 +8,11 @@ import TradeMetadataService from './trade-metadata.service'
 export class DataStore {
   private static trades: Trade[] = []
   private static listeners: Array<() => void> = []
+  private static startingBalance: number = 10000 // Default starting balance
+
+  // Memory safety limits
+  private static readonly MAX_TRADES = 50000 // cap total in-memory trades to prevent OOM
+  private static readonly MAX_LISTENERS = 100 // avoid runaway subscriptions
 
   // Format a Date to YYYY-MM-DD using local timezone
   private static formatLocalYMD(d: Date): string {
@@ -25,10 +30,15 @@ export class DataStore {
 
     if (clearExisting) {
       // Replace all trades with new ones (for fresh imports)
-      this.trades = validTrades
+      this.trades = validTrades.slice(-this.MAX_TRADES)
     } else {
       // Add to existing trades
       this.trades = [...this.trades, ...validTrades]
+      // Evict oldest trades if exceeding limit
+      if (this.trades.length > this.MAX_TRADES) {
+        const excess = this.trades.length - this.MAX_TRADES
+        this.trades.splice(0, excess)
+      }
     }
 
     this.notifyListeners()
@@ -209,12 +219,18 @@ export class DataStore {
   static calculateDashboardKPIs() {
     const metrics = this.calculateMetrics()
     const trades = this.getAllTrades()
-
+    const currentBalance = this.getCurrentAccountBalance()
+    
     return {
       netPnl: {
         value: metrics.netCumulativePnl,
         formatted: this.formatCurrency(metrics.netCumulativePnl),
         isPositive: metrics.netCumulativePnl >= 0
+      },
+      netAccountBalance: {
+        value: currentBalance,
+        formatted: this.formatCurrency(currentBalance),
+        isPositive: currentBalance >= this.startingBalance
       },
       winRate: {
         value: metrics.winRate,
@@ -314,15 +330,37 @@ export class DataStore {
 
   // Subscribe to data changes
   static subscribe(callback: () => void): () => void {
+    if (this.listeners.length >= this.MAX_LISTENERS) {
+      // Evict the oldest listener to prevent leaks
+      this.listeners.shift()
+    }
     this.listeners.push(callback)
     return () => {
       this.listeners = this.listeners.filter(listener => listener !== callback)
     }
   }
 
+  // Set starting balance
+  static async setStartingBalance(balance: number): Promise<void> {
+    this.startingBalance = balance
+    this.notifyListeners()
+  }
+
+  // Get starting balance
+  static getStartingBalance(): number {
+    return this.startingBalance
+  }
+
+  // Get current account balance (starting balance + cumulative P&L)
+  static getCurrentAccountBalance(): number {
+    const cumulativePnL = this.trades.reduce((sum, trade) => sum + trade.netPnl, 0)
+    return this.startingBalance + cumulativePnL
+  }
+
   // Clear all data (for testing)
   static clearData(): void {
     this.trades = []
+    this.startingBalance = 10000
     this.notifyListeners()
   }
 
@@ -619,10 +657,12 @@ export class DataStore {
   }
   
   private static formatCurrency(amount: number): string {
+    // Format currency with standard 2 decimal places
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount)
   }
   
@@ -664,6 +704,16 @@ export class DataStore {
   }
   
   private static notifyListeners(): void {
-    this.listeners.forEach(listener => listener())
+    // Snapshot to prevent mutation during iteration
+    const listeners = [...this.listeners]
+    for (const listener of listeners) {
+      try {
+        listener()
+      } catch (err) {
+        // Swallow listener errors to avoid disrupting state updates
+        // eslint-disable-next-line no-console
+        console.warn('DataStore listener error:', err)
+      }
+    }
   }
 }

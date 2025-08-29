@@ -426,7 +426,7 @@ export default function DayTimePage() {
                       const isBest = metric.label.includes('Best performing')
                       const isLeast = metric.label.includes('Least')
                       const isActive = metric.label.includes('Most active')
-                      const iconClass = isBest ? 'text-green-600' : isLeast ? 'text-red-600' : isActive ? 'text-amber-500' : 'text-violet-600'
+                      const iconClass = isBest ? 'text-[#10B981]' : isLeast ? 'text-red-600' : isActive ? 'text-amber-500' : 'text-violet-600'
                       const IconComp = isBest ? TrendingUp : isLeast ? TrendingDown : isActive ? Sparkles : Award
                       return <IconComp className={`w-4 h-4 ${iconClass}`} />
                     })()}
@@ -442,7 +442,7 @@ export default function DayTimePage() {
                       <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
                         <span>{leftText}</span>
                         {rightText ? (
-                          <span className={cn('px-2 py-0.5 rounded-full font-semibold', metric.positive ? 'bg-green-50 text-green-700 dark:bg-green-500/20 dark:text-green-300' : 'bg-red-50 text-red-700 dark:bg-red-500/20 dark:text-red-300')}>
+                          <span className={cn('px-2 py-0.5 rounded-full font-semibold', metric.positive ? 'bg-[#10B981]/10 text-[#10B981] dark:bg-[#10B981]/20 dark:text-[#10B981]' : 'bg-red-50 text-red-700 dark:bg-red-500/20 dark:text-red-300')}>
                             {rightText}
                           </span>
                         ) : null}
@@ -612,8 +612,8 @@ export default function DayTimePage() {
                         <td className="py-4 px-6 text-sm text-gray-900 dark:text-white font-medium">{row.period}</td>
                         <td className={cn('py-4 px-6 text-sm', String(row.avgLoss).includes('-') ? 'text-red-500' : 'text-gray-900 dark:text-white')}>{row.avgLoss}</td>
                         <td className="py-4 px-6 text-sm text-gray-900 dark:text-white">{row.avgVolume}</td>
-                        <td className={cn('py-4 px-6 text-sm', row.avgWin !== '$0' ? 'text-green-500' : 'text-gray-900 dark:text-white')}>{row.avgWin}</td>
-                        <td className={cn('py-4 px-6 text-sm font-medium', String(row.grossPnL).includes('-') ? 'text-red-500' : row.grossPnL !== '$0' ? 'text-green-500' : 'text-gray-900 dark:text-white')}>{row.grossPnL}</td>
+                        <td className={cn('py-4 px-6 text-sm', row.avgWin !== '$0' ? 'text-[#10B981]' : 'text-gray-900 dark:text-white')}>{row.avgWin}</td>
+                        <td className={cn('py-4 px-6 text-sm font-medium', String(row.grossPnL).includes('-') ? 'text-red-500' : row.grossPnL !== '$0' ? 'text-[#10B981]' : 'text-gray-900 dark:text-white')}>{row.grossPnL}</td>
                         <td className="py-4 px-6 text-sm text-gray-900 dark:text-white">{row.tradeCount}</td>
                         <td className="py-4 px-6 text-sm text-gray-900 dark:text-white">{row.winRate}</td>
                       </tr>
@@ -656,7 +656,7 @@ export default function DayTimePage() {
                         <div className="w-24 text-sm text-gray-600 dark:text-gray-400">{item.period}</div>
                         <div className="flex-1 relative h-8">
                           {pnlValue !== 0 && (
-                            <div className={cn('h-full rounded flex items-center justify-end pr-2', isPositive ? 'bg-green-500' : 'bg-red-500')} style={{ width: `${barWidth}%` }}>
+                            <div className={cn('h-full rounded flex items-center justify-end pr-2', isPositive ? 'bg-[#10B981]' : 'bg-red-500')} style={{ width: `${barWidth}%` }}>
                               <span className="text-white text-sm font-medium">{item.grossPnL}</span>
                             </div>
                           )}

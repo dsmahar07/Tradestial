@@ -3,7 +3,7 @@
 import { lazy, Suspense, useState, useEffect } from 'react'
 import { AnalyticsCard } from '@/components/ui/optimized'
 import { TradeDashboardCalendar } from '@/components/ui/trade-dashboard-calendar'
-import { JournalDatePicker } from '@/components/ui/journal-date-picker'
+import { RadixJournalDatePicker } from '@/components/ui/radix-journal-date-picker'
 import { ChartSkeleton } from '@/components/ui/chart-skeleton'
 import { getAnalyticsCardsConfig, AnalyticsCardConfig } from '@/components/ui/analytics-cards-config'
 import { DataStore } from '@/services/data-store.service'
@@ -57,7 +57,7 @@ export function DashboardContent() {
       <div className="space-y-6">
         {/* Journal Button with Dropdown - Top Right of Content */}
         <div className="flex justify-end mb-4">
-          <JournalDatePicker 
+          <RadixJournalDatePicker 
             onDateSelect={handleDateSelect}
             isNavigating={isNavigating}
           />

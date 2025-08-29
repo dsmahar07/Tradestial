@@ -27,6 +27,7 @@ export function calculateTradeRMultiple(trade: Trade, metadata?: { profitTarget?
   tradeRisk: number | null
   initialTarget: number | null
 } {
+  const EPS = 1e-9
   // Get SL/TP from metadata or trade properties
   const profitTargetRaw = metadata?.profitTarget || trade.profitTarget?.toString() || trade.initialTarget?.toString()
   const stopLossRaw = metadata?.stopLoss || trade.stopLoss?.toString()
@@ -58,7 +59,8 @@ export function calculateTradeRMultiple(trade: Trade, metadata?: { profitTarget?
   const isLong = trade.side !== 'SHORT'
 
   // Risk only depends on entry and stop
-  const tradeRisk = Math.abs(isLong ? avgEntry - stopPrice : stopPrice - avgEntry)
+  let tradeRisk = Math.abs(isLong ? avgEntry - stopPrice : stopPrice - avgEntry)
+  if (!isFinite(tradeRisk)) tradeRisk = 0
 
   // Compute planned only if we have a profit target
   let plannedRMultiple: number | null = null
@@ -67,17 +69,19 @@ export function calculateTradeRMultiple(trade: Trade, metadata?: { profitTarget?
     const targetPrice = parseFloat(profitTargetRaw.toString().replace(/[$,]/g, ''))
     if (!isNaN(targetPrice)) {
       initialTarget = isLong ? targetPrice - avgEntry : avgEntry - targetPrice
-      plannedRMultiple = tradeRisk > 0 ? initialTarget / tradeRisk : null
+      plannedRMultiple = tradeRisk > EPS ? initialTarget / tradeRisk : null
+      if (plannedRMultiple !== null && !isFinite(plannedRMultiple)) plannedRMultiple = null
     }
   }
 
   // Realized R-Multiple = Net P&L / Trade Risk (available with stop only)
-  const realizedRMultiple = tradeRisk > 0 ? netPnl / tradeRisk : null
+  const realizedCandidate = tradeRisk > EPS ? netPnl / tradeRisk : null
+  const realizedRMultiple = realizedCandidate !== null && isFinite(realizedCandidate) ? realizedCandidate : null
 
   return {
     plannedRMultiple,
     realizedRMultiple,
-    tradeRisk: tradeRisk || null,
+    tradeRisk: tradeRisk > EPS ? tradeRisk : null,
     initialTarget
   }
 }
@@ -113,8 +117,10 @@ export function calculateRMultipleMetrics(
     }
   })
 
-  const avgPlannedRMultiple = plannedCount > 0 ? totalPlannedRMultiple / plannedCount : 0
-  const avgRealizedRMultiple = realizedCount > 0 ? totalRealizedRMultiple / realizedCount : 0
+  const avgPlannedCandidate = plannedCount > 0 ? totalPlannedRMultiple / plannedCount : 0
+  const avgRealizedCandidate = realizedCount > 0 ? totalRealizedRMultiple / realizedCount : 0
+  const avgPlannedRMultiple = isFinite(avgPlannedCandidate) ? avgPlannedCandidate : 0
+  const avgRealizedRMultiple = isFinite(avgRealizedCandidate) ? avgRealizedCandidate : 0
 
   // Create R-Multiple distribution ranges
   const ranges = [

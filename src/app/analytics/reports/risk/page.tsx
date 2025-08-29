@@ -241,7 +241,9 @@ export default function RiskPage() {
   const cumulativeChartData = useMemo(() => {
     let cumulative = 0
     return currentTabData.map((item, index) => {
-      cumulative += item.netPnL
+      if (item) {
+        cumulative += item.netPnL
+      }
       return { date: `Day ${index + 1}`, value: cumulative }
     })
   }, [currentTabData])
@@ -498,7 +500,7 @@ export default function RiskPage() {
             {/* Top Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { key: 'best', label: `Best performing ${activeSubTab.replace('-', ' ')}`, icon: TrendingUp, color: 'text-green-600' },
+                { key: 'best', label: `Best performing ${activeSubTab.replace('-', ' ')}`, icon: TrendingUp, color: 'text-[#10B981]' },
                 { key: 'least', label: `Least performing ${activeSubTab.replace('-', ' ')}`, icon: TrendingDown, color: 'text-red-600' },
                 { key: 'most', label: `Most active ${activeSubTab.slice(0, activeSubTab.length - (activeSubTab.endsWith('s') ? 1 : 0))}`.replace('position-size', 'position size'), icon: Activity, color: 'text-amber-500' },
                 { key: 'win', label: 'Best win rate', icon: Award, color: 'text-violet-600' }
@@ -544,7 +546,7 @@ export default function RiskPage() {
                             default: return 0
                           }
                         })()
-                        return pnl >= 0 ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300'
+                        return pnl >= 0 ? 'bg-[#10B981]/10 text-[#10B981] dark:bg-[#10B981]/20 dark:text-[#10B981]' : 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-300'
                       })()
                     )}>
                       ${(() => {
@@ -652,12 +654,12 @@ export default function RiskPage() {
                         <tr key={item.item} className="border-b border-gray-100 dark:border-gray-800">
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300 font-medium">{item.item}</td>
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{item.winRate}%</td>
-                          <td className={cn('py-4 px-6 text-sm font-medium', item.netPnL >= 0 ? 'text-green-600' : 'text-red-600')}>
+                          <td className={cn('py-4 px-6 text-sm font-medium', item.netPnL >= 0 ? 'text-[#10B981]' : 'text-red-600')}>
                             ${Math.abs(item.netPnL).toLocaleString()}
                           </td>
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{item.trades}</td>
                           <td className="py-4 px-6 text-sm text-gray-700 dark:text-gray-300">{item.avgDailyVolume}</td>
-                          <td className="py-4 px-6 text-sm text-green-600 dark:text-green-400">
+                          <td className="py-4 px-6 text-sm text-[#10B981] dark:text-[#10B981]">
                             ${item.avgWin.toLocaleString()}
                           </td>
                           <td className="py-4 px-6 text-sm text-red-600 dark:text-red-400">

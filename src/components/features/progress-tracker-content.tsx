@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Edit, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressTrackerHeatmap } from '@/components/ui/progress-tracker-heatmap'
+import { RulesDialog } from '@/components/features/rules-dialog'
 
 interface TradingRule {
   id: string
@@ -90,6 +91,7 @@ export function ProgressTrackerContent() {
   // Store today's rule completions and day completion status - MOVED HERE BEFORE useMemo
   const [todayCompletions, setTodayCompletions] = useState<Record<string, boolean>>({})
   const [isDayFinished, setIsDayFinished] = useState(false)
+  const [isRulesDialogOpen, setIsRulesDialogOpen] = useState(false)
 
   // Check if today is a trading day
   const isTradingDay = useMemo(() => {
@@ -274,6 +276,15 @@ export function ProgressTrackerContent() {
     }
   }
 
+  // Reset progress functionality
+  const handleResetProgress = () => {
+    setTodayCompletions({})
+    setIsDayFinished(false)
+    setManualRules(prev => prev.map(rule => ({ ...rule, completed: false })))
+    // In a real app, this would also clear historical data
+    console.log('Progress reset!')
+  }
+
   
   return (
     <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
@@ -377,6 +388,7 @@ export function ProgressTrackerContent() {
             <Button 
               variant="outline" 
               size="sm"
+              onClick={() => setIsRulesDialogOpen(true)}
               className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
             >
               <Edit className="w-4 h-4 mr-2" />
@@ -457,6 +469,19 @@ export function ProgressTrackerContent() {
         </div>
         
       </div>
+
+      {/* Rules Dialog */}
+      <RulesDialog
+        open={isRulesDialogOpen}
+        onClose={() => setIsRulesDialogOpen(false)}
+        tradingDays={tradingDays}
+        setTradingDays={setTradingDays}
+        tradingRules={tradingRules}
+        setTradingRules={setTradingRules}
+        manualRules={manualRules}
+        setManualRules={setManualRules}
+        onResetProgress={handleResetProgress}
+      />
     </main>
   )
 }

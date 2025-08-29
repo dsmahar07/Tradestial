@@ -132,12 +132,15 @@ export default function StrategyDetailPage() {
                     alt="Strategy emoji"
                     className="w-16 h-16"
                     onError={(e) => {
-                      // Fallback to Unicode emoji if Apple image fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
+                      // Fallback to Unicode emoji if Apple image fails to load using safe DOM ops
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      const parent = target.parentElement
                       if (parent) {
-                        parent.innerHTML = `<span class="text-3xl">${strategy.emoji || '📘'}</span>`;
+                        const span = document.createElement('span')
+                        span.className = 'text-3xl'
+                        span.textContent = strategy.emoji || '📘'
+                        parent.appendChild(span)
                       }
                     }}
                   />

@@ -184,7 +184,7 @@ export function TradingStreakHeatmap() {
                 ? positive
                   ? 'shadow-[inset_0_0_20px_-8px_rgba(31,193,107,0.8)] text-gray-900 dark:text-white'
                   : 'shadow-[inset_0_0_20px_-8px_rgba(255,77,59,0.7)] text-gray-900 dark:text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                : 'bg-white text-gray-700 dark:bg-[#171717] dark:text-gray-300'
 
               return (
                 <div key={idx} className={`${baseCell} ${colorCell}`}>

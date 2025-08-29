@@ -11,6 +11,7 @@ export interface AnalyticsCardConfig {
   icon: React.ComponentType<{ className?: string; size?: number }>
   customIcon: boolean
   valueColor?: string
+  iconColor?: string
   showSemicircularIndicator?: boolean
   gaugeData?: Array<{ name: string; value: number; color: string }>
   showDonutIndicator?: boolean
@@ -46,7 +47,8 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       delay: 0,
       icon: NetPnlIcon,
       customIcon: true,
-      valueColor: kpis.netPnl.isPositive ? "#10b981" : "#ef4444"
+      valueColor: kpis.netPnl.isPositive ? "#10b981" : "#ef4444",
+      iconColor: "#10b981" // green to match NetPnlIcon gradient
     },
     {
       title: "Winrate",
@@ -56,6 +58,7 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       delay: 0.1,
       icon: OrdersIcon,
       customIcon: true,
+      iconColor: "#3b82f6", // blue to match OrdersIcon
       showSemicircularIndicator: true,
       gaugeData: [
         { name: 'Wins', value: metrics.winningTrades, color: '#10b981' },
@@ -72,6 +75,7 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       icon: VisitorsIcon,
       customIcon: true,
       valueColor: kpis.profitFactor.isPositive ? "#10b981" : "#ef4444",
+      iconColor: "#8b5cf6", // purple to match VisitorsIcon
       showDonutIndicator: true,
       donutData: [
         { name: 'Profit', value: Math.round((metrics.totalWinAmount / (metrics.totalWinAmount + metrics.totalLossAmount)) * 100), color: '#10b981' },
@@ -86,6 +90,7 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       delay: 0.3,
       icon: RefundIcon,
       customIcon: true,
+      iconColor: "#f59e0b", // amber to match RefundIcon
       showHorizontalBars: true,
       horizontalBarsData: [
         { name: 'Avg Win', value: Math.round(metrics.avgWinAmount), color: '#10b981' },
@@ -101,6 +106,7 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       icon: StreakIcon,
       customIcon: true,
       valueColor: currentStreak.type === 'win' ? "#10b981" : "#ef4444",
+      iconColor: "#10b981", // green to match StreakIcon
       showVerticalBars: true,
       verticalBarsData: [
         { name: 'Win', value: currentStreak.type === 'win' ? currentStreak.value : 0, color: '#10b981' },
@@ -115,7 +121,8 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
       delay: 0.5,
       icon: ExpectancyIcon,
       customIcon: true,
-      valueColor: kpis.tradeExpectancy.value >= 0 ? "#10b981" : "#ef4444"
+      valueColor: kpis.tradeExpectancy.value >= 0 ? "#10b981" : "#ef4444",
+      iconColor: "#3b82f6" // blue to match ExpectancyIcon
     }
   ]
 }
@@ -131,7 +138,8 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       delay: 0,
       icon: NetPnlIcon,
       customIcon: true,
-      valueColor: "#6b7280"
+      valueColor: "#6b7280",
+      iconColor: "#10b981"
     },
     {
       title: "Win Rate",
@@ -141,6 +149,7 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       delay: 0.1,
       icon: OrdersIcon,
       customIcon: true,
+      valueColor: "#6b7280",
       showSemicircularIndicator: true,
       gaugeData: [
         { name: 'Wins', value: 0, color: '#10b981' },
@@ -156,6 +165,7 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       icon: VisitorsIcon,
       customIcon: true,
       valueColor: "#6b7280",
+      iconColor: "#8b5cf6",
       showDonutIndicator: true,
       donutData: [
         { name: 'Profit', value: 0, color: '#10b981' },
@@ -170,6 +180,8 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       delay: 0.3,
       icon: RefundIcon,
       customIcon: true,
+      valueColor: "#6b7280",
+      iconColor: "#f59e0b",
       showHorizontalBars: true,
       horizontalBarsData: [
         { name: 'Avg Win', value: 0, color: '#10b981' },
@@ -185,6 +197,7 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       icon: StreakIcon,
       customIcon: true,
       valueColor: "#6b7280",
+      iconColor: "#10b981",
       showVerticalBars: true,
       verticalBarsData: [
         { name: 'Win', value: 0, color: '#10b981' },
@@ -199,7 +212,8 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       delay: 0.5,
       icon: ExpectancyIcon,
       customIcon: true,
-      valueColor: "#6b7280"
+      valueColor: "#6b7280",
+      iconColor: "#3b82f6"
     }
   ]
 }

@@ -103,10 +103,17 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
 
   if (!chartData.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-[385px] flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400 text-center">
-          <div>No trade data available</div>
-          <div className="text-sm mt-1">Import your CSV to see cumulative P&L</div>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-[385px] text-gray-900 dark:text-white">
+        {/* Header (title visible, dropdown hidden) */}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
+        </div>
+        {/* Empty state */}
+        <div className="h-[300px] flex items-center justify-center">
+          <div className="text-gray-500 dark:text-gray-400 text-center">
+            <div>No trade data available</div>
+            <div className="text-sm mt-1">Import your CSV to see cumulative P&L</div>
+          </div>
         </div>
       </div>
     )

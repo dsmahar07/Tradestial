@@ -84,7 +84,7 @@ export function MetricCard({
 
   const getValueColor = () => {
     if (value.isPositive === undefined) return 'text-gray-900 dark:text-gray-100'
-    if (value.isPositive) return 'text-green-600 dark:text-green-400'
+    if (value.isPositive) return 'text-[#10B981] dark:text-[#10B981]'
     return 'text-red-600 dark:text-red-400'
   }
 
@@ -112,7 +112,7 @@ export function MetricCard({
       {value.change !== undefined && (
         <div className={cn(
           "text-xs flex items-center gap-1",
-          value.change >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          value.change >= 0 ? "text-[#10B981] dark:text-[#10B981]" : "text-red-600 dark:text-red-400"
         )}>
           <span>{value.change >= 0 ? '+' : ''}{formatValue(value.change)}</span>
           {value.changePercent !== undefined && (

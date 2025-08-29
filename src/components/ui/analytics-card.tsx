@@ -63,6 +63,23 @@ export function AnalyticsCard({
   verticalBarsData = []
 }: AnalyticsCardProps) {
   const isPositive = change > 0
+  // Convert hex color to rgba with controllable alpha
+  const hexToRgba = (hex: string, alpha: number) => {
+    try {
+      const cleaned = hex.replace('#', '')
+      const full = cleaned.length === 3
+        ? cleaned.split('').map((c) => c + c).join('')
+        : cleaned
+      const r = parseInt(full.substring(0, 2), 16)
+      const g = parseInt(full.substring(2, 4), 16)
+      const b = parseInt(full.substring(4, 6), 16)
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    } catch {
+      return hex
+    }
+  }
+  const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const iconBgColor = iconColor ? hexToRgba(iconColor, 0.12) : (prefersDark ? '#1f2937' : '#f3f4f6')
   
   return (
     <motion.div
@@ -78,7 +95,10 @@ export function AnalyticsCard({
           <div className="flex items-start justify-between w-full">
             <div className="flex items-center space-x-3">
               {Icon && (
-                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: iconBgColor }}
+                >
                   <Icon size={24} />
                 </div>
               )}

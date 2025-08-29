@@ -97,6 +97,7 @@ export function ModelModelsTable() {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
   const [mounted, setMounted] = useState(false)
+  const isDev = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production'
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -113,22 +114,22 @@ export function ModelModelsTable() {
   }
 
   const handleDelete = (strategyId: string) => {
-    console.log('Delete function called with ID:', strategyId)
-    console.log('Current strategies before delete:', strategies)
+    if (isDev) console.debug('Delete function called with ID:', strategyId)
+    if (isDev) console.debug('Current strategies before delete:', strategies)
     
     if (confirm('Are you sure you want to delete this model? This action cannot be undone.')) {
       try {
         // Get current data from localStorage to ensure we have the latest
         const currentStrategiesRaw = localStorage.getItem(STRATEGIES_KEY)
         const currentStrategies = currentStrategiesRaw ? JSON.parse(currentStrategiesRaw) : []
-        console.log('Current strategies from localStorage:', currentStrategies)
+        if (isDev) console.debug('Current strategies from localStorage:', currentStrategies)
         
         // Remove strategy from strategies list
         const updatedStrategies = currentStrategies.filter((s: Strategy) => s.id !== strategyId)
-        console.log('Filtered strategies:', updatedStrategies)
+        if (isDev) console.debug('Filtered strategies:', updatedStrategies)
         
         localStorage.setItem(STRATEGIES_KEY, JSON.stringify(updatedStrategies))
-        console.log('Saved updated strategies to localStorage')
+        if (isDev) console.debug('Saved updated strategies to localStorage')
         
         // Remove strategy assignments
         const updatedAssignments = { ...assignments }
@@ -143,7 +144,7 @@ export function ModelModelsTable() {
         setStrategies(updatedStrategies)
         setAssignments(updatedAssignments)
         
-        console.log('State updated, dispatching refresh event')
+        if (isDev) console.debug('State updated, dispatching refresh event')
         
         // Trigger refresh event
         window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
@@ -153,9 +154,9 @@ export function ModelModelsTable() {
           window.location.reload()
         }, 100)
         
-        console.log('Delete completed successfully')
+        if (isDev) console.debug('Delete completed successfully')
       } catch (error) {
-        console.error('Failed to delete strategy:', error)
+        if (isDev) console.error('Failed to delete strategy:', error)
         alert('Failed to delete model. Please try again.')
       }
     }
@@ -183,12 +184,12 @@ export function ModelModelsTable() {
   }
 
   const handleEdit = (strategyId: string) => {
-    console.log('Edit function called with ID:', strategyId)
+    if (isDev) console.debug('Edit function called with ID:', strategyId)
     // Navigate to the strategy detail page for editing
     try {
       router.push(`/model/${strategyId}`)
     } catch (error) {
-      console.error('Failed to navigate:', error)
+      if (isDev) console.error('Failed to navigate:', error)
       // Fallback to window.location
       window.location.href = `/model/${strategyId}`
     }
@@ -432,7 +433,7 @@ export function ModelModelsTable() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
-                      console.log('Three dots clicked for:', strategy.id)
+                      if (isDev) console.debug('Three dots clicked for:', strategy.id)
                       
                       const rect = e.currentTarget.getBoundingClientRect()
                       setDropdownPosition({
@@ -477,7 +478,7 @@ export function ModelModelsTable() {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  console.log('Edit clicked for:', openDropdownId)
+                  if (isDev) console.debug('Edit clicked for:', openDropdownId)
                   router.push(`/model/${openDropdownId}`)
                   setOpenDropdownId(null)
                 }}
@@ -490,7 +491,7 @@ export function ModelModelsTable() {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  console.log('Duplicate clicked for:', openDropdownId)
+                  if (isDev) console.debug('Duplicate clicked for:', openDropdownId)
                   const strategy = strategies.find(s => s.id === openDropdownId)
                   if (strategy) handleDuplicate(strategy)
                   setOpenDropdownId(null)
@@ -504,7 +505,7 @@ export function ModelModelsTable() {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  console.log('Share clicked for:', openDropdownId)
+                  if (isDev) console.debug('Share clicked for:', openDropdownId)
                   const strategy = strategies.find(s => s.id === openDropdownId)
                   const stats = strategy ? computeStats(trades, assignments[strategy.id]) : null
                   if (strategy && stats) handleShare(strategy, stats)
@@ -521,45 +522,37 @@ export function ModelModelsTable() {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  console.log('=== DELETE DEBUGGING ===')
-                  console.log('Delete clicked for ID:', openDropdownId)
-                  console.log('Current strategies in state:', strategies)
-                  console.log('Strategies from localStorage:', localStorage.getItem('tradestial:strategies'))
-                  
-                  // Debug all localStorage keys
-                  console.log('All localStorage keys:', Object.keys(localStorage))
-                  for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i)
-                    if (key && key.includes('tradtrace')) {
-                      console.log(`LocalStorage ${key}:`, localStorage.getItem(key))
-                    }
+                  if (isDev) {
+                    console.debug('=== DELETE DEBUGGING ===')
+                    console.debug('Delete clicked for ID:', openDropdownId)
+                    console.debug('Current strategies in state:', strategies)
+                    console.debug('Strategies from localStorage:', localStorage.getItem('tradestial:strategies'))
+                    console.debug('All localStorage keys:', Object.keys(localStorage))
                   }
-                  
-                  console.log('Proceeding with immediate deletion')
                   
                   // Get fresh data from localStorage
                   const rawData = localStorage.getItem('tradestial:strategies')
-                  console.log('Raw localStorage data:', rawData)
+                  if (isDev) console.debug('Raw localStorage data:', rawData)
                   
                   const currentStrategies = rawData ? JSON.parse(rawData) : []
-                  console.log('Parsed localStorage strategies:', currentStrategies)
+                  if (isDev) console.debug('Parsed localStorage strategies:', currentStrategies)
                   
                   const updatedStrategies = currentStrategies.filter((s: Strategy) => {
-                    console.log(`Comparing strategy ID "${s.id}" with target ID "${openDropdownId}"`)
+                    if (isDev) console.debug(`Comparing strategy ID "${s.id}" with target ID "${openDropdownId}"`)
                     return s.id !== openDropdownId
                   })
                   
-                  console.log('Updated strategies after filter:', updatedStrategies)
-                  console.log('Strategies removed:', currentStrategies.length - updatedStrategies.length)
+                  if (isDev) console.debug('Updated strategies after filter:', updatedStrategies)
+                  if (isDev) console.debug('Strategies removed:', currentStrategies.length - updatedStrategies.length)
                   
                   // Save back to localStorage
                   localStorage.setItem('tradestial:strategies', JSON.stringify(updatedStrategies))
-                  console.log('Saved to localStorage, verifying...')
-                  console.log('Verification - localStorage now contains:', localStorage.getItem('tradestial:strategies'))
+                  if (isDev) console.debug('Saved to localStorage, verifying...')
+                  if (isDev) console.debug('Verification - localStorage now contains:', localStorage.getItem('tradestial:strategies'))
                   
                   // Update React state
                   setStrategies(updatedStrategies)
-                  console.log('React state updated')
+                  if (isDev) console.debug('React state updated')
                   
                   // Also update assignments to clean up
                   const updatedAssignments = { ...assignments }
@@ -569,7 +562,7 @@ export function ModelModelsTable() {
                   
                   // Trigger refresh event for other components
                   window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
-                  console.log('Delete completed without reload')
+                  if (isDev) console.debug('Delete completed without reload')
                   setOpenDropdownId(null)
                 }}
                 className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"

@@ -83,7 +83,6 @@ export function PerformanceChart({
   const [activeMetricIndex, setActiveMetricIndex] = useState<number | null>(null)
   const [chartTypes, setChartTypes] = useState<Record<string, ChartType>>({})
   const [chartColors, setChartColors] = useState<Record<string, string>>({})
-  
   const [cachedData, setCachedData] = useState<Record<string, typeof data.data>>({})
   
   // Refs for click outside detection
@@ -98,18 +97,26 @@ export function PerformanceChart({
 
   // Format values for display
   const formatValue = useCallback((value: number): string => {
-    if (!isFinite(value)) return '0'
+    if (!isFinite(value) || isNaN(value)) return '0'
     if (value === 0) return '0'
     const abs = Math.abs(value)
     if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
     if (abs >= 1_000) return `${(value / 1_000).toFixed(1)}K`
     // Show decimals for small magnitudes (helps R-multiple charts)
     if (abs < 10) return value.toFixed(2)
+    if (abs < 1) return value.toFixed(3) // Better precision for very small values
     return value.toFixed(0)
   }, [])
 
   // Determine if a metric name represents an R-multiple
-  const isRMultipleMetric = useCallback((name: string): boolean => /r-?multiple/i.test(name), [])
+  const isRMultipleMetric = useCallback((name: string): boolean => {
+    const normalized = name.toLowerCase().trim()
+    return normalized.includes('r-multiple') || 
+           normalized.includes('r multiple') || 
+           normalized === 'rmultiple' ||
+           normalized.startsWith('avg. planned r-multiple') ||
+           normalized.startsWith('avg. realized r-multiple')
+  }, [])
 
   // Axis-aware tick formatters: add 'R' for R-multiple axes
   const leftAxisIsR = useMemo(() => isRMultipleMetric(primaryMetric), [primaryMetric, isRMultipleMetric])
@@ -350,10 +357,13 @@ export function PerformanceChart({
     let cancelled = false
     if (!onDataRequest) return
 
-    const toFetch = allMetrics.filter(m => m !== data.title && !cachedData[m])
+    const toFetch = allMetrics.filter(m => 
+      m !== data.title && 
+      !cachedData[m]
+    )
     if (toFetch.length === 0) return
 
-    toFetch.forEach((metric, idx) => {
+    toFetch.forEach((metric) => {
       try {
         const res = onDataRequest(metric)
         Promise.resolve(res)
@@ -368,13 +378,14 @@ export function PerformanceChart({
               return { ...prev, [metric]: series }
             })
           })
-          .catch(() => {
+          .catch((error) => {
             if (cancelled) return
+            console.warn(`Failed to fetch data for metric: ${metric}`, error)
             // On failure, cache empty array to avoid repeated fetch loops
             setCachedData(prev => ({ ...prev, [metric]: [] }))
           })
       } catch (e) {
-        // Defensive: in case onDataRequest throws synchronously
+        console.warn(`Synchronous error fetching metric: ${metric}`, e)
         setCachedData(prev => ({ ...prev, [metric]: [] }))
       }
     })
@@ -388,9 +399,11 @@ export function PerformanceChart({
     return cachedData[metric] || []
   }, [data, cachedData])
 
-  // Prepare chart data with proper scaling
+  // Prepare chart data with proper date alignment validation
   const chartData: ChartDataWithMetrics[] = useMemo(() => {
     const primaryData = getMetricData(primaryMetric)
+    if (!primaryData || primaryData.length === 0) return []
+    
     return primaryData.map((point, index) => {
       const chartPoint: ChartDataWithMetrics = {
         date: point.date,
@@ -401,8 +414,15 @@ export function PerformanceChart({
       
       additionalMetrics.forEach((metric) => {
         const metricData = getMetricData(metric)
-        if (metricData[index]) {
-          chartPoint[metric] = metricData[index].value
+        // Find matching data point by date instead of assuming same index
+        const matchingPoint = metricData.find(p => p.date === point.date)
+        if (matchingPoint) {
+          chartPoint[metric] = matchingPoint.value
+        } else {
+          // If no matching date found, try by index as fallback
+          if (metricData[index] && metricData[index].date === point.date) {
+            chartPoint[metric] = metricData[index].value
+          }
         }
       })
       
@@ -430,12 +450,31 @@ export function PerformanceChart({
     return formatDate(dateString)
   }, [contextInfo, chartData, formatDate])
 
-  // Custom tooltip component with contextual information
+  // Custom tooltip component with improved data accuracy
   const CustomTooltip = useCallback(({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length && label) {
-      // Find the data point index for contextual labeling
-      const dataIndex = chartData.findIndex(d => d.date === label)
-      const periodLabel = getContextualPeriodLabel(label, dataIndex)
+      // More robust data point finding with date validation
+      const dataIndex = chartData.findIndex(d => {
+        // Try exact match first
+        if (d.date === label) return true
+        // Try normalized date comparison for different formats
+        const normalizeDate = (dateStr: string) => {
+          const date = new Date(dateStr)
+          return isNaN(date.getTime()) ? dateStr : date.toISOString().split('T')[0]
+        }
+        return normalizeDate(d.date) === normalizeDate(String(label))
+      })
+      
+      const periodLabel = getContextualPeriodLabel(String(label), dataIndex >= 0 ? dataIndex : undefined)
+      
+      // Filter out invalid payload entries
+      const validPayload = payload.filter(entry => 
+        entry.value != null && 
+        isFinite(Number(entry.value)) && 
+        !isNaN(Number(entry.value))
+      )
+      
+      if (validPayload.length === 0) return null
       
       return (
         <div 
@@ -446,76 +485,150 @@ export function PerformanceChart({
           <div className="font-medium text-gray-900 dark:text-gray-100 mb-2 text-xs">
             {periodLabel}
           </div>
-          {payload.map((entry, index) => (
-            <div key={index} className="flex items-center justify-between mb-1 last:mb-0">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: entry.color }}
-                  aria-hidden="true"
-                />
-                <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
-                  {getDisplayMetricName(entry.dataKey)}
+          {validPayload.map((entry, index) => {
+            const metricName = String(entry.dataKey || '')
+            const value = Number(entry.value)
+            const formattedValue = formatValue(value)
+            const isRMultiple = isRMultipleMetric(metricName)
+            
+            return (
+              <div key={`${metricName}-${index}`} className="flex items-center justify-between mb-1 last:mb-0">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: entry.color }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[120px]">
+                    {getDisplayMetricName(metricName)}
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                  {isRMultiple ? `${formattedValue}R` : formattedValue}
                 </span>
               </div>
-              <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                {(() => {
-                  const val = formatValue(entry.value as number)
-                  const key = String(entry.dataKey || '')
-                  return /r-?multiple/i.test(key) ? `${val}R` : val
-                })()}
-              </span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )
     }
     return null
-  }, [getContextualPeriodLabel, getDisplayMetricName, formatValue, chartData])
+  }, [getContextualPeriodLabel, getDisplayMetricName, formatValue, chartData, isRMultipleMetric])
 
-  // Calculate dynamic Y-axis domains for left and right axes
+  // Calculate dynamic Y-axis domains for left and right axes with smart scaling
   const yAxisDomains = useMemo(() => {
     if (allMetrics.length === 0) return { left: [0, 100], right: [0, 100] }
     
     // Primary metric (first) goes on left axis
-    const primaryValues = chartData.map(point => point[primaryMetric] as number).filter(val => typeof val === 'number')
+    const primaryValues = chartData
+      .map(point => point[primaryMetric] as number)
+      .filter(val => typeof val === 'number' && isFinite(val))
     
     // Additional metrics go on right axis
     const additionalValues = chartData.flatMap(point => 
-      additionalMetrics.map(metric => point[metric] as number).filter(val => typeof val === 'number')
+      additionalMetrics
+        .map(metric => point[metric] as number)
+        .filter(val => typeof val === 'number' && isFinite(val))
     )
     
-    const calculateDomain = (values: number[]) => {
+    const calculateSmartDomain = (values: number[], metricName?: string) => {
       if (values.length === 0) return [0, 100]
+      
       const min = Math.min(...values)
       const max = Math.max(...values)
-      const padding = (max - min) * 0.1 || 10 // Fallback padding for flat lines
+      
+      // Handle flat lines (all values the same)
+      if (min === max) {
+        if (min === 0) return [-1, 1]
+        const absValue = Math.abs(min)
+        return [min - absValue * 0.1, max + absValue * 0.1]
+      }
+      
+      const range = max - min
+      
+      // Smart padding based on metric type and value range
+      let paddingPercent = 0.1 // Default 10%
+      
+      // Percentage metrics (win rates, etc.) should be bounded
+      if (metricName && (
+        metricName.toLowerCase().includes('win%') ||
+        metricName.toLowerCase().includes('rate') ||
+        metricName.toLowerCase().includes('percent')
+      )) {
+        const domainMin = Math.max(0, min - range * 0.05)
+        const domainMax = Math.min(100, max + range * 0.05)
+        return [domainMin, domainMax]
+      }
+      
+      // Count metrics should start from 0
+      if (metricName && (
+        metricName.toLowerCase().includes('count') ||
+        metricName.toLowerCase().includes('# of') ||
+        metricName.toLowerCase().includes('number of')
+      )) {
+        return [0, max + range * 0.1]
+      }
+      
+      // R-multiple metrics
+      if (metricName && isRMultipleMetric(metricName)) {
+        paddingPercent = 0.15 // Slightly more padding for R-multiples
+      }
+      
+      // Very small ranges need proportionally larger padding
+      if (range < 1) {
+        paddingPercent = 0.2
+      }
+      
+      const padding = range * paddingPercent
       return [min - padding, max + padding]
     }
     
     return {
-      left: calculateDomain(primaryValues),
-      right: additionalMetrics.length > 0 ? calculateDomain(additionalValues) : [0, 100]
+      left: calculateSmartDomain(primaryValues, primaryMetric),
+      right: additionalMetrics.length > 0 
+        ? calculateSmartDomain(additionalValues, additionalMetrics[0]) 
+        : [0, 100]
     }
-  }, [chartData, allMetrics, primaryMetric, additionalMetrics])
+  }, [chartData, allMetrics, primaryMetric, additionalMetrics, isRMultipleMetric])
 
-  // Generate clean grid lines based on Y-axis domains - simplified approach
+  // Generate clean grid lines based on Y-axis domains with nice numbers
   const gridLineValues = useMemo(() => {
-    const generateCleanTicks = (domain: [number, number], tickCount: number = 5) => {
+    const generateNiceTicks = (domain: [number, number], tickCount: number = 5) => {
       const [min, max] = domain
       const range = max - min
-      const step = range / (tickCount - 1)
+      
+      if (range === 0) return [min]
+      
+      // Calculate nice step size
+      const roughStep = range / (tickCount - 1)
+      const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)))
+      const normalizedStep = roughStep / magnitude
+      
+      let niceStep
+      if (normalizedStep <= 1) niceStep = 1
+      else if (normalizedStep <= 2) niceStep = 2
+      else if (normalizedStep <= 5) niceStep = 5
+      else niceStep = 10
+      
+      const step = niceStep * magnitude
+      
+      // Generate ticks starting from a nice number
+      const niceMin = Math.floor(min / step) * step
+      const niceMax = Math.ceil(max / step) * step
       
       const ticks = []
-      for (let i = 0; i < tickCount; i++) {
-        ticks.push(min + (step * i))
+      for (let tick = niceMin; tick <= niceMax; tick += step) {
+        if (tick >= min && tick <= max) {
+          ticks.push(Math.round(tick * 1000) / 1000) // Round to avoid floating point issues
+        }
       }
-      return ticks
+      
+      return ticks.length > 0 ? ticks : [min, max]
     }
 
     return {
-      left: generateCleanTicks(yAxisDomains.left),
-      right: additionalMetrics.length > 0 ? generateCleanTicks(yAxisDomains.right) : []
+      left: generateNiceTicks(yAxisDomains.left as [number, number]),
+      right: additionalMetrics.length > 0 ? generateNiceTicks(yAxisDomains.right as [number, number]) : []
     }
   }, [yAxisDomains, additionalMetrics])
 
@@ -938,6 +1051,7 @@ export function PerformanceChart({
             </button>
           </div>
         </div>
+
 
         {/* Chart */}
         <div className={`relative w-full ${height}`} ref={chartContainerRef}>

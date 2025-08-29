@@ -81,7 +81,7 @@ export function PerformanceByTime() {
             {selectedTimeframe === 'daily' && (
               <>
                 <div className={`flex items-center justify-between space-x-4 ${
-                  data.avgPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  data.avgPnl >= 0 ? 'text-[#10B981] dark:text-[#10B981]' : 'text-red-600 dark:text-red-400'
                 }`}>
                   <span>Avg P&L:</span>
                   <span className="font-semibold">${data.avgPnl.toFixed(2)}</span>
@@ -90,7 +90,7 @@ export function PerformanceByTime() {
                   <span>Trades:</span>
                   <span>{data.trades}</span>
                 </div>
-                <div className="text-purple-600 dark:text-purple-400 flex items-center justify-between space-x-4">
+                <div className="text-[#10B981] dark:text-[#10B981] flex items-center justify-between space-x-4">
                   <span>Win Rate:</span>
                   <span>{data.winRate}%</span>
                 </div>
@@ -99,7 +99,7 @@ export function PerformanceByTime() {
             {selectedTimeframe === 'hourly' && (
               <>
                 <div className={`flex items-center justify-between space-x-4 ${
-                  data.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  data.pnl >= 0 ? 'text-[#10B981] dark:text-[#10B981]' : 'text-red-600 dark:text-red-400'
                 }`}>
                   <span>P&L:</span>
                   <span className="font-semibold">${data.pnl.toLocaleString()}</span>
@@ -112,7 +112,7 @@ export function PerformanceByTime() {
             )}
             {selectedTimeframe === 'monthly' && (
               <>
-                <div className="text-green-600 dark:text-green-400 flex items-center justify-between space-x-4">
+                <div className="text-[#10B981] dark:text-[#10B981] flex items-center justify-between space-x-4">
                   <span>Profitable Days:</span>
                   <span className="font-semibold">{data.profitableDays}/{data.totalDays}</span>
                 </div>
@@ -137,8 +137,8 @@ export function PerformanceByTime() {
             <AreaChart data={dailyPerformance} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="dailyGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600" />
@@ -160,7 +160,7 @@ export function PerformanceByTime() {
               <Area
                 type="monotone"
                 dataKey="avgPnl"
-                stroke="#10b981"
+                stroke="#10B981"
                 strokeWidth={2}
                 fill="url(#dailyGradient)"
               />

@@ -469,10 +469,10 @@ export default function SymbolsPage() {
                     <div className="text-xs text-gray-500">Best performing {labels.singular}</div>
                     <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{bestPerforming?.item || '—'}</div>
                   </div>
-                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  <TrendingUp className="w-5 h-5 text-[#10B981]" />
                 </div>
                 <div className="mt-2 text-xs text-gray-500">{bestPerforming?.trades || 0} trades</div>
-                <div className="mt-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">{formatCurrency(bestPerforming?.netPnL || 0)}</div>
+                <div className="mt-1 text-[#10B981] dark:text-[#10B981] text-sm font-semibold">{formatCurrency(bestPerforming?.netPnL || 0)}</div>
               </div>
               <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
@@ -505,7 +505,7 @@ export default function SymbolsPage() {
                   <Award className="w-5 h-5 text-amber-500" />
                 </div>
                 <div className="mt-2 text-xs text-gray-500">{bestWinRate?.trades || 0} trades</div>
-                <div className="mt-1 text-emerald-600 dark:text-emerald-400 text-sm font-semibold">{bestWinRate?.winRate || 0}%</div>
+                <div className="mt-1 text-[#10B981] dark:text-[#10B981] text-sm font-semibold">{bestWinRate?.winRate || 0}%</div>
               </div>
             </div>
 
@@ -581,10 +581,10 @@ export default function SymbolsPage() {
                       <tr key={s.item} className={cn(i % 2 === 0 ? 'bg-white dark:bg-[#171717]' : 'bg-gray-50 dark:bg-[#191919]')}>
                         <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">{s.item}</td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{s.winRate}%</td>
-                        <td className={cn('px-4 py-3 font-semibold', s.netPnL >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>{formatCurrency(s.netPnL)}</td>
+                        <td className={cn('px-4 py-3 font-semibold', s.netPnL >= 0 ? 'text-[#10B981] dark:text-[#10B981]' : 'text-rose-600 dark:text-rose-400')}>{formatCurrency(s.netPnL)}</td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{s.trades}</td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{s.avgDailyVolume}</td>
-                        <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{formatCurrency(s.avgWin)}</td>
+                        <td className="px-4 py-3 text-[#10B981] dark:text-[#10B981]">{formatCurrency(s.avgWin)}</td>
                         <td className="px-4 py-3 text-rose-600 dark:text-rose-400">{formatCurrency(s.avgLoss)}</td>
                       </tr>
                     ))}

@@ -261,6 +261,39 @@ export class ReactiveAnalyticsService {
     await this.notifySubscribers()
   }
 
+  /**
+   * Wait for all data preparation to complete after CSV import
+   */
+  async waitForDataPreparation(): Promise<void> {
+    const maxWaitTime = 30000 // 30 seconds timeout
+    const startTime = Date.now()
+    
+    while (this.state.loading || this.calculationQueue.length > 0 || this.activeCalculations > 0) {
+      if (Date.now() - startTime > maxWaitTime) {
+        console.warn('Data preparation timed out after 30 seconds')
+        break
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    
+    // Ensure all common chart data is pre-calculated
+    const commonChartTypes = [
+      'dailyPnL', 'cumulativePnL', 'equityCurve', 'dailyDrawdown',
+      'symbolPerformance', 'hourlyPerformance', 'dailyVolume',
+      'dailyTradeCount', 'winRateOverTime', 'dailyAvgWin',
+      'dailyAvgLoss', 'profitFactorOverTime', 'expectancyOverTime'
+    ]
+    
+    for (const chartType of commonChartTypes) {
+      try {
+        await this.getChartData(chartType)
+      } catch (error) {
+        console.warn(`Failed to pre-calculate ${chartType}:`, error)
+      }
+    }
+  }
+
   // Group trades by YYYY-MM-DD of openDate, sorted by date asc
   private groupTradesByOpenDate(trades: Trade[]): Record<string, Trade[]> {
     const groups: Record<string, Trade[]> = {}
@@ -1108,6 +1141,8 @@ export class ReactiveAnalyticsService {
         return this.calculateCumulativePnLData(trades) as any
       case 'equityCurve':
         return this.calculateEquityCurveData(trades) as any
+      case 'Net account balance':
+        return this.calculateNetAccountBalanceData(trades, config?.startingBalance) as any
       case 'dailyDrawdown':
         return this.calculateDailyDrawdownData(trades) as any
       case 'symbolPerformance':
@@ -1309,6 +1344,12 @@ export class ReactiveAnalyticsService {
   private calculateEquityCurveData(trades: Trade[]): Array<{ date: string; equity: number }> {
     const cumulative = this.calculateCumulativePnLData(trades)
     return cumulative.map(d => ({ date: d.date, equity: d.cumulative }))
+  }
+
+  // Net account balance over time (starting balance + cumulative P&L)
+  private calculateNetAccountBalanceData(trades: Trade[], startingBalance: number = 10000): Array<{ date: string; value: number }> {
+    const cumulative = this.calculateCumulativePnLData(trades)
+    return cumulative.map(d => ({ date: d.date, value: startingBalance + d.cumulative }))
   }
 
   // Daily drawdown computed from equity vs running peak

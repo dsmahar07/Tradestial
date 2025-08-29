@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
 import { Trade as RealTrade } from '@/services/trade-data.service'
+import { calculateTradeDuration } from '@/utils/duration'
 
 interface Trade {
   id: string
@@ -174,7 +175,7 @@ export function RecentTradesTable() {
         pnl: trade.netPnl,
         pnlPercentage: trade.netRoi || 0,
         timestamp: formatTimestamp(trade.closeDate || trade.openDate),
-        duration: calculateDuration(trade.entryTime, trade.exitTime) || '0m',
+        duration: calculateTradeDuration(trade.entryTime, trade.exitTime, trade.openDate, trade.closeDate)?.formatted || 'N/A',
         status: 'CLOSED' as const
       }))
     
@@ -196,34 +197,6 @@ export function RecentTradesTable() {
     return `${diffDays}d ago`
   }
 
-  function calculateDuration(entryTime?: string, exitTime?: string): string {
-    if (!entryTime || !exitTime) return 'N/A'
-    
-    try {
-      const entry = new Date(`1970-01-01 ${entryTime}`)
-      const exit = new Date(`1970-01-01 ${exitTime}`)
-      let diffMs = exit.getTime() - entry.getTime()
-      
-      // Handle trades that cross midnight (negative duration)
-      if (diffMs < 0) {
-        diffMs += 24 * 60 * 60 * 1000 // Add 24 hours
-      }
-      
-      const diffMins = Math.floor(diffMs / (1000 * 60))
-      
-      if (diffMins < 1) return '<1m'
-      
-      const hours = Math.floor(diffMins / 60)
-      const mins = diffMins % 60
-
-      if (hours > 0) {
-        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
-      }
-      return `${mins}m`
-    } catch {
-      return 'N/A'
-    }
-  }
 
   const formatCurrency = (amount: number) => {
     const sign = amount >= 0 ? '+' : ''

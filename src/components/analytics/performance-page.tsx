@@ -8,6 +8,7 @@ import { PerformanceTabs } from './performance-tabs'
 import { PerformanceTab, PerformanceData } from '@/types/performance'
 import { useAnalytics, useChartData } from '@/hooks/use-analytics'
 import { Trade } from '@/services/trade-data.service'
+import { DataStore } from '@/services/data-store.service'
 import { calculateRMultipleMetrics, calculateTradeRMultiple } from '@/utils/r-multiple'
 import TradeMetadataService from '@/services/trade-metadata.service'
 
@@ -71,6 +72,9 @@ export function PerformancePage({ data }: PerformancePageProps) {
   const { data: plannedRMultipleReactive } = useChartData('plannedRMultipleOverTime')
   // Realized R-multiple reactive time series (prefetch for quick switching)
   const { data: realizedRMultipleReactive } = useChartData('realizedRMultipleOverTime')
+  // Hold time series for accurate time-based KPIs
+  const { data: dailyMaxHoldTimeReactive } = useChartData('dailyMaxHoldTimeHours')
+  const { data: dailyAvgHoldTimeReactive } = useChartData('dailyAvgHoldTimeHours')
 
   // Calculate real performance data from trades
   const performanceData: PerformanceData = useMemo(() => {
@@ -280,8 +284,18 @@ export function PerformancePage({ data }: PerformancePageProps) {
     }
 
     const durationsH = (trades as Trade[]).map(getTradeDurationHours).filter(v => Number.isFinite(v) && v >= 0)
-    const avgHoldMinutes = durationsH.length ? (durationsH.reduce((s, v) => s + v, 0) / durationsH.length) * 60 : 0
-    const longestMinutes = durationsH.length ? Math.max(...durationsH) * 60 : 0
+    const localAvgHoldMinutes = durationsH.length ? (durationsH.reduce((s, v) => s + v, 0) / durationsH.length) * 60 : 0
+    const localLongestMinutes = durationsH.length ? Math.max(...durationsH) * 60 : 0
+
+    // Prefer reactive series for accuracy and correct loading sync
+    const reactiveLongestMinutes = (() => {
+      const vals = (dailyMaxHoldTimeReactive || []).map((d: any) => (typeof d.value === 'number' ? d.value : 0)).filter((v: number) => Number.isFinite(v) && v >= 0)
+      return vals.length ? Math.max(...vals) * 60 : undefined
+    })()
+    const reactiveAvgHoldMinutes = (() => {
+      const vals = (dailyAvgHoldTimeReactive || []).map((d: any) => (typeof d.value === 'number' ? d.value : 0)).filter((v: number) => Number.isFinite(v) && v >= 0)
+      return vals.length ? (vals.reduce((s: number, v: number) => s + v, 0) / vals.length) * 60 : undefined
+    })()
 
     // Average trading day duration: for each openDate (YYYY-MM-DD), span between earliest start and latest end
     const byDay: Record<string, { start: number; end: number }> = {}
@@ -322,11 +336,11 @@ export function PerformancePage({ data }: PerformancePageProps) {
         },
         // Time-based KPIs (MetricCard will format minutes into h/m)
         avgHoldTime: {
-          value: avgHoldMinutes,
+          value: reactiveAvgHoldMinutes ?? localAvgHoldMinutes,
           formatted: undefined
         },
         longestTradeDuration: {
-          value: longestMinutes,
+          value: reactiveLongestMinutes ?? localLongestMinutes,
           formatted: undefined
         },
         avgTradingDaysDuration: {
@@ -357,7 +371,9 @@ export function PerformancePage({ data }: PerformancePageProps) {
     const name = metric.toLowerCase()
     let chartType: string | null = null
 
-    if (name.includes('cumulative p&l') || name.includes('net account balance') || name.includes('equity')) {
+    if (name.includes('net account balance')) {
+      chartType = 'Net account balance'
+    } else if (name.includes('cumulative p&l') || name.includes('equity')) {
       chartType = 'equityCurve' // smoother alias of cumulative
     } else if (name.includes('avg daily net p&l') || name.includes('daily net p&l')) {
       chartType = 'dailyPnL'
@@ -495,7 +511,10 @@ export function PerformancePage({ data }: PerformancePageProps) {
       return { title: metric, data: [] }
     }
 
-    const series = await getChartData(chartType)
+    const config = chartType === 'Net account balance' 
+      ? { startingBalance: DataStore.getStartingBalance() }
+      : undefined
+    const series = await getChartData(chartType, config)
 
     // Normalize to { date, value }
     const mapped = (series || []).map((d: any) => {

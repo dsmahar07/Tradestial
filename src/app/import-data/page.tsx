@@ -351,8 +351,8 @@ export default function ImportDataPage() {
       return 'UTC'
     }
   }, [])
-  const [selectedTimezone, setSelectedTimezone] = useState(localTimeZone)
   const [selectedDateFormat, setSelectedDateFormat] = useState('MM/DD/YYYY')
+  const [startingBalance, setStartingBalance] = useState<string>('10000')
   const [importState, setImportState] = useState<ImportState>({
     step: 'broker-selection',
     selectedBroker: null,
@@ -362,48 +362,7 @@ export default function ImportDataPage() {
     importResults: null
   })
 
-  // ----- Timezone helpers -----
-  const allTimezones: string[] = useMemo(() => {
-    try {
-      // Modern environments support this and include the full IANA list
-      // @ts-ignore - TS may not know about supportedValuesOf in older lib types
-      const tzs: string[] = Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : []
-      if (tzs && tzs.length) return tzs
-    } catch {
-      // ignore and use fallback
-    }
-    // Fallback minimal list to avoid empty menu if environment lacks the API
-    return [
-      'UTC','Etc/UTC','Etc/GMT','Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Rome','Europe/Amsterdam','Europe/Zurich',
-      'America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Toronto','America/Mexico_City','America/Sao_Paulo',
-      'Asia/Kolkata','Asia/Dubai','Asia/Tokyo','Asia/Shanghai','Asia/Hong_Kong','Asia/Singapore','Asia/Seoul','Asia/Bangkok',
-      'Australia/Sydney','Australia/Melbourne','Pacific/Auckland','Africa/Johannesburg'
-    ]
-  }, [])
-
-  const groupTimezones = useMemo(() => {
-    const groups: Record<string, string[]> = {}
-    for (const tz of allTimezones) {
-      const region = tz.includes('/') ? tz.split('/')[0] : 'Other'
-      if (!groups[region]) groups[region] = []
-      groups[region].push(tz)
-    }
-    // Sort regions and items
-    const sorted: Array<[string, string[]]> = Object.entries(groups)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([region, tzs]) => [region, tzs.sort((a, b) => a.localeCompare(b))]) as any
-    return sorted
-  }, [allTimezones])
-
-  // Search within timezone list
-  const [tzQuery, setTzQuery] = useState('')
-  const filteredTimezoneGroups = useMemo(() => {
-    const q = tzQuery.trim().toLowerCase()
-    if (!q) return groupTimezones
-    return groupTimezones
-      .map(([region, tzs]) => [region, tzs.filter(tz => tz.toLowerCase().includes(q))] as [string, string[]])
-      .filter(([, tzs]) => tzs.length > 0)
-  }, [groupTimezones, tzQuery])
+  // ----- Timezone helper (compute offset for local time zone) -----
 
   const getOffsetMinutes = (timeZone: string): number => {
     try {
@@ -437,13 +396,7 @@ export default function ImportDataPage() {
     }
   }
 
-  const formatOffset = (minutes: number) => {
-    const sign = minutes >= 0 ? '+' : '-'
-    const abs = Math.abs(minutes)
-    const h = String(Math.floor(abs / 60)).padStart(2, '0')
-    const m = String(abs % 60).padStart(2, '0')
-    return `UTC${sign}${h}:${m}`
-  }
+  // (No UI for timezone; offset is computed automatically from localTimeZone)
 
   const filterOptions = [
     { id: 'autoSync', label: 'Auto Sync Available' },
@@ -543,15 +496,21 @@ export default function ImportDataPage() {
         undefined,
         {
           preferredDateFormat: selectedDateFormat,
-          timezoneOffsetMinutes: getOffsetMinutes(selectedTimezone)
+          timezoneOffsetMinutes: getOffsetMinutes(localTimeZone)
         }
       )
       
       console.log('📄 Import result:', result)
 
       if (result.success && result.trades.length > 0) {
-        // Save trades to DataStore
+        // Save trades to DataStore and prepare all analytics data
         await DataStore.addTrades(result.trades)
+        
+        // Set the starting balance
+        const balance = parseFloat(startingBalance) || 10000
+        await DataStore.setStartingBalance(balance)
+        
+        console.log('🔄 Preparing analytics data for all pages...')
       }
       
       setImportState(prev => ({
@@ -604,11 +563,11 @@ export default function ImportDataPage() {
         mapping,
         {
           preferredDateFormat: selectedDateFormat,
-          timezoneOffsetMinutes: getOffsetMinutes(selectedTimezone)
+          timezoneOffsetMinutes: getOffsetMinutes(localTimeZone)
         }
       )
       
-      await processImport(result.trades)
+      await processImport(result.trades, parseFloat(startingBalance) || 10000)
       
     } catch (error) {
       console.error('Import failed:', error)
@@ -628,10 +587,18 @@ export default function ImportDataPage() {
     }
   }
   
-  const processImport = async (trades: Partial<Trade>[]) => {
+  const processImport = async (trades: Partial<Trade>[], balance?: number) => {
     try {
-      // Save the trades to DataStore
-      await DataStore.addTrades(trades)
+      // Clear any existing data first to ensure fresh import
+      DataStore.clearData()
+      
+      // Save the trades to DataStore (replace existing trades)
+      await DataStore.addTrades(trades, true)
+      
+      // Set starting balance if provided
+      if (balance !== undefined) {
+        await DataStore.setStartingBalance(balance)
+      }
       
       // Simulate processing time for better UX
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -671,8 +638,8 @@ export default function ImportDataPage() {
       importResults: null
     })
     setIsProcessing(false)
-    setSelectedTimezone(localTimeZone)
     setSelectedDateFormat('MM/DD/YYYY')
+    setStartingBalance('10000')
   }
   
   const goBackToUpload = () => {
@@ -985,43 +952,28 @@ export default function ImportDataPage() {
                   </CardHeader>
                   <CardContent>
                     {/* Import Settings */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 justify-items-center">
+                      <div className="space-y-2 w-full max-w-sm text-center">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Timezone
+                          Starting Account Balance
                         </label>
-                        <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select timezone" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <div className="px-2 pb-2">
-                              <input
-                                type="text"
-                                value={tzQuery}
-                                onChange={(e) => setTzQuery(e.target.value)}
-                                placeholder="Search timezones..."
-                                className="w-full h-9 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#141414] px-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0f172a]"
-                              />
-                            </div>
-                            {filteredTimezoneGroups.map(([region, tzs]) => (
-                              <SelectGroup key={region}>
-                                <SelectLabel>{region}</SelectLabel>
-                                {tzs.map((tz) => {
-                                  const offset = formatOffset(getOffsetMinutes(tz))
-                                  return (
-                                    <SelectItem key={tz} value={tz}>
-                                      {tz} ({offset})
-                                    </SelectItem>
-                                  )
-                                })}
-                              </SelectGroup>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                          <input
+                            type="number"
+                            value={startingBalance}
+                            onChange={(e) => setStartingBalance(e.target.value)}
+                            placeholder="10000"
+                            min="0"
+                            step="0.01"
+                            className="w-full pl-8 pr-3 py-2.5 text-sm border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-0 focus:border-gray-200 dark:focus:border-[#2a2a2a]"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Your account balance before these trades
+                        </p>
                       </div>
-                      
-                      <div className="space-y-2">
+                      <div className="space-y-2 w-full max-w-sm text-center">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Date Format
                         </label>
@@ -1080,7 +1032,7 @@ export default function ImportDataPage() {
                           {isProcessing ? 'Processing your CSV...' : 'Drop your CSV file here'}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 mb-4">
-                          {isProcessing ? 'Extracting trade data intelligently' : 'or click to browse files'}
+                          {isProcessing ? 'Extracting trade data and preparing analytics...' : 'or click to browse files'}
                         </p>
                         
                         {!isProcessing && (
@@ -1123,7 +1075,7 @@ export default function ImportDataPage() {
                     Processing Your Trades
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Analyzing and extracting trade data from your CSV...
+                    Analyzing CSV data and preparing all analytics...
                   </p>
                 </div>
               </div>
@@ -1153,7 +1105,7 @@ export default function ImportDataPage() {
                       </h3>
                       
                       <p className="text-gray-600 dark:text-gray-400 mb-6">
-                        Successfully imported <span className="font-medium text-green-600 dark:text-green-400">{importState.importResults.trades.length} trades</span> to your portfolio
+                        Successfully imported <span className="font-medium text-green-600 dark:text-green-400">{importState.importResults.trades.length} trades</span> and prepared all analytics data
                       </p>
                       
                       <div className="flex flex-col space-y-3">

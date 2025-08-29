@@ -8,7 +8,11 @@
       "Bash(git log:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(node:*)",
+      "Bash(del debug-duration-test.js)",
+      "Bash(npx tsc:*)",
+      "Bash(del \"src\\components\\analytics\\performance-chart-broken.tsx\")"
     ],
     "deny": [],
     "ask": []

@@ -164,12 +164,30 @@ export function SymbolPerformanceChart() {
 
   if (!trades.length || !symbolsData.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-96 flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400 text-center">
-          <div>No symbol data available</div>
-          <div className="text-sm mt-1">Import your CSV to see symbol performance</div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 1.2 }}
+        className="focus:outline-none"
+      >
+        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+          {/* Header (title visible, dropdowns hidden) */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Symbol Performance
+              </h3>
+            </div>
+          </div>
+          {/* Empty state */}
+          <div className="h-72 flex items-center justify-center">
+            <div className="text-gray-500 dark:text-gray-400 text-center">
+              <div>No symbol data available</div>
+              <div className="text-sm mt-1">Import your CSV to see symbol performance</div>
+            </div>
+          </div>
         </div>
-      </div>
+      </motion.div>
     )
   }
 

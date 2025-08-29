@@ -42,8 +42,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { cn } from '@/lib/utils'
 
-
-
 interface NotebookEditorProps {
   note: Note | null
   onUpdateNote?: (id: string, content: string, title?: string, color?: string, tags?: string[]) => void
@@ -51,15 +49,19 @@ interface NotebookEditorProps {
   useDatePicker?: boolean
   onDateChange?: (selectedDate: Date) => void
   hideNetPnl?: boolean
+  headerStats?: React.ReactNode
+  netPnlValue?: number
+  netPnlIsProfit?: boolean
 }
 
-export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker = false, onDateChange, hideNetPnl = false }: NotebookEditorProps) {
+export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker = false, onDateChange, hideNetPnl = false, headerStats, netPnlValue, netPnlIsProfit }: NotebookEditorProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [tempTitle, setTempTitle] = useState('')
   const [content, setContent] = useState('')
   const [showStats, setShowStats] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   const handleTitleEdit = () => {
     if (note) {
@@ -161,6 +163,46 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
 
+  // Basic, dependency-free HTML sanitizer to prevent XSS
+  const sanitizeHtml = useCallback((html: string): string => {
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT, null)
+      const dangerousTags = new Set(['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta'])
+      const dangerousAttrs = [/^on/i, /javascript:/i, /data:text\/html/i]
+      let node = walker.currentNode as HTMLElement | null
+      while (node) {
+        const el = node as HTMLElement
+        // Remove dangerous elements entirely
+        if (dangerousTags.has(el.tagName.toLowerCase())) {
+          const toRemove = el
+          node = walker.nextNode() as HTMLElement | null
+          toRemove.remove()
+          continue
+        }
+        // Strip dangerous attributes
+        for (const attr of Array.from(el.attributes)) {
+          const name = attr.name
+          const value = attr.value
+          if (dangerousAttrs.some((re) => re.test(name)) || dangerousAttrs.some((re) => re.test(value))) {
+            el.removeAttribute(name)
+            continue
+          }
+          if (name === 'src' || name === 'href') {
+            const lowered = value.trim().toLowerCase()
+            if (lowered.startsWith('javascript:') || lowered.startsWith('data:text/html')) {
+              el.removeAttribute(name)
+            }
+          }
+        }
+        node = walker.nextNode() as HTMLElement | null
+      }
+      return doc.body.innerHTML
+    } catch {
+      return ''
+    }
+  }, [])
+
   // Load note content when note changes
   useEffect(() => {
     if (note) {
@@ -177,13 +219,14 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   useEffect(() => {
     if (editorRef.current && content && !isEditing) {
       // Only update innerHTML if it's different and we're not actively editing
-      if (editorRef.current.innerHTML !== content) {
-        editorRef.current.innerHTML = content
+      const sanitized = sanitizeHtml(content)
+      if (editorRef.current.innerHTML !== sanitized) {
+        editorRef.current.innerHTML = sanitized
       }
     } else if (editorRef.current && !content && !isEditing) {
       editorRef.current.innerHTML = ''
     }
-  }, [content, isEditing])
+  }, [content, isEditing, sanitizeHtml])
 
   // Auto-save functionality with debouncing
   useEffect(() => {
@@ -223,12 +266,12 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     try {
       const target = e.currentTarget
       if (target) {
-        let newContent = target.innerHTML || ''
-        
+        let newContent = sanitizeHtml(target.innerHTML || '')
+
         // Normalize content to preserve emojis and clean up browser-specific HTML
         // Remove zero-width spaces and other invisible characters that browsers might add
         newContent = newContent.replace(/[\u200B-\u200D\uFEFF]/g, '')
-        
+
         // Only update if content actually changed and we're in editing mode
         if (newContent !== content && isEditing) {
           setContent(newContent)
@@ -237,7 +280,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     } catch (error) {
       console.error('Error in handleEditorInput:', error)
     }
-  }, [content, note, isEditing])
+  }, [content, note, isEditing, sanitizeHtml])
 
   const handleEditorBlur = useCallback((e: React.FocusEvent) => {
     // Only set editing to false if focus is leaving the editor entirely
@@ -254,7 +297,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       // Try to get HTML content first, then fall back to plain text
       const htmlPaste = e.clipboardData.getData('text/html')
       const plainPaste = e.clipboardData.getData('text/plain')
-      
+
       const selection = window.getSelection()
 
       if (selection && selection.rangeCount > 0) {
@@ -262,25 +305,28 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         range.deleteContents()
 
         if (htmlPaste) {
-          // For HTML content, use insertHTML command to preserve formatting and emojis
-          document.execCommand('insertHTML', false, htmlPaste)
+          // For HTML content, sanitize before insert
+          const safe = sanitizeHtml(htmlPaste)
+          document.execCommand('insertHTML', false, safe)
         } else if (plainPaste) {
+
           // For plain text, check if it contains emojis and convert them to Apple emojis
           const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu
-          
+
           if (emojiRegex.test(plainPaste)) {
             // Convert emojis to Apple emoji images
             const convertedContent = plainPaste.replace(emojiRegex, (emoji) => {
               return getAppleEmojiHTML(emoji)
             })
-            document.execCommand('insertHTML', false, convertedContent)
+            document.execCommand('insertHTML', false, sanitizeHtml(convertedContent))
           } else {
+
             // Regular text, insert as text node
             const textNode = document.createTextNode(plainPaste)
             range.insertNode(textNode)
             range.setStartAfter(textNode)
             range.collapse(true)
-            
+
             selection.removeAllRanges()
             selection.addRange(range)
           }
@@ -289,20 +335,21 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         // Update content with delay
         setTimeout(() => {
           if (editorRef.current) {
-            const newContent = editorRef.current.innerHTML
+            const newContent = sanitizeHtml(editorRef.current.innerHTML)
             setContent(newContent)
             setIsEditing(true)
           }
         }, 0)
       }
     } catch (error) {
+
       console.error('Error handling paste:', error)
       // Fallback to default paste behavior
       try {
         document.execCommand('paste')
         setTimeout(() => {
           if (editorRef.current) {
-            const newContent = editorRef.current.innerHTML
+            const newContent = sanitizeHtml(editorRef.current.innerHTML)
             setContent(newContent)
             setIsEditing(true)
           }
@@ -350,6 +397,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
       // Save current selection
       const selection = window.getSelection()
+
       if (!selection || selection.rangeCount === 0) return
 
       // Execute the command
@@ -358,7 +406,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       // Get the updated content and update state
       setTimeout(() => {
         if (editorRef.current) {
-          const newContent = editorRef.current.innerHTML
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
           setContent(newContent)
           setIsEditing(true)
         }
@@ -367,7 +415,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     } catch (error) {
       console.error(`Error executing command ${command}:`, error)
     }
-  }, [note])
+  }, [note, sanitizeHtml])
 
   // Helper function to convert emoji to Apple emoji image HTML
   const getAppleEmojiHTML = useCallback((emoji: string) => {
@@ -388,21 +436,25 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       }
       return codepoints
     }
-    
+
     const codepoints = getEmojiCodepoints(emoji)
     if (codepoints.length === 0) return emoji // fallback
-    
+
     const primaryCodepoint = codepoints[0].padStart(4, '0')
-    return `<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${primaryCodepoint}.png" alt="${emoji}" class="inline-block w-5 h-5 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; vertical-align: text-bottom; margin: 0 1px;" onerror="this.onerror=null; this.src='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${primaryCodepoint}.png';" />`
+    // No inline event handlers; safe src only
+    return `<img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${primaryCodepoint}.png" alt="${emoji}" class="inline-block w-5 h-5 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; vertical-align: text-bottom; margin: 0 1px;" />`
   }, [])
 
+  const isDev = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production'
+
   const insertContent = useCallback((content: string) => {
+
     if (!editorRef.current || !note) {
-      console.log('insertContent failed: no editor or note', { editor: !!editorRef.current, note: !!note })
+      if (isDev) console.debug('insertContent: missing editor or note', { editor: !!editorRef.current, note: !!note })
       return
     }
 
-    console.log('insertContent called with:', content)
+    if (isDev) console.debug('insertContent called with:', content)
 
     try {
       // Ensure editor is focused and in editing mode
@@ -411,46 +463,46 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
       // Check if content is a single emoji
       const isEmoji = /^[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/u.test(content.trim())
-      
+
       if (isEmoji && content.length <= 2) {
         // For emojis, insert as Apple emoji image
         const emojiHTML = getAppleEmojiHTML(content)
-        document.execCommand('insertHTML', false, emojiHTML)
+        document.execCommand('insertHTML', false, sanitizeHtml(emojiHTML))
       } else {
         // For other content, use insertHTML
-        document.execCommand('insertHTML', false, content)
+        document.execCommand('insertHTML', false, sanitizeHtml(content))
       }
 
       // Force content update
       setTimeout(() => {
         if (editorRef.current) {
-          const newContent = editorRef.current.innerHTML
-          console.log('Content after insert:', newContent)
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
+          if (isDev) console.debug('Content after insert:', newContent)
           setContent(newContent)
         }
       }, 0)
 
     } catch (error) {
-      console.error('Error inserting content:', error)
-      
+      if (isDev) console.error('Error inserting content:', error)
+
       // Ultimate fallback: directly modify innerHTML
       try {
         if (editorRef.current) {
           const selection = window.getSelection()
-          
+
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0)
-            
+
             // Check if it's an emoji and create appropriate content
             const isEmoji = /^[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/u.test(content.trim())
-            
+
             if (isEmoji && content.length <= 2) {
               // Insert as Apple emoji image
               const emojiHTML = getAppleEmojiHTML(content)
               const tempDiv = document.createElement('div')
-              tempDiv.innerHTML = emojiHTML
+              tempDiv.innerHTML = sanitizeHtml(emojiHTML)
               const emojiElement = tempDiv.firstChild
-              
+
               if (emojiElement) {
                 range.insertNode(emojiElement)
                 range.setStartAfter(emojiElement)
@@ -461,24 +513,26 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             } else {
               // Insert as text
               const textNode = document.createTextNode(content)
+
               range.insertNode(textNode)
+
               range.setStartAfter(textNode)
               range.collapse(true)
               selection.removeAllRanges()
               selection.addRange(range)
             }
           }
-          
-          const newContent = editorRef.current.innerHTML
-          console.log('Fallback content after insert:', newContent)
+
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
+          if (isDev) console.debug('Fallback content after insert:', newContent)
           setContent(newContent)
           setIsEditing(true)
         }
       } catch (fallbackError) {
-        console.error('Ultimate fallback failed:', fallbackError)
+        if (isDev) console.error('Ultimate fallback failed:', fallbackError)
       }
     }
-  }, [note, getAppleEmojiHTML])
+  }, [note, getAppleEmojiHTML, sanitizeHtml])
 
   const handleImageUpload = useCallback(() => {
     if (!editorRef.current || !note) return
@@ -499,7 +553,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         }
         reader.readAsDataURL(file)
       } else {
-        console.log('Please select an image file under 5MB')
+        if (isDev) console.debug('Please select an image file under 5MB')
       }
     }
     input.click()
@@ -514,10 +568,14 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const handleLinkInsert = useCallback(() => {
     const url = prompt('Enter URL:')
     if (url) {
-      const selection = window.getSelection()
-      const selectedText = selection?.toString() || url
-      const linkHtml = `<a href="${url}" style="color: #3b82f6; text-decoration: underline;" target="_blank">${selectedText}</a>`
-      insertContent(linkHtml)
+      const u = url.trim()
+      const lower = u.toLowerCase()
+      if (lower.startsWith('http://') || lower.startsWith('https://')) {
+        const selection = window.getSelection()
+        const selectedText = selection?.toString() || u
+        const linkHtml = `<a href="${u}" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;" target="_blank">${selectedText}</a>`
+        insertContent(linkHtml)
+      }
     }
   }, [insertContent])
 
@@ -817,6 +875,8 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           </div>
         </div>
 
+        {/* Stats rendering moved to collapsible under Net P&L */}
+
         {/* Tag input field - positioned below header when active */}
         {showTagInput && (
           <div className="px-6 pb-3">
@@ -856,17 +916,43 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           <div className="mb-4">
             {!hideNetPnl && (
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Net P&L {note.tradingData ? (
-                  <span className={note.tradingData.isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                    {note.tradingData.netPnl >= 0 ? '+' : ''}${note.tradingData.netPnl}
-                  </span>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setStatsOpen((v) => !v)}
+                  className="inline-flex items-center gap-2 group cursor-pointer select-none"
+                  aria-expanded={statsOpen}
+                  title={statsOpen ? 'Hide stats' : 'Show stats'}
+                >
+                  <span>Net P&L</span>
+                  {typeof netPnlValue === 'number' ? (
+                    <span className={(netPnlIsProfit ?? netPnlValue >= 0) ? 'text-[#10B981]' : 'text-red-600 dark:text-red-400'}>
+                      {netPnlValue >= 0 ? '+' : ''}${Math.abs(netPnlValue).toLocaleString('en-US')}
+                    </span>
+                  ) : (note as any)?.tradingData ? (
+                    <span className={(note as any)?.tradingData.isProfit ? 'text-[#10B981]' : 'text-red-600 dark:text-red-400'}>
+                      {(note as any)?.tradingData.netPnl >= 0 ? '+' : ''}${(note as any)?.tradingData.netPnl}
+                    </span>
+                  ) : null}
+                  <svg
+                    className={`w-4 h-4 transition-transform ${statsOpen ? 'rotate-180' : 'rotate-0'} text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200`}
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+                  >
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </button>
               </h2>
             )}
             <div className="text-sm text-gray-500 dark:text-[#888888] space-x-4">
               <span>Created: {formatDate(note.createdAt)}</span>
               <span>Last updated: {formatDate(note.updatedAt)}</span>
             </div>
+          </div>
+        )}
+
+        {/* Collapsible Stats + Table (headerStats) */}
+        {headerStats && statsOpen && (
+          <div className="mb-4">
+            {headerStats}
           </div>
         )}
 
@@ -882,7 +968,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
               <div className="h-40 bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={note.tradingData ? note.tradingData.chartData : [
+                    data={(note as any)?.tradingData ? (note as any).tradingData.chartData : [
                       { time: '9:30', value: 0 },
                       { time: '10:00', value: -50 },
                       { time: '10:30', value: -120 },
@@ -991,25 +1077,25 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Trades</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {note.tradingData ? note.tradingData.stats.totalTrades : 40}
+                    {(note as any)?.tradingData ? (note as any).tradingData.stats.totalTrades : 40}
                   </div>
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Winners</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {note.tradingData ? note.tradingData.stats.winners : 15}
+                    {(note as any)?.tradingData ? (note as any).tradingData.stats.winners : 15}
                   </div>
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Gross P&L</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    ${note.tradingData ? note.tradingData.stats.grossPnl : 101.97}
+                    ${(note as any)?.tradingData ? (note as any).tradingData.stats.grossPnl : 101.97}
                   </div>
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Commissions</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    ${note.tradingData ? note.tradingData.stats.commissions : 552.94}
+                    ${(note as any)?.tradingData ? (note as any).tradingData.stats.commissions : 552.94}
                   </div>
                 </div>
 
@@ -1017,25 +1103,25 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Winrate</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {note.tradingData ? note.tradingData.stats.winrate : '37.50%'}
+                    {(note as any)?.tradingData ? (note as any).tradingData.stats.winrate : '37.50%'}
                   </div>
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Losers</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {note.tradingData ? note.tradingData.stats.losers : 25}
+                    {(note as any)?.tradingData ? (note as any).tradingData.stats.losers : 25}
                   </div>
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Volume</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {note.tradingData ? note.tradingData.stats.volume : 5747}
+                    {(note as any)?.tradingData ? (note as any).tradingData.stats.volume : 5747}
                   </div>
                 </div>
                 <div className="text-left">
                   <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Profit Factor</div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {note.tradingData ? note.tradingData.stats.profitFactor : 0.89}
+                    {(note as any)?.tradingData ? (note as any).tradingData.stats.profitFactor : 0.89}
                   </div>
                 </div>
               </div>

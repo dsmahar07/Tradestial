@@ -182,29 +182,37 @@ export class TradovateCsvParser {
       // Extract symbol from contract (NQU5 -> NQ)
       const symbol = contract.replace(/[UMZ]\d+$/, '').trim() || contract
 
-      // Determine trade side based on buy/sell timestamps and prices
-      // In Tradovate CSV, if we have both buy and sell, we need to determine which came first
+      // Determine trade side using a more robust approach
+      // Tradovate CSV shows individual fills, so timestamps may not indicate trade direction
+      // Use price analysis and P&L correlation as primary indicators
       let tradeSide: 'LONG' | 'SHORT' = 'LONG' // Default
       
-      if (buyTimestamp && sellTimestamp && buyPrice && sellPrice) {
-        // Compare timestamps to see which action came first
-        try {
-          const buyTime = new Date(`1970-01-01 ${this.extractTime(buyTimestamp)}`)
-          const sellTime = new Date(`1970-01-01 ${this.extractTime(sellTimestamp)}`)
-          
-          if (buyTime < sellTime) {
-            // Bought first, then sold = LONG trade
-            tradeSide = 'LONG'
-            console.log(`✅ LONG trade detected: Buy ${this.extractTime(buyTimestamp)} → Sell ${this.extractTime(sellTimestamp)}`)
-          } else if (sellTime < buyTime) {
-            // Sold first, then bought = SHORT trade  
-            tradeSide = 'SHORT'
-            console.log(`✅ SHORT trade detected: Sell ${this.extractTime(sellTimestamp)} → Buy ${this.extractTime(buyTimestamp)}`)
+      if (buyPrice && sellPrice && !isNaN(buyPrice) && !isNaN(sellPrice)) {
+        // Method 1: P&L correlation analysis
+        // For LONG: profit when sell > buy, loss when sell < buy  
+        // For SHORT: profit when buy > sell, loss when buy < sell
+        const priceDiff = sellPrice - buyPrice
+        const isProfit = netPnl > 0
+        
+        if ((priceDiff > 0 && isProfit) || (priceDiff < 0 && !isProfit)) {
+          tradeSide = 'LONG'
+          console.log(`✅ LONG trade detected via P&L correlation: Buy=${buyPrice}, Sell=${sellPrice}, P&L=${netPnl}`)
+        } else if ((priceDiff < 0 && isProfit) || (priceDiff > 0 && !isProfit)) {
+          tradeSide = 'SHORT'
+          console.log(`✅ SHORT trade detected via P&L correlation: Buy=${buyPrice}, Sell=${sellPrice}, P&L=${netPnl}`)
+        } else {
+          // Fallback to timestamp comparison if P&L correlation is unclear
+          if (buyTimestamp && sellTimestamp) {
+            try {
+              const buyTime = new Date(buyTimestamp.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2'))
+              const sellTime = new Date(sellTimestamp.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2'))
+              
+              tradeSide = buyTime < sellTime ? 'LONG' : 'SHORT'
+              console.log(`✅ ${tradeSide} trade detected via timestamps: ${this.extractTime(buyTimestamp)} → ${this.extractTime(sellTimestamp)}`)
+            } catch {
+              console.warn(`Could not parse timestamps for trade ${positionId}, using LONG as default`)
+            }
           }
-          // If times are equal, use price logic as fallback
-        } catch {
-          // If timestamp parsing fails, use default LONG
-          console.warn(`Could not parse timestamps for trade ${positionId}, defaulting to LONG`)
         }
       }
 
@@ -219,9 +227,57 @@ export class TradovateCsvParser {
         actualExitPrice = buyPrice || 0
       }
 
-      // Compute entry/exit timestamps aligned to trade side
-      const entryTimestamp = tradeSide === 'LONG' ? buyTimestamp : sellTimestamp
-      const exitTimestamp = tradeSide === 'LONG' ? sellTimestamp : buyTimestamp
+      // Compute entry/exit timestamps using chronological order for duration calculation
+      let entryTimestamp = buyTimestamp
+      let exitTimestamp = sellTimestamp
+      
+      if (buyTimestamp && sellTimestamp) {
+        console.log(`🔍 Raw timestamps for ${positionId}:`, { buyTimestamp, sellTimestamp })
+        
+        try {
+          // Convert MM/DD/YYYY HH:mm:ss to a format JavaScript can parse reliably
+          const buyTimeConverted = this.convertTimestampFormat(buyTimestamp)
+          const sellTimeConverted = this.convertTimestampFormat(sellTimestamp)
+          
+          console.log(`🔍 Converted timestamps:`, { buyTimeConverted, sellTimeConverted })
+          
+          const buyTime = new Date(buyTimeConverted)
+          const sellTime = new Date(sellTimeConverted)
+          
+          console.log(`🔍 Parsed Date objects:`, { 
+            buyTime: buyTime.toISOString(), 
+            sellTime: sellTime.toISOString(),
+            buyValid: !isNaN(buyTime.getTime()),
+            sellValid: !isNaN(sellTime.getTime())
+          })
+          
+          if (isNaN(buyTime.getTime()) || isNaN(sellTime.getTime())) {
+            console.warn(`❌ Invalid dates parsed for ${positionId}`)
+            entryTimestamp = buyTimestamp
+            exitTimestamp = sellTimestamp
+          } else {
+            // Always use the EARLIER timestamp as entry and LATER as exit for duration
+            if (buyTime.getTime() < sellTime.getTime()) {
+              entryTimestamp = buyTimestamp
+              exitTimestamp = sellTimestamp
+            } else {
+              entryTimestamp = sellTimestamp  
+              exitTimestamp = buyTimestamp
+            }
+            
+            console.log(`⏱️ Chronological assignment: Entry=${this.extractTime(entryTimestamp)} → Exit=${this.extractTime(exitTimestamp)}`)
+            const timeDiffMs = new Date(this.convertTimestampFormat(exitTimestamp)).getTime() - new Date(this.convertTimestampFormat(entryTimestamp)).getTime()
+            console.log(`⏱️ Time difference: ${timeDiffMs}ms (${timeDiffMs / 1000}s)`)
+          }
+        } catch (error) {
+          console.warn(`❌ Timestamp parsing error for ${positionId}:`, error)
+          // Fallback: use original timestamps
+          entryTimestamp = buyTimestamp
+          exitTimestamp = sellTimestamp
+        }
+      } else {
+        console.warn(`⚠️ Missing timestamps for ${positionId}: buy=${!!buyTimestamp}, sell=${!!sellTimestamp}`)
+      }
 
       // Prefer dates from timestamps; fallback to Trade Date
       const openDate = this.extractDate(entryTimestamp, options?.timezoneOffsetMinutes) || this.parseTradeDate(tradeDate, options?.preferredDateFormat)
@@ -358,6 +414,22 @@ export class TradovateCsvParser {
     }
     
     return undefined
+  }
+
+  private static convertTimestampFormat(timestampStr: string): string {
+    // Convert "MM/DD/YYYY HH:mm:ss" to "YYYY-MM-DD HH:mm:ss" for reliable parsing
+    try {
+      const match = timestampStr.match(/^(\d{2})\/(\d{2})\/(\d{4})\s(.+)$/)
+      if (match) {
+        const [, month, day, year, time] = match
+        return `${year}-${month}-${day} ${time}`
+      }
+    } catch (error) {
+      console.warn('Timestamp format conversion error:', error)
+    }
+    
+    // Return original if conversion fails
+    return timestampStr
   }
 
   private static extractDate(timestampStr: string | undefined, timezoneOffsetMinutes?: number): string | undefined {

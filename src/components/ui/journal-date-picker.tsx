@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Button } from './button'
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Root as FancyButtonRoot } from './fancy-button'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { InlineLoading } from './loading-spinner'
 
 interface JournalDatePickerProps {
@@ -97,26 +97,24 @@ export function JournalDatePicker({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      <Button 
-        size="sm"
+      <FancyButtonRoot
+        variant="neutral"
+        size="small"
         onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
         disabled={isNavigating}
-        className="relative bg-[#693EE0] hover:bg-[#5929d1] text-white border-none shadow-sm overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none disabled:opacity-75"
+        aria-haspopup="menu"
+        aria-expanded={isDatePickerOpen}
       >
         {isNavigating ? (
-          <InlineLoading 
-            text="Opening..." 
+          <InlineLoading
+            text="Opening..."
             size="sm"
-            className="text-white relative z-10"
+            className="relative z-10 [&>p]:text-white"
           />
         ) : (
-          <>
-            <Calendar className="w-4 h-4 mr-2 relative z-10" />
-            <span className="relative z-10">Journal</span>
-            <ChevronDown className="w-4 h-4 ml-2 relative z-10" />
-          </>
+          <span>Journal</span>
         )}
-      </Button>
+      </FancyButtonRoot>
 
       {/* Compact Date Picker Dropdown */}
       {isDatePickerOpen && (
