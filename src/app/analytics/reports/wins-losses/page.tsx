@@ -426,7 +426,7 @@ export default function WinsLossesPage() {
                   <section className="bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
                     <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Wins ({stats.meta.winsCount} Trades Matched)</h2>
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Wins ({stats.meta?.winsCount || 0} Trades Matched)</h2>
                       </div>
                     </header>
                     <div className="px-6 py-4">
@@ -446,7 +446,7 @@ export default function WinsLossesPage() {
                   <section className="bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
                     <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Losses ({stats.meta.lossesCount} Trades Matched)</h2>
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Losses ({stats.meta?.lossesCount || 0} Trades Matched)</h2>
                       </div>
                     </header>
                     <div className="px-6 py-4">

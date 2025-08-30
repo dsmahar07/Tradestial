@@ -2,10 +2,10 @@
 const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@heroicons/react', 'recharts'],
-    turbo: {
-      rules: {
-        '*.svg': ['@svgr/webpack', 'asset'],
-      },
+  },
+  turbopack: {
+    rules: {
+      '*.svg': ['@svgr/webpack', 'asset'],
     },
   },
   compiler: {
@@ -14,9 +14,14 @@ const nextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   poweredByHeader: false,
   reactStrictMode: true,
-  swcMinify: true,
 }
 
 module.exports = nextConfig

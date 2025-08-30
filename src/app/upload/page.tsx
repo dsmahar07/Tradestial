@@ -9,7 +9,7 @@ import { accountService } from '@/services/account.service'
 import { Trade } from '@/services/trade-data.service'
 import { TIMEZONE_REGIONS, getCurrentTimezone, getBrokerTimezoneDefault, formatTimezoneOffset, ALL_TIMEZONES } from '@/utils/timezones'
 
-export default function BrokenPage() {
+export default function UploadPage() {
   usePageTitle('Add Trades')
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -94,6 +94,7 @@ export default function BrokenPage() {
       // Validate timezone offset before processing
       if (isNaN(selectedTimezone)) {
         alert('Please select a valid timezone')
+        setIsProcessing(false)
         return
       }
 
@@ -124,12 +125,16 @@ export default function BrokenPage() {
         // Redirect to account page
         router.push('/account')
       } else {
-        alert('Failed to import trades. Please check your CSV format.')
+        const errorMessage = result.errors && result.errors.length > 0 
+          ? `Import failed: ${result.errors.join(', ')}` 
+          : 'Failed to import trades. Please check your CSV format.'
+        alert(errorMessage)
+        console.error('CSV import errors:', result.errors)
       }
       
     } catch (error) {
       console.error('Import failed:', error)
-      alert('Failed to process CSV file')
+      alert(`Failed to process CSV file: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsProcessing(false)
     }
@@ -253,10 +258,8 @@ export default function BrokenPage() {
               {!isProcessing && (
                 <>
                   <input type="file" accept=".csv" className="hidden" id="file-upload" onChange={handleFileUpload} />
-                  <label htmlFor="file-upload">
-                    <button className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700" disabled={isProcessing}>
-                      Upload file
-                    </button>
+                  <label htmlFor="file-upload" className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 cursor-pointer inline-block">
+                    Upload file
                   </label>
                 </>
               )}

@@ -74,11 +74,19 @@ export default function StrategyDetailPage() {
   useEffect(() => {
     setStrategies(readStrategies())
     setAssignments(readAssignments())
-    setTrades(DataStore.getAllTrades())
+    setTrades(DataStore.getAllTrades().map(trade => ({
+      date: trade.closeDate || trade.openDate,
+      pnl: trade.netPnl,
+      ...trade
+    })))
     const onUpdated = () => setStrategies(readStrategies())
     const onStatsUpdated = () => {
       // Force re-render to refresh stats
-      setTrades(DataStore.getAllTrades())
+      setTrades(DataStore.getAllTrades().map(trade => ({
+      date: trade.closeDate || trade.openDate,
+      pnl: trade.netPnl,
+      ...trade
+    })))
       setAssignments(readAssignments())
       setStatsRefreshTrigger(prev => prev + 1)
     }

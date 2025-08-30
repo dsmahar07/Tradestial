@@ -75,8 +75,6 @@ export function calculateTradeDuration(
 function validateDurationResult(result: TradeDuration | null): TradeDuration | null {
   if (!result) return null
   
-  const { totalMinutes } = result
-  
   // Do not aggressively cap genuine long durations. Only sanity-check extremely large values elsewhere.
   
   return result

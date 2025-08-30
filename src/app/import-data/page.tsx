@@ -513,15 +513,13 @@ export default function ImportDataPage() {
   const otherBrokers = filteredBrokers.filter(broker => !['Futures', 'Options', 'Forex', 'Crypto'].includes(broker.category))
 
   const handleBrokerSelect = (broker: Broker) => {
-    // Set broker-specific timezone default
-    const brokerTimezone = getBrokerTimezoneDefault(broker.id)
-    setSelectedTimezone(brokerTimezone)
-    
-    setImportState(prev => ({
-      ...prev,
-      selectedBroker: broker,
-      step: 'file-upload'
-    }))
+    // Redirect to the upload page with broker info as URL parameters
+    const params = new URLSearchParams({
+      brokerId: broker.id,
+      brokerName: broker.name,
+      brokerIcon: broker.icon
+    })
+    router.push(`/upload?${params.toString()}`)
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

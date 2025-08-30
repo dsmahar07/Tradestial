@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { useAnalytics } from '@/hooks/use-analytics'
 import type { Trade } from '@/services/trade-data.service'
 import type { PerformanceChart as ChartShape, ChartDataPoint } from '@/types/performance'
+import { DataStore } from '@/services/data-store.service'
 
 export default function TagsPage() {
   usePageTitle('Analytics - Tags Report')
@@ -59,7 +60,7 @@ export default function TagsPage() {
     ;(async () => {
       try {
         setLoading(true)
-        const all = await TradeDataService.getAllTrades()
+        const all = DataStore.getAllTrades()
         if (!isMounted) return
 
         // Group by day (all tags)

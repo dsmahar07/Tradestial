@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { accountService, TradingAccount } from '@/services/account.service'
 import { Trade } from '@/services/trade-data.service'
-import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 
 // Basic UI Components (since shadcn is not used)
@@ -20,7 +19,7 @@ const Button = ({ onClick, children, disabled = false, className = '' }: { onCli
   </button>
 );
 
-const Select = ({ value, onChange, children, className = '', id }: { value: string, onChange: React.ChangeEventHandler<HTMLSelectElement>, children: React.ReactNode, className?: string, id?: string }) => (
+const Select = ({ value, onChange, children, className = '' }: { value: string, onChange: React.ChangeEventHandler<HTMLSelectElement>, children: React.ReactNode, className?: string }) => (
   <select 
     value={value}
     onChange={onChange}
@@ -32,7 +31,6 @@ const Select = ({ value, onChange, children, className = '', id }: { value: stri
 type SortableKey = 'openDate' | 'symbol' | 'netPnl' | 'accountName';
 
 export default function TradeLogPage() {
-  const router = useRouter();
   const [allTrades, setAllTrades] = useState<(Trade & { accountName: string; accountId: string })[]>([]);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [filteredTrades, setFilteredTrades] = useState<(Trade & { accountName: string; accountId: string })[]>([]);
@@ -59,7 +57,7 @@ export default function TradeLogPage() {
   }, [allTrades, filterAccount]);
 
   const sortedTrades = useMemo(() => {
-    let sortableTrades = [...filteredTrades];
+    const sortableTrades = [...filteredTrades];
     if (sortConfig !== null) {
       sortableTrades.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -100,8 +98,8 @@ export default function TradeLogPage() {
       <p className="text-gray-400 mb-6">A unified view of all trades across all your accounts.</p>
 
       <div className="mb-6 flex items-center gap-4">
-        <label htmlFor="account-filter" className="font-medium">Filter by Account:</label>
-        <Select id="account-filter" value={filterAccount} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterAccount(e.target.value)}>
+        <label className="font-medium">Filter by Account:</label>
+        <Select value={filterAccount} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterAccount(e.target.value)}>
           <option value="all">All Accounts</option>
           {accounts.map(acc => (
             <option key={acc.id} value={acc.id}>{acc.name}</option>

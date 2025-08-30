@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react'
 
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -17,31 +17,6 @@ import { CustomSelect } from '@/components/ui/custom-select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
 
 // Local controls (minimal, no shadcn)
-function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  const { className, ...rest } = props
-  return (
-    <input
-      {...rest}
-      className={cn(
-        'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3559E9] focus:border-transparent text-sm',
-        className
-      )}
-    />
-  )
-}
-
-function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const { className, ...rest } = props
-  return (
-    <textarea
-      {...rest}
-      className={cn(
-        'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3559E9] focus:border-transparent text-sm',
-        className
-      )}
-    />
-  )
-}
 
 function Button({ variant = 'primary', className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'outline' | 'danger' }) {
   const base = 'inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-[#1C1C1C] focus:ring-[#3559E9] disabled:opacity-50 disabled:pointer-events-none'
@@ -101,7 +76,7 @@ function TradeLogModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
   }, [allTrades, filterAccount])
 
   const sortedTrades = useMemo(() => {
-    let sortableTrades = [...filteredTrades]
+    const sortableTrades = [...filteredTrades]
     if (sortConfig !== null) {
       sortableTrades.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {

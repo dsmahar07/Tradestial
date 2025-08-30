@@ -99,9 +99,9 @@ export function formatTimezoneOffset(offsetMinutes: number): string {
   const sign = offsetMinutes >= 0 ? '+' : '-'
   
   if (minutes === 0) {
-    return `UTC${sign}${hours}`
+    return `(UTC${sign}${hours.toString().padStart(2, '0')}:00)`
   } else {
-    return `UTC${sign}${hours}:${minutes.toString().padStart(2, '0')}`
+    return `(UTC${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')})`
   }
 }
 

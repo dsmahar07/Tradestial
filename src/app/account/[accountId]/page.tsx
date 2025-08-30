@@ -54,8 +54,7 @@ function Button({ variant = 'primary', className, ...rest }: React.ButtonHTMLAtt
 }
 
 // Advanced Dropdown Menu Component
-function AdvancedDropdownMenu({ account, onEdit, onDelete, onCsvUpload, onBalanceAdjust }: {
-  account: TradingAccount;
+function AdvancedDropdownMenu({ onEdit, onDelete, onCsvUpload, onBalanceAdjust }: {
   onEdit: () => void;
   onDelete: () => void;
   onCsvUpload: () => void;
@@ -428,7 +427,6 @@ export default function AccountDetailsPage() {
                       <p className="text-gray-500 dark:text-gray-400">{account.description || 'No description'}</p>
                     </div>
                     <AdvancedDropdownMenu
-                      account={account}
                       onEdit={() => setEditingAccount(account)}
                       onDelete={handleDeleteAccount}
                       onCsvUpload={handleCsvUpload}

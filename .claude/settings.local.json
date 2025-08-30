@@ -20,7 +20,8 @@
       "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
       "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
       "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
-      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)"
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
