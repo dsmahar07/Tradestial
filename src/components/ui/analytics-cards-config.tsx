@@ -23,10 +23,37 @@ export interface AnalyticsCardConfig {
   customContent?: React.ReactNode
   showVerticalBars?: boolean
   verticalBarsData?: Array<{ name: string; value: number; color: string }>
+  tradeCount?: number
 }
+
+// TradeCountLabel component to prevent re-creation
+const TradeCountLabel = ({ tradeCount }: { tradeCount: number }) => (
+  <div className="absolute bottom-2 right-2">
+    <div 
+      className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity relative group" 
+      style={{ 
+        color: '#6b7280', 
+        backgroundColor: 'rgba(107, 114, 128, 0.15)', 
+        padding: '2px 6px', 
+        fontSize: '10px', 
+        lineHeight: '1' 
+      }}
+    >
+      {tradeCount}
+      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+        Total Trades
+      </div>
+    </div>
+  </div>
+)
 
 // Get real-time data from DataStore
 export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
+  // Prevent hydration mismatch by always returning empty state on server
+  if (typeof window === 'undefined') {
+    return getEmptyAnalyticsCards()
+  }
+  
   const trades = DataStore.getAllTrades()
   
   // If no trades, return empty state

@@ -19,6 +19,7 @@ interface DrawdownData {
   date: string
   drawdown: number
   formattedDate: string
+  index: number
 }
 
 // Generate drawdown data from real trades
@@ -35,7 +36,7 @@ const generateDrawdownData = (trades: Trade[]): DrawdownData[] => {
   let peak = 0
 
   // Process each trade to calculate running drawdown
-  sortedTrades.forEach(trade => {
+  sortedTrades.forEach((trade, idx) => {
     cumulativePnL += trade.netPnl
     
     // Update peak if we hit a new high
@@ -56,7 +57,8 @@ const generateDrawdownData = (trades: Trade[]): DrawdownData[] => {
     drawdownData.push({
       date: tradeDate.toISOString().split('T')[0],
       drawdown: Math.round(drawdown),
-      formattedDate
+      formattedDate,
+      index: idx
     })
   })
 
@@ -246,7 +248,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               </defs>
               
               <XAxis 
-                dataKey="formattedDate"
+                dataKey="index"
                 axisLine={false}
                 tickLine={false}
                 tick={{ 
@@ -257,8 +259,12 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 className="dark:fill-gray-400"
                 height={25}
                 tickMargin={5}
-                tickFormatter={(value) => {
-                  const parts = value.split('/')
+                tickFormatter={(value, index) => {
+                  // Show MM/DD from the corresponding datum's formattedDate
+                  // Recharts passes value as the x (index); use index to access data array safely
+                  const d = drawdownData[index]
+                  if (!d) return ''
+                  const parts = d.formattedDate.split('/')
                   return `${parts[0]}/${parts[1]}`
                 }}
                 interval="preserveStartEnd"

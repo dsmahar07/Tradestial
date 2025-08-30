@@ -1,19 +1,20 @@
 import { calculateRMultipleMetrics, calculateRMultipleExpectancy } from '@/utils/r-multiple'
+import { calculateTradeDuration } from '@/utils/duration'
 
 export interface Trade {
   id: string
-  openDate: string
+  openDate: string // UTC date in YYYY-MM-DD format
   symbol: string
   status: 'WIN' | 'LOSS'
-  closeDate: string
+  closeDate: string // UTC date in YYYY-MM-DD format
   entryPrice: number
   exitPrice: number
   netPnl: number
   netRoi: number
   // For options analytics: when present, used to compute Days Till Expiration (DTE)
-  expirationDate?: string
-  entryTime?: string
-  exitTime?: string
+  expirationDate?: string // UTC date in YYYY-MM-DD format
+  entryTime?: string // UTC time in HH:mm:ss format
+  exitTime?: string // UTC time in HH:mm:ss format
   contractsTraded?: number
   adjustedCost?: number
   mae?: number // Maximum Adverse Excursion
@@ -272,7 +273,16 @@ export class TradeDataService {
     })
 
     // Simple calculations for remaining metrics
-    const avgTradeDuration = 0 // Would need time calculations
+    // Average trade duration in MINUTES, computed per trade using entry/exit times and dates
+    const durationMinutes: number[] = sortedTrades
+      .map(t => {
+        const d = calculateTradeDuration(t.entryTime, t.exitTime, t.openDate, t.closeDate)
+        return d ? d.totalMinutes : null
+      })
+      .filter((v): v is number => typeof v === 'number' && isFinite(v) && v >= 0)
+    const avgTradeDuration = durationMinutes.length > 0
+      ? durationMinutes.reduce((s, v) => s + v, 0) / durationMinutes.length
+      : 0
     const sharpeRatio = 0 // Would need daily returns and risk-free rate
     const profitabilityIndex = winRate / 100
     const riskRewardRatio = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0

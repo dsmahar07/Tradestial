@@ -176,35 +176,26 @@ export function RecentTradesTable() {
         pnlPercentage: trade.netRoi || 0,
         timestamp: formatTimestamp(trade.closeDate || trade.openDate),
         duration: (() => {
+          // Prefer persisted duration from import (more stable and consistent across views)
+          if (trade.duration && typeof trade.duration === 'string') return trade.duration
+
           const durationResult = calculateTradeDuration(trade.entryTime, trade.exitTime, trade.openDate, trade.closeDate)
-          
-          // Extra debugging for suspicious durations
-          const formatted = durationResult?.formatted || 'N/A'
+          const formatted = durationResult?.formatted || '—'
+
+          // Debug only when clearly excessive
           if (durationResult && durationResult.totalMinutes > 12 * 60) {
-            console.warn('⚠️ SUSPICIOUS LONG DURATION detected:', {
+            console.warn('⚠️ Long duration detected in RecentTradesTable:', {
               tradeId: trade.id,
               symbol: trade.symbol,
               entryTime: trade.entryTime,
               exitTime: trade.exitTime,
               openDate: trade.openDate,
               closeDate: trade.closeDate,
-              calculatedMinutes: durationResult.totalMinutes,
-              calculatedHours: durationResult.hours,
-              formatted: formatted,
-              rawTrade: trade
+              minutes: durationResult.totalMinutes,
+              formatted
             })
           }
-          
-          console.debug('🔍 Trade duration calculation:', {
-            tradeId: trade.id,
-            symbol: trade.symbol,
-            entryTime: trade.entryTime,
-            exitTime: trade.exitTime,
-            openDate: trade.openDate,
-            closeDate: trade.closeDate,
-            result: formatted
-          })
-          
+
           return formatted
         })(),
         status: 'CLOSED' as const

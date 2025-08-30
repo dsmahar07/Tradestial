@@ -13,7 +13,14 @@
       "Bash(del debug-duration-test.js)",
       "Bash(npx tsc:*)",
       "Bash(del \"src\\components\\analytics\\performance-chart-broken.tsx\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)",
+      "Read(c:\\Users\\dsmah\\OneDrive\\Documents\\ShareX\\Screenshots\\2025-08/**)"
     ],
     "deny": [],
     "ask": []

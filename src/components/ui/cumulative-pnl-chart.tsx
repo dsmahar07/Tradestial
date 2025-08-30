@@ -1,6 +1,6 @@
   'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Button } from './button'
 import {
@@ -9,17 +9,45 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu'
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip, CartesianGrid } from 'recharts'
 import { useChartData } from '@/hooks/use-analytics'
+import { DateTime } from 'luxon'
 
 // chartData will be generated dynamically in the component
+
+// Smart currency formatter with robust handling
+const formatCurrency = (value: number): string => {
+  // Handle edge cases
+  if (!isFinite(value) || isNaN(value)) return '$0'
+  
+  const absValue = Math.abs(value)
+  
+  // Handle very large numbers
+  if (absValue >= 1_000_000_000_000) {
+    return `$${(value / 1_000_000_000_000).toFixed(1)}T`
+  }
+  if (absValue >= 1_000_000_000) {
+    return `$${(value / 1_000_000_000).toFixed(1)}B`
+  }
+  if (absValue >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(1)}M`
+  }
+  if (absValue >= 1_000) {
+    return `$${(value / 1_000).toFixed(1)}k`
+  }
+  
+  // Handle small numbers with appropriate decimal places
+  if (absValue < 1 && absValue > 0) {
+    return `$${value.toFixed(2)}`
+  }
+  
+  return `$${Math.round(value).toLocaleString()}`
+}
 
 // Simple Tooltip showing only P&L amount
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    console.log('🔍 Tooltip payload:', payload[0])
     const value = payload[0].value || payload[0].payload?.value
-    console.log('🔍 Tooltip value:', value)
     
     if (value === undefined || value === null) {
       return (
@@ -31,7 +59,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       )
     }
     
-    const formattedValue = value >= 0 ? `$${value.toLocaleString()}` : `-$${Math.abs(value).toLocaleString()}`
+    const formattedValue = formatCurrency(value)
     
     return (
       <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
@@ -44,52 +72,208 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+type TimeFilter = 'all' | 'month' | 'week'
+
 export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
+  
   // Pull reactive, filtered, cached chart data from analytics service
   const { data: rawData, loading } = useChartData('cumulativePnL')
 
-  // Map reactive data shape to chart's expected shape
-  const chartData = useMemo(() => {
+  // Filter data based on time selection
+  const filteredData = useMemo(() => {
     if (!rawData || rawData.length === 0) return []
-    // Ensure chronological order
-    const sorted = [...rawData].sort((a: { date: string }, b: { date: string }) => {
-      const ta = new Date(a.date).getTime()
-      const tb = new Date(b.date).getTime()
-      return ta - tb
+    
+    if (timeFilter === 'all') return rawData
+    
+    const now = DateTime.now()
+    const cutoff = timeFilter === 'week' 
+      ? now.minus({ weeks: 1 })
+      : now.minus({ months: 1 })
+    
+    return rawData.filter((d: { date: string }) => {
+      const dt = DateTime.fromISO(d.date)
+      return dt.isValid && dt >= cutoff
+    })
+  }, [rawData, timeFilter])
+
+  // Map reactive data shape to chart's expected shape with robust error handling
+  const chartData = useMemo(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[CumulativePnlChart] filteredData points:', Array.isArray(filteredData) ? filteredData.length : 0)
+    }
+    
+    // Handle empty or invalid data
+    if (!filteredData || !Array.isArray(filteredData) || filteredData.length === 0) return []
+    
+    // Validate and sanitize data
+    const validData = filteredData.filter(d => {
+      return d && 
+             typeof d === 'object' && 
+             d.date && 
+             typeof d.cumulative === 'number' && 
+             !isNaN(d.cumulative) && 
+             isFinite(d.cumulative)
+    })
+    
+    if (validData.length === 0) return []
+    
+    // Ensure chronological order with fallback for invalid dates
+    const sorted = [...validData].sort((a: { date: string }, b: { date: string }) => {
+      const ta = DateTime.fromISO(a.date)
+      const tb = DateTime.fromISO(b.date)
+      
+      // Handle invalid dates by putting them at the end
+      if (!ta.isValid && !tb.isValid) return 0
+      if (!ta.isValid) return 1
+      if (!tb.isValid) return -1
+      
+      return ta.toMillis() - tb.toMillis()
     })
 
-    // Map to display-friendly labels
-    const mapped = sorted.map((d: { date: string; cumulative: number }, index: number) => {
-      const dt = new Date(d.date)
+    // Map to display-friendly labels with robust value handling
+    const mapped: Array<{ time: string; value: number; positiveValue: number | null; negativeValue: number | null; index: number }> = []
+    let runningIndex = 0
+    let prevValue: number | null = null
+    
+    for (const d of sorted) {
+      const dt = DateTime.fromISO(d.date)
       let label: string
-      if (isNaN(dt.getTime())) {
-        // Fallback if date parsing fails
-        label = d.date
+      
+      if (!dt.isValid) {
+        // Fallback for invalid dates
+        label = typeof d.date === 'string' ? d.date.slice(0, 10) : 'Invalid'
       } else {
-        // Format as "MM/dd" (e.g., "01/15")
-        const month = String(dt.getMonth() + 1).padStart(2, '0')
-        const day = String(dt.getDate()).padStart(2, '0')
-        label = `${month}/${day}`
+        // Dynamic date formatting based on data range
+        const daysDiff = sorted.length > 1 ? 
+          Math.abs(DateTime.fromISO(sorted[sorted.length - 1].date).diff(DateTime.fromISO(sorted[0].date), 'days').days) : 0
+        
+        if (daysDiff > 365) {
+          label = dt.toFormat('MM/yy')
+        } else if (daysDiff > 30) {
+          label = dt.toFormat('MM/dd')
+        } else {
+          label = dt.toFormat('MM/dd')
+        }
       }
-      return {
-        time: label,
-        value: Math.round(d.cumulative || 0),
-        index
+      
+      // Robust value handling with bounds checking
+      let value = d.cumulative || 0
+      
+      // Handle extreme values
+      const MAX_SAFE_VALUE = 1e12 // 1 trillion
+      if (Math.abs(value) > MAX_SAFE_VALUE) {
+        value = Math.sign(value) * MAX_SAFE_VALUE
       }
-    })
+      
+      value = Math.round(value * 100) / 100 // Round to 2 decimal places
 
-    // Prepend a synthetic baseline point at $0 one day before the first data point
-    // Hide its tick label by setting an empty label so it doesn't appear on X-axis.
+      // Insert a zero-crossing point to avoid gradient bleed and visual breaks
+      if (prevValue !== null && 
+          Math.abs(prevValue) > 0.01 && 
+          Math.abs(value) > 0.01 && 
+          ((prevValue > 0 && value < 0) || (prevValue < 0 && value > 0))) {
+        mapped.push({
+          time: label,
+          value: 0,
+          positiveValue: 0,
+          negativeValue: 0,
+          index: runningIndex++
+        })
+      }
+
+      mapped.push({
+        time: label,
+        value,
+        positiveValue: value > 0 ? value : null,
+        negativeValue: value < 0 ? value : null,
+        index: runningIndex++
+      })
+      prevValue = value
+    }
+
+    // Handle single data point case
+    if (mapped.length === 1) {
+      // Add a baseline point for single data point
+      const singlePoint = mapped[0]
+      return [
+        { time: '', value: 0, positiveValue: 0, negativeValue: 0, index: -1 },
+        singlePoint
+      ]
+    }
+
+    // Prepend a synthetic baseline point at $0 for multi-point data
     if (sorted.length > 0) {
-      const firstDateStr = sorted[0].date
-      const firstDate = new Date(firstDateStr)
-      if (!isNaN(firstDate.getTime())) {
-        firstDate.setDate(firstDate.getDate() - 1)
-        return [{ time: '', value: 0, index: -1 }, ...mapped]
+      const firstDate = DateTime.fromISO(sorted[0].date)
+      if (firstDate.isValid) {
+        const out = [{ time: '', value: 0, positiveValue: 0, negativeValue: 0, index: -1 }, ...mapped]
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('[CumulativePnlChart] mapped points (with baseline):', out.length)
+        }
+        return out
       }
     }
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[CumulativePnlChart] mapped points:', mapped.length)
+    }
     return mapped
-  }, [rawData])
+  }, [filteredData])
+  
+  // Determine if we should disable animations for performance with dynamic thresholds
+  const shouldAnimate = useMemo(() => {
+    if (!chartData || chartData.length === 0) return true
+    
+    // Disable animations for large datasets or low-end devices
+    const isLargeDataset = chartData.length > 500
+    const isLowEndDevice = typeof navigator !== 'undefined' && 
+      (navigator.hardwareConcurrency <= 2 || (navigator as any).deviceMemory <= 4)
+    
+    return !isLargeDataset && !isLowEndDevice
+  }, [chartData])
+
+  // Precompute X-axis ticks outside JSX to avoid calling Hooks in props
+  const xTicks = useMemo(() => {
+    return chartData.filter(d => d.time).map(d => d.index)
+  }, [chartData])
+
+  // Precompute Y-axis ticks so only labeled lines are rendered (includes $0)
+  const yTicks = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [0]
+    const values = chartData
+      .map(d => d.value)
+      .filter((v): v is number => typeof v === 'number' && isFinite(v))
+    if (values.length === 0) return [0]
+
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+
+    // all zeros
+    if (min === 0 && max === 0) return [-100, -50, 0, 50, 100]
+
+    // single-value band
+    if (min === max) {
+      if (min > 0) return [0, min * 0.25, min * 0.5, min * 0.75, min]
+      if (min < 0) return [min, min * 0.75, min * 0.5, min * 0.25, 0]
+      return [0]
+    }
+
+    // ensure 0 is part of ticks
+    if (min >= 0) {
+      const ymax = max * 1.1
+      const step = ymax / 6
+      return [0, step, step * 2, step * 3, step * 4, step * 5, ymax]
+    }
+    if (max <= 0) {
+      const ymin = min * 1.1
+      const step = Math.abs(ymin) / 6
+      return [ymin, -step * 5, -step * 4, -step * 3, -step * 2, -step, 0]
+    }
+
+    const absMax = Math.max(Math.abs(min), Math.abs(max)) * 1.1
+    const step = absMax / 3
+    return [-absMax, -step * 2, -step, 0, step, step * 2, absMax]
+  }, [chartData])
 
   if (loading) {
     return (
@@ -130,21 +314,34 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               variant="outline" 
               size="sm"
               className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+              aria-label="Select time period for cumulative P&L chart"
             >
-              <span>All time</span>
+              <span>
+                {timeFilter === 'all' ? 'All time' : 
+                 timeFilter === 'month' ? 'Last month' : 'Last week'}
+              </span>
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
           >
-            <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+            <DropdownMenuItem 
+              className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+              onClick={() => setTimeFilter('all')}
+            >
               All time
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+            <DropdownMenuItem 
+              className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+              onClick={() => setTimeFilter('month')}
+            >
               Last month
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+            <DropdownMenuItem 
+              className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+              onClick={() => setTimeFilter('week')}
+            >
               Last week
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -152,11 +349,16 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
       </div>
       
       {/* Chart */}
-      <div className="h-[300px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
+      <div 
+        className="h-[300px] -ml-6 overflow-visible w-full" 
+        style={{ width: 'calc(100% + 24px)' }}
+        role="img"
+        aria-label={`Cumulative P&L chart showing ${chartData.length} data points over ${timeFilter === 'all' ? 'all time' : timeFilter === 'month' ? 'the last month' : 'the last week'}`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 20, right: 15, left: 0, bottom: 20 }}
+            margin={{ top: 20, right: 15, left: 20, bottom: 20 }}
           >
             <defs>
               {/* Green gradient for positive areas */}
@@ -171,8 +373,22 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               </linearGradient>
             </defs>
             
+            {/* Disable built-in horizontal grid to avoid unlabeled lines; we'll draw lines per Y tick below */}
+            <CartesianGrid 
+              strokeDasharray="2 2" 
+              stroke="#d1d5db" 
+              className="dark:stroke-gray-600"
+              horizontal={false}
+              vertical={false}
+              strokeOpacity={0.8}
+            />
+            
             <XAxis 
-              dataKey="time" 
+              dataKey="index" 
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              allowDecimals={false}
+              scale="linear"
               axisLine={false}
               tickLine={false}
               tick={{ 
@@ -185,32 +401,36 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               height={25}
               tickMargin={5}
               tickFormatter={(value) => {
-                // Skip empty labels (baseline point)
-                if (!value || value === '') return ''
-                return value
+                const v = typeof value === 'number' ? value : Number(value)
+                const d = chartData.find(pt => pt.index === v)
+                const label = d?.time || ''
+                // Since we now provide custom ticks (excluding baseline), this should always be non-empty
+                return label
               }}
               interval="preserveStartEnd"
+              tickCount={6}
               minTickGap={20}
+              // Only place ticks where we have labels to avoid unlabeled grid positions
+              ticks={xTicks}
             />
             <YAxis 
               axisLine={false}
               tickLine={false}
               tick={{ 
-                fontSize: 11, 
-                fill: '#9ca3af'
+                fontSize: 12, 
+                fill: '#6b7280',
+                fontWeight: 500
               }}
               className="dark:fill-gray-400"
               tickFormatter={(value) => {
                 if (value === 0) return '$0';
-                return `$${(value/1000).toFixed(1)}k`;
+                return formatCurrency(value);
               }}
-              width={96}
-              tickMargin={8}
-              padding={{ top: 0, bottom: 0 }}
-              domain={([dataMin, dataMax]: [number, number], _allowOverflow: boolean) => [
-                Math.min(0, dataMin),
-                Math.max(0, dataMax)
-              ]}
+              width={80}
+              tickMargin={15}
+              padding={{ top: 10, bottom: 10 }}
+              domain={[Math.min(...yTicks), Math.max(...yTicks)]}
+              ticks={yTicks}
             />
             
             <Tooltip
@@ -218,53 +438,64 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               cursor={false}
             />
             
-            <ReferenceLine y={0} stroke="#d1d5db" strokeDasharray="4 4" strokeWidth={1} />
+            {/* Draw horizontal grid lines explicitly for each labeled Y tick (including $0) */}
+            {yTicks.map((t) => (
+              <ReferenceLine
+                key={`grid-${t}`}
+                y={t}
+                stroke="#d1d5db"
+                strokeDasharray="2 2"
+                strokeOpacity={0.8}
+                ifOverflow="visible"
+              />
+            ))}
             
-            {/* Positive area - only fills between line and zero when line is above zero */}
+            {/* Positive area - clip to line using split series */}
             <Area
-              type="monotone"
-              dataKey={(data) => data.value > 0 ? data.value : 0}
+              type="linear"
+              dataKey="positiveValue"
               stroke="none"
               fill="url(#positiveGradient)"
               fillOpacity={1}
-              connectNulls={true}
-              isAnimationActive={true}
-              animationDuration={1000}
+              connectNulls={false}
+              isAnimationActive={shouldAnimate}
+              animationDuration={shouldAnimate ? 800 : 0}
               animationEasing="ease-in-out"
               baseValue={0}
             />
             
-            {/* Negative area - only fills between line and zero when line is below zero */}
+            {/* Negative area - clip to line using split series */}
             <Area
-              type="monotone"
-              dataKey={(data) => data.value < 0 ? data.value : 0}
+              type="linear"
+              dataKey="negativeValue"
               stroke="none"
               fill="url(#negativeGradient)"
               fillOpacity={1}
-              connectNulls={true}
-              isAnimationActive={true}
-              animationDuration={1000}
+              connectNulls={false}
+              isAnimationActive={shouldAnimate}
+              animationDuration={shouldAnimate ? 800 : 0}
               animationEasing="ease-in-out"
               baseValue={0}
             />
             
-            {/* Main line stroke */}
+            {/* Main line stroke - enhanced styling */}
             <Area
-              type="monotone"
+              type="linear"
               dataKey="value"
-              stroke="#5B2CC9"
-              strokeWidth={2.5}
+              stroke="#693EE0"
+              strokeWidth={2}
               fill="none"
               connectNulls={true}
-              isAnimationActive={true}
-              animationDuration={1200}
-              animationEasing="ease-in-out"
+              isAnimationActive={shouldAnimate}
+              animationDuration={shouldAnimate ? 1200 : 0}
+              animationEasing="ease-out"
               dot={false}
               activeDot={{
-                r: 4,
-                fill: "#5B2CC9",
+                r: 5,
+                fill: "#693EE0",
                 stroke: "#fff",
-                strokeWidth: 2
+                strokeWidth: 3,
+                filter: "drop-shadow(0 2px 4px rgba(105, 62, 224, 0.3))"
               }}
             />
           </AreaChart>

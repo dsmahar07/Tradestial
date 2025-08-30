@@ -50,7 +50,6 @@ import { usePageTitle } from '@/hooks/use-page-title'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { cn } from '@/lib/utils'
-import { TIMEZONE_REGIONS, getCurrentTimezone, formatTimezoneOffset } from '@/utils/timezones'
 
 export default function SettingsPage() {
   usePageTitle('Settings')
@@ -60,35 +59,6 @@ export default function SettingsPage() {
   const [tradeAlerts, setTradeAlerts] = useState(true)
   const [performanceReports, setPerformanceReports] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
-  const localTz = useMemo(() => getCurrentTimezone(), [])
-  const [timezoneOffset, setTimezoneOffset] = useState<number>(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const stored = window.localStorage.getItem('import:timezoneOffsetMinutes')
-        if (stored != null && stored !== '') return parseInt(stored)
-      }
-    } catch {}
-    return localTz.value
-  })
-
-  // Convert timezone offset to select value format (use '::' to preserve negative signs)
-  const selectedValue = useMemo(() => {
-    // Check if it's the local timezone
-    if (timezoneOffset === localTz.value) {
-      return `local::${localTz.value}`
-    }
-
-    // Search through all timezone regions
-    for (const [regionName, timezones] of Object.entries(TIMEZONE_REGIONS)) {
-      const found = timezones.find((tz) => tz.value === timezoneOffset)
-      if (found) {
-        return `${regionName}::${found.value}`
-      }
-    }
-
-    // Fallback
-    return `custom::${timezoneOffset}`
-  }, [timezoneOffset, localTz])
 
   const isDarkMode = theme === 'dark'
 
@@ -221,78 +191,6 @@ export default function SettingsPage() {
                               defaultValue="alex@tradestial.com"
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
                             />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Time Zone
-                            </label>
-                            <Select.Root
-                              value={selectedValue}
-                              onValueChange={(v) => {
-                                // Extract offset from value format: "<group>::<offset>"
-                                const parts = v.split('::')
-                                const last = parts[parts.length - 1]
-                                const parsed = Number.parseInt(last, 10)
-                                const offset = Number.isNaN(parsed) ? localTz.value : parsed
-                                setTimezoneOffset(offset)
-                                try {
-                                  if (typeof window !== 'undefined') {
-                                    window.localStorage.setItem('import:timezoneOffsetMinutes', String(offset))
-                                  }
-                                } catch {}
-                              }}
-                            >
-                              <Select.Trigger className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white flex items-center justify-between focus:outline-none focus:ring-0">
-                                <Select.Value placeholder="Select time zone" className="truncate" />
-                                <Select.Icon className="flex-shrink-0 ml-2" />
-                              </Select.Trigger>
-                              <Select.Portal>
-                                <Select.Content className="bg-white dark:bg-[#171717] border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-1 z-50 max-h-[320px] overflow-auto">
-                                  <Select.ScrollUpButton className="flex items-center justify-center py-1 text-gray-500">
-                                    ▲
-                                  </Select.ScrollUpButton>
-                                  <Select.Viewport>
-                                    {/* Local group to reflect user's current environment */}
-                                    <Select.Group>
-                                      <Select.Label className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Local
-                                      </Select.Label>
-                                      <Select.Item value={`local::${localTz.value}`} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white flex items-center gap-2">
-                                        <Select.ItemIndicator>✓</Select.ItemIndicator>
-                                        <Select.ItemText>
-                                          {localTz.label} — {formatTimezoneOffset(localTz.value)}
-                                        </Select.ItemText>
-                                      </Select.Item>
-                                    </Select.Group>
-                                    <Select.Separator className="h-px my-1 bg-gray-200 dark:bg-gray-700" />
-                                    {/* Region groups */}
-                                    {Object.entries(TIMEZONE_REGIONS).map(([regionName, timezones], idx, arr) => (
-                                      <React.Fragment key={regionName}>
-                                        <Select.Group>
-                                          <Select.Label className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {regionName}
-                                          </Select.Label>
-                                          {timezones.map((tz) => (
-                                            <Select.Item key={`${regionName}-${tz.label}`} value={`${regionName}::${tz.value}`} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white flex items-center gap-2">
-                                              <Select.ItemIndicator>✓</Select.ItemIndicator>
-                                              <Select.ItemText>
-                                                {tz.label} — {formatTimezoneOffset(tz.value)}
-                                              </Select.ItemText>
-                                            </Select.Item>
-                                          ))}
-                                        </Select.Group>
-                                        {idx < arr.length - 1 && (
-                                          <Select.Separator className="h-px my-1 bg-gray-200 dark:bg-gray-700" />
-                                        )}
-                                      </React.Fragment>
-                                    ))}
-                                  </Select.Viewport>
-                                  <Select.ScrollDownButton className="flex items-center justify-center py-1 text-gray-500">
-                                    ▼
-                                  </Select.ScrollDownButton>
-                                </Select.Content>
-                              </Select.Portal>
-                            </Select.Root>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

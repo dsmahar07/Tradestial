@@ -195,8 +195,11 @@ export class ReactiveAnalyticsService {
    * Get specific chart data with caching
    */
   async getChartData(chartType: string, config?: any): Promise<any[]> {
+    // Bump cache version for specific chart types when data model changes
+    const dataVersion = chartType === 'cumulativePnL' ? 'v2-per-trade' : 'v1'
     const cacheKey = AnalyticsCacheService.generateCacheKey('chart', {
       chartType,
+      dataVersion,
       filter: this.state.activeFilters,
       tradeCount: this.state.trades.length,
       customId: JSON.stringify(config)
@@ -266,17 +269,32 @@ export class ReactiveAnalyticsService {
    */
   async waitForDataPreparation(): Promise<void> {
     const maxWaitTime = 30000 // 30 seconds timeout
+    const idleStabilizeMs = 250 // allow brief stabilization after last progress
     const startTime = Date.now()
-    
-    while (this.state.loading || this.calculationQueue.length > 0 || this.activeCalculations > 0) {
+    let lastProgress = Date.now()
+    let lastTotals = { queued: this.totalQueued, processed: this.totalProcessed }
+
+    while (this.calculationQueue.length > 0 || this.activeCalculations > 0) {
       if (Date.now() - startTime > maxWaitTime) {
         console.warn('Data preparation timed out after 30 seconds')
         break
       }
-      
+
+      // progress detection
+      if (this.totalQueued !== lastTotals.queued || this.totalProcessed !== lastTotals.processed) {
+        lastTotals = { queued: this.totalQueued, processed: this.totalProcessed }
+        lastProgress = Date.now()
+        if (this.config.debug) console.debug('[ReactiveAnalytics] waitForDataPreparation progress', lastTotals)
+      }
+
+      // If we've been idle for a short window and no active/queued, exit early
+      if (this.calculationQueue.length === 0 && this.activeCalculations === 0 && Date.now() - lastProgress >= idleStabilizeMs) {
+        break
+      }
+
       await new Promise(resolve => setTimeout(resolve, 100))
     }
-    
+
     // Ensure all common chart data is pre-calculated
     const commonChartTypes = [
       'dailyPnL', 'cumulativePnL', 'equityCurve', 'dailyDrawdown',
@@ -690,10 +708,38 @@ export class ReactiveAnalyticsService {
   private async recalculateAll(): Promise<void> {
     // Do not wrap this in queueCalculation to avoid nested queue deadlocks.
     // Each called method already enqueues its own calculation work.
-    await this.recalculateFiltered()
-    await this.recalculateMetrics()
-    await this.recalculateAggregations()
-    await this.recalculateChartData()
+    // Be resilient to timeouts/errors in individual steps; continue to next.
+    try {
+      await this.recalculateFiltered()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateFiltered failed in recalculateAll', message)
+      this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'filter', message } })
+    }
+
+    try {
+      await this.recalculateMetrics()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateMetrics failed in recalculateAll', message)
+      this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'metrics', message } })
+    }
+
+    try {
+      await this.recalculateAggregations()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateAggregations failed in recalculateAll', message)
+      this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'aggregations', message } })
+    }
+
+    try {
+      await this.recalculateChartData()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateChartData failed in recalculateAll', message)
+      this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'charts', message } })
+    }
   }
 
   private async recalculateFiltered(): Promise<void> {
@@ -1321,7 +1367,11 @@ export class ReactiveAnalyticsService {
     const dailyGroups: Record<string, number> = {}
     
     for (const trade of trades) {
-      const date = trade.openDate.split('T')[0]
+      // Prefer closeDate for realized PnL timing; fallback to openDate
+      const iso = (trade.closeDate || trade.openDate || '').trim()
+      if (!iso) continue
+      const date = iso.split('T')[0]
+      if (!date) continue
       dailyGroups[date] = (dailyGroups[date] || 0) + trade.netPnl
     }
 
@@ -1331,13 +1381,25 @@ export class ReactiveAnalyticsService {
   }
 
   private calculateCumulativePnLData(trades: Trade[]): Array<{ date: string; cumulative: number }> {
-    const dailyPnL = this.calculateDailyPnLData(trades)
+    // Accumulate per trade to ensure a point for every trade, avoiding per-day collapsing
+    const sorted = [...trades]
+      .filter(t => (t.closeDate || t.openDate))
+      .sort((a, b) => {
+        const aIso = (a.closeDate || a.openDate) as string
+        const bIso = (b.closeDate || b.openDate) as string
+        return aIso.localeCompare(bIso)
+      })
+
     let cumulative = 0
-    
-    return dailyPnL.map(day => {
-      cumulative += day.pnl
-      return { date: day.date, cumulative }
-    })
+    const out: Array<{ date: string; cumulative: number }> = []
+    for (const t of sorted) {
+      cumulative += t.netPnl
+      const iso = (t.closeDate || t.openDate) as string
+      // Use just date portion if ISO-like, else fallback to full string
+      const date = iso.includes('T') ? iso.split('T')[0] : iso
+      out.push({ date, cumulative })
+    }
+    return out
   }
 
   // Equity curve as cumulative P&L over time (alias with clearer key)

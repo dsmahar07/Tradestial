@@ -409,6 +409,14 @@ export class DataStore {
   static clearData(): void {
     this.trades = []
     this.startingBalance = 10000
+    // Remove persisted trades so data doesn't reappear after reload
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(this.TRADES_STORAGE_KEY)
+      } catch (error) {
+        console.warn('DataStore: Failed to clear persisted trades:', error)
+      }
+    }
     this.notifyListeners()
   }
 

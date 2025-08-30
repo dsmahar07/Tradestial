@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useId } from 'react'
 import { 
   ArrowLeftIcon, 
   ChevronLeftIcon,
@@ -358,7 +358,6 @@ export default function TrackerPage() {
     router.back()
   }
 
-
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files) {
@@ -488,6 +487,44 @@ export default function TrackerPage() {
       </div>
     </div>
   )
+
+  // Build chart-ready data for Running P&L with numeric X-axis, zero-crossings and split pos/neg
+  const runningChartData = useMemo(() => {
+    if (!runningPnlData || runningPnlData.length === 0) return [] as Array<{ idx: number; label: string; value: number; pos: number | null; neg: number | null }>
+    const base = runningPnlData.map((d, i) => {
+      let v = Number((d as any).value || 0)
+      if (Object.is(v, -0)) v = 0
+      return { idx: i, label: (d as any).time ?? String(i), value: v }
+    })
+    const expanded: Array<{ idx: number; label: string; value: number }> = []
+    for (let i = 0; i < base.length; i++) {
+      const cur = base[i]
+      const prev = i > 0 ? base[i - 1] : undefined
+      if (prev) {
+        const s1 = Math.sign(prev.value)
+        const s2 = Math.sign(cur.value)
+        if (s1 !== 0 && s2 !== 0 && s1 !== s2) {
+          const dv = cur.value - prev.value
+          const di = cur.idx - prev.idx || 1
+          const t = Math.abs(prev.value) / Math.abs(dv)
+          const xi = prev.idx + t * di
+          expanded.push({ idx: xi, label: cur.label, value: 0 })
+        }
+      }
+      expanded.push(cur)
+    }
+    return expanded
+      .sort((a, b) => a.idx - b.idx)
+      .map(p => {
+        if (p.value === 0) return { ...p, pos: 0 as number, neg: 0 as number }
+        return { ...p, pos: p.value > 0 ? p.value : (null as unknown as number), neg: p.value < 0 ? p.value : (null as unknown as number) }
+      })
+  }, [runningPnlData])
+
+  // Unique gradient IDs per chart instance to avoid collisions
+  const chartUid = useId()
+  const posGradId = `tracker-pos-${chartUid}`
+  const negGradId = `tracker-neg-${chartUid}`
 
   return (
     <div className="flex min-h-screen">
@@ -839,110 +876,94 @@ export default function TrackerPage() {
 
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={runningPnlData}
-                      margin={{ top: 5, right: 15, left: 0, bottom: 25 }}
-                    >
+                    <AreaChart data={runningChartData} margin={{ top: 5, right: 15, left: 0, bottom: 25 }}>
                       <defs>
                         {/* Green gradient for positive areas */}
-                        <linearGradient id="positiveGradient" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id={posGradId} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#10b981" stopOpacity={0.4}/>
                           <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
                         </linearGradient>
                         {/* Red gradient for negative areas */}
-                        <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id={negGradId} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#ef4444" stopOpacity={0.05}/>
                           <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
                         </linearGradient>
                       </defs>
                       
                       <XAxis 
-                        dataKey="time" 
+                        type="number"
+                        dataKey="idx" 
+                        domain={["dataMin", "dataMax"]}
+                        allowDecimals={false}
+                        scale="linear"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 11, fill: '#9ca3af' }}
+                        tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 600 }}
+                        className="dark:fill-gray-400"
+                        padding={{ left: 0, right: 0 }}
                         height={25}
                         tickMargin={5}
+                        tickFormatter={(value) => {
+                          const v = typeof value === 'number' ? value : Number(value)
+                          const d = runningChartData.find(pt => pt.idx === v)
+                          const label = d?.label || ''
+                          return label
+                        }}
+                        interval="preserveStartEnd"
+                        tickCount={6}
+                        minTickGap={20}
                       />
                       <YAxis 
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        tick={{ fontSize: 11, fill: '#9ca3af' }}
+                        className="dark:fill-gray-400"
                         tickFormatter={(value) => {
                           if (value === 0) return '$0';
-                          return `$${(value/1000).toFixed(1)}k`;
+                          return `$${(Number(value)/1000).toFixed(1)}k`;
                         }}
-                        width={55}
+                        width={60}
+                        tickMargin={8}
+                        padding={{ top: 0, bottom: 0 }}
+                        domain={([dataMin, dataMax]: [number, number]) => [
+                          Math.min(0, dataMin),
+                          Math.max(0, dataMax)
+                        ]}
                       />
                       
                       <ReferenceLine y={0} stroke="#d1d5db" strokeDasharray="4 4" strokeWidth={1} />
                       
                       <Tooltip
-                        content={({ active, payload, label }) => {
+                        cursor={false}
+                        content={({ active, payload }: any) => {
                           if (active && payload && payload.length) {
-                            const value = payload.find(p => p.dataKey === 'value')?.value
-                            if (value !== undefined) {
+                            const p = payload.find((pp: any) => pp.dataKey === 'value') || payload[0]
+                            const value = p?.value ?? p?.payload?.value
+                            if (value === undefined || value === null) {
                               return (
-                                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm">
-                                  <p className="font-medium text-gray-900 dark:text-white mb-1">{label}</p>
-                                  <p className={`font-bold ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    P&L: ${value >= 0 ? '+' : ''}${value.toFixed(2)}
-                                  </p>
+                                <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                                  <div className="font-semibold text-gray-500">No data</div>
                                 </div>
                               )
                             }
+                            const vNum = Number(value)
+                            const formatted = vNum >= 0 ? `$${vNum.toLocaleString()}` : `-$${Math.abs(vNum).toLocaleString()}`
+                            return (
+                              <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                                <div className={`font-semibold ${vNum >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatted}</div>
+                              </div>
+                            )
                           }
                           return null
                         }}
                       />
                       
-                      {/* Positive area - only fills between line and zero when line is above zero */}
-                      <Area
-                        type="monotone"
-                        dataKey={(data) => data.value > 0 ? data.value : 0}
-                        stroke="none"
-                        fill="url(#positiveGradient)"
-                        fillOpacity={1}
-                        connectNulls={true}
-                        isAnimationActive={true}
-                        animationDuration={1000}
-                        animationEasing="ease-in-out"
-                        baseValue={0}
-                      />
-                      
-                      {/* Negative area - only fills between line and zero when line is below zero */}
-                      <Area
-                        type="monotone"
-                        dataKey={(data) => data.value < 0 ? data.value : 0}
-                        stroke="none"
-                        fill="url(#negativeGradient)"
-                        fillOpacity={1}
-                        connectNulls={true}
-                        isAnimationActive={true}
-                        animationDuration={1000}
-                        animationEasing="ease-in-out"
-                        baseValue={0}
-                      />
-                      
-                      {/* Main line stroke */}
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#4C25A7"
-                        strokeWidth={2.5}
-                        fill="none"
-                        connectNulls={true}
-                        isAnimationActive={true}
-                        animationDuration={1200}
-                        animationEasing="ease-in-out"
-                        dot={false}
-                        activeDot={{
-                          r: 4,
-                          fill: "#4C25A7",
-                          stroke: "#fff",
-                          strokeWidth: 2
-                        }}
-                      />
+                      {/* Stroke line */}
+                      <Area type="linear" dataKey="value" stroke="#5B2CC9" strokeWidth={2.5} fill="none" connectNulls isAnimationActive animationDuration={1200} animationEasing="ease-in-out" dot={false} activeDot={{ r: 4, fill: '#5B2CC9', stroke: '#fff', strokeWidth: 2 }} />
+                      {/* Positive fill */}
+                      <Area type="linear" dataKey="pos" strokeOpacity={0} fill={`url(#${posGradId})`} baseValue={0 as any} activeDot={false} dot={false} />
+                      {/* Negative fill */}
+                      <Area type="linear" dataKey="neg" strokeOpacity={0} fill={`url(#${negGradId})`} baseValue={0 as any} activeDot={false} dot={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>

@@ -6,6 +6,8 @@ import { Button } from './button'
 import { cn } from '@/lib/utils'
 import { SemicircularGauge } from './semicircular-gauge'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, RadialBarChart, RadialBar, Tooltip } from 'recharts'
+import { useState, useEffect } from 'react'
+import { DataStore } from '@/services/data-store.service'
 
 interface GaugeData {
   name: string
@@ -36,6 +38,9 @@ interface AnalyticsCardProps {
   pieChartData?: GaugeData[]
   showVerticalBars?: boolean
   verticalBarsData?: GaugeData[]
+  showCustomContent?: boolean
+  customContent?: React.ReactNode
+  tradeCount?: number
 }
 
 export function AnalyticsCard({ 
@@ -60,8 +65,22 @@ export function AnalyticsCard({
   showFullPieChart = false,
   pieChartData = [],
   showVerticalBars = false,
-  verticalBarsData = []
+  verticalBarsData = [],
+  showCustomContent = false,
+  customContent
 }: AnalyticsCardProps) {
+  const [localTradeCount, setLocalTradeCount] = useState(() => DataStore.getAllTrades().length)
+  
+  // Subscribe to data changes to update trade count
+  useEffect(() => {
+    if (title === "NET PNL") {
+      const unsubscribe = DataStore.subscribe(() => {
+        setLocalTradeCount(DataStore.getAllTrades().length)
+      })
+      return unsubscribe
+    }
+  }, [title])
+  
   const isPositive = change > 0
   // Convert hex color to rgba with controllable alpha
   const hexToRgba = (hex: string, alpha: number) => {
@@ -88,7 +107,7 @@ export function AnalyticsCard({
       transition={{ duration: 0.5, delay }}
     >
       <div className={cn(
-        "bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-white",
+        "bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-white relative",
         className
       )}>
         <div className="flex items-center justify-between mb-4">
@@ -125,18 +144,18 @@ export function AnalyticsCard({
           </div>
           
           {showSemicircularIndicator && gaugeData.length > 0 && (
-            <div className="absolute -top-2 right-0 scale-105 origin-top-right">
+            <div className="absolute -top-8 right-0 scale-105 origin-top-right">
               <div className="relative">
-                <ResponsiveContainer width={120} height={80}>
+                <ResponsiveContainer width={120} height={100}>
                   <PieChart>
                     <Pie
                       data={gaugeData}
                       cx={60}
-                      cy={60}
+                      cy={50}
                       startAngle={180}
                       endAngle={0}
                       innerRadius={25}
-                      outerRadius={50}
+                      outerRadius={42}
                       fill="#8884d8"
                       paddingAngle={2}
                       dataKey="value"
@@ -164,6 +183,42 @@ export function AnalyticsCard({
                     />
                   </PieChart>
                 </ResponsiveContainer>
+                {/* Trade count labels */}
+                <div className="absolute bottom-0 left-8 right-4 flex justify-between items-center">
+                  <div className="text-center relative group" style={{ transform: 'translateX(-10px)' }}>
+                    <div 
+                      className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
+                      style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.15)', padding: '2px 5px', fontSize: '10px', lineHeight: '1' }}
+                    >
+                      {gaugeData[0]?.value || 0}
+                    </div>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      Winning Trades
+                    </div>
+                  </div>
+                  <div className="text-center relative group" style={{ transform: 'translateX(-4px)' }}>
+                    <div 
+                      className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
+                      style={{ color: '#693EE0', backgroundColor: 'rgba(105, 62, 224, 0.15)', padding: '2px 5px', fontSize: '10px', lineHeight: '1' }}
+                    >
+                      {gaugeData[1]?.value || 0}
+                    </div>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      Breakeven Trades
+                    </div>
+                  </div>
+                  <div className="text-center relative group">
+                    <div 
+                      className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
+                      style={{ color: '#FB3748', backgroundColor: 'rgba(251, 55, 72, 0.15)', padding: '2px 5px', fontSize: '10px', lineHeight: '1' }}
+                    >
+                      {gaugeData[2]?.value || 0}
+                    </div>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      Losing Trades
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -343,6 +398,34 @@ export function AnalyticsCard({
             </button>
           </div>
         </div>
+        
+        {/* Custom Content */}
+        {showCustomContent && customContent && (
+          <>
+            {customContent}
+          </>
+        )}
+        
+        {/* Trade Count - Only show for NET PNL card */}
+        {title === "NET PNL" && (
+          <div className="absolute bottom-2 right-2 z-10">
+            <div 
+              className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity relative group" 
+              style={{ 
+                color: '#693EE0',
+                backgroundColor: 'rgba(105, 62, 224, 0.15)',
+                padding: '2px 6px', 
+                fontSize: '10px', 
+                lineHeight: '1' 
+              }}
+            >
+              {localTradeCount}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                Total Trades
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   )

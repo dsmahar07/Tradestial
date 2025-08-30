@@ -1,4 +1,5 @@
 import { Trade } from './trade-data.service'
+import { convertToUTC } from '@/utils/timezones'
 
 /**
  * Comprehensive data parsing and validation service
@@ -58,7 +59,12 @@ export class DataParserService {
       'DD/MM/YYYY',
       'YYYY/MM/DD',
       'MMM DD, YYYY',
-      'MMMM DD, YYYY'
+      'MMMM DD, YYYY',
+      // Common datetime formats (accepted in validation only)
+      'MM/DD/YYYY HH:mm',
+      'MM/DD/YYYY HH:mm:ss',
+      'YYYY-MM-DDTHH:mm',
+      'YYYY-MM-DDTHH:mm:ss'
     ],
     numberFields: [
       'netPnl', 'grossPnl', 'entryPrice', 'exitPrice', 'netRoi',
@@ -453,10 +459,9 @@ export class DataParserService {
       return isNaN(num) ? trimmed : num
     }
 
-    // Date fields
-    if (field.includes('date') || field.includes('time')) {
-      const ymd = this.parseDateToLocalYMD(trimmed, parseOptions)
-      return ymd || trimmed
+    // Date and datetime fields - convert to UTC
+    if (field.includes('date') || field.includes('time') || field.includes('timestamp')) {
+      return this.parseDateTimeToUTC(trimmed, parseOptions)
     }
 
     // Array fields (tags, etc.)
@@ -555,6 +560,41 @@ export class DataParserService {
   }
 
   /**
+   * Parse datetime string and convert to UTC
+   */
+  private static parseDateTimeToUTC(
+    datetimeString: string,
+    parseOptions?: { preferredDateFormat?: string; timezoneOffsetMinutes?: number }
+  ): string {
+    if (!datetimeString) return new Date().toISOString().split('T')[0]
+    
+    const trimmed = datetimeString.trim()
+    const timezoneOffset = parseOptions?.timezoneOffsetMinutes ?? 0
+    
+    // If timezone offset is provided, convert to UTC
+    if (timezoneOffset !== 0) {
+      try {
+        const utcIsoString = convertToUTC(trimmed, timezoneOffset)
+        
+        // For date-only fields, return just the date part
+        if (!trimmed.includes(':') && !trimmed.includes('T')) {
+          return utcIsoString.split('T')[0]
+        }
+        
+        // For datetime fields, return the full ISO string
+        return utcIsoString
+      } catch (error) {
+        console.warn('Failed to convert datetime to UTC:', error, { datetimeString: trimmed, timezoneOffset })
+        // Fall back to local parsing
+      }
+    }
+    
+    // Fallback to local parsing for date-only values
+    const localDate = this.parseDateToLocalYMD(trimmed, parseOptions)
+    return localDate || trimmed
+  }
+
+  /**
    * Parse date with multiple format support and timezone handling
    */
   private static parseDateToLocalYMD(
@@ -640,7 +680,17 @@ export class DataParserService {
    */
   private static isValidDate(value: any): boolean {
     if (!value) return false
-    const ymd = this.parseDateToLocalYMD(String(value))
-    return !!ymd
+    const s = String(value).trim()
+    // If our standard parser can handle it, it's valid
+    const ymd = this.parseDateToLocalYMD(s)
+    if (ymd) return true
+    // Accept common datetime formats without converting them here
+    // MM/DD/YYYY HH:mm or HH:mm:ss
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return true
+    // YYYY-MM-DDTHH:mm or HH:mm:ss (ISO local)
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(s)) return true
+    // YYYY-MM-DD HH:mm or HH:mm:ss (space separated)
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(s)) return true
+    return false
   }
 }

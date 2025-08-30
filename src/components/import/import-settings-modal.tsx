@@ -5,13 +5,14 @@ import * as Select from '@radix-ui/react-select'
 import { X, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { TIMEZONE_REGIONS, getCurrentTimezone, formatTimezoneOffset } from '@/utils/timezones'
+import { TIMEZONE_REGIONS, getCurrentTimezone, formatTimezoneOffset, getBrokerTimezoneDefault } from '@/utils/timezones'
 
 interface ImportSettingsModalProps {
   open: boolean
   onClose: () => void
   onConfirm: (settings: ImportSettings) => void
   isProcessing?: boolean
+  detectedBroker?: string
 }
 
 export interface ImportSettings {
@@ -25,9 +26,12 @@ const dateFormats = [
   { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
 ]
 
-export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = false }: ImportSettingsModalProps) {
+export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = false, detectedBroker }: ImportSettingsModalProps) {
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
-  const [timezoneOffset, setTimezoneOffset] = useState(getCurrentTimezone().value)
+  const [timezoneOffset, setTimezoneOffset] = useState(() => {
+    // Use broker-specific default if available, otherwise user's current timezone
+    return detectedBroker ? getBrokerTimezoneDefault(detectedBroker) : getCurrentTimezone().value
+  })
 
   const selectedTimezone = Object.values(TIMEZONE_REGIONS)
     .flat()
@@ -102,6 +106,12 @@ export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = f
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Timezone
               </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                {detectedBroker 
+                  ? `Select the timezone your ${detectedBroker} data was exported in. This will convert all timestamps to UTC for storage.`
+                  : 'Select the timezone your CSV timestamps are in. All trades will be stored in UTC and displayed in your local timezone.'
+                }
+              </p>
               <Select.Root value={String(timezoneOffset)} onValueChange={(value) => setTimezoneOffset(parseInt(value))}>
                 <Select.Trigger className="w-full h-10 px-3 py-2 text-sm bg-white dark:bg-[#171717] border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between">
                   <Select.Value>

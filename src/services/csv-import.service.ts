@@ -7,6 +7,8 @@ import { Trade } from './trade-data.service'
 import { DataParserService, ParsedTradeData } from './data-parser.service'
 import { ReactiveAnalyticsService } from './reactive-analytics.service'
 import { AnalyticsCacheService } from './analytics-cache.service'
+import { calculateTradeDuration } from '@/utils/duration'
+import { getBrokerTimezoneDefault } from '@/utils/timezones'
 
 export interface BrokerConfig {
   id: string
@@ -104,24 +106,46 @@ export class CSVImportService {
         }
       }
       
-      // Detect broker if not specified
-      const detectedBroker = brokerId || this.detectBroker(csvContent)
-      const brokerConfig = this.brokerConfigs.get(detectedBroker)
+      // Detect broker from headers, and auto-fallback if user preselected mismatched broker
+      const detectedFromHeaders = this.detectBroker(csvContent)
+      let effectiveBroker = brokerId || detectedFromHeaders
+      const extraWarnings: string[] = []
+
+      // If user selected a broker but headers strongly indicate another known broker, auto-switch
+      if (brokerId && detectedFromHeaders !== 'generic' && detectedFromHeaders !== brokerId) {
+        // Suppress warning for the intended Tradovate form flow where Performance.csv is expected
+        const suppressWarning = false // No longer needed since we use single tradovate config
+        if (!suppressWarning) {
+          extraWarnings.push(
+            `Uploaded CSV appears to be "${detectedFromHeaders}" format based on headers. ` +
+            `Automatically switching from "${brokerId}" to ensure correct parsing.`
+          )
+        }
+        effectiveBroker = detectedFromHeaders
+      }
+
+      const brokerConfig = this.brokerConfigs.get(effectiveBroker)
 
       if (!brokerConfig) {
         return {
           success: false,
           trades: [],
-          errors: [`Unsupported broker: ${detectedBroker}. Please use manual field mapping.`],
+          errors: [`Unsupported broker: ${effectiveBroker}. Please use manual field mapping.`],
           warnings: [],
           metadata: {
-            broker: detectedBroker,
+            broker: effectiveBroker,
             originalRowCount: 0,
             processedRowCount: 0,
             skippedRowCount: 0,
             parseTime: 0
           }
         }
+      }
+
+      // Apply broker-specific timezone default if not provided
+      const finalParseOptions = {
+        ...parseOptions,
+        timezoneOffsetMinutes: parseOptions?.timezoneOffsetMinutes ?? getBrokerTimezoneDefault(effectiveBroker)
       }
 
       // Parse CSV with broker-specific configuration
@@ -131,11 +155,14 @@ export class CSVImportService {
           required: brokerConfig.validation.required,
           optional: brokerConfig.validation.optional
         },
-        parseOptions
+        finalParseOptions
       )
 
       // Transform parsed data to Trade format
       const trades = this.transformToTrades(parseResult.trades, brokerConfig, customMapping)
+
+      // Lightweight post-import verification (sanity checks)
+      const verificationWarnings = this.verifyCalculations(trades, brokerConfig.id)
 
       // Update reactive analytics system
       await this.updateAnalytics(trades)
@@ -147,7 +174,7 @@ export class CSVImportService {
         success: parseResult.errors.length === 0,
         trades,
         errors: parseResult.errors.map(e => e.message),
-        warnings: parseResult.warnings.map(w => w.message),
+        warnings: [...extraWarnings, ...parseResult.warnings.map(w => w.message), ...verificationWarnings],
         metadata: {
           broker: brokerConfig.name,
           originalRowCount: parseResult.metadata.totalRows,
@@ -222,51 +249,69 @@ export class CSVImportService {
   // Private methods
 
   private static initializeBrokerConfigs(): void {
-    // Tradovate Configuration
+    // Tradovate Configuration (Performance.csv format)
     this.brokerConfigs.set('tradovate', {
       id: 'tradovate',
       name: 'Tradovate',
       fieldMappings: {
-        'Position ID': 'id',
-        'Trade Date': 'openDate',
-        'Contract': 'symbol',
-        'Product': 'symbol', // Fallback
-        'P/L': 'netPnl',
-        'Paired Qty': 'contractsTraded',
-        'Buy Price': 'entryPrice',
-        'Sell Price': 'exitPrice',
-        'Bought Timestamp': 'entryTime',
-        'Sold Timestamp': 'exitTime',
-        'Account': 'accountName',
-        'Product Description': 'instrument'
+        'symbol': 'symbol',
+        'qty': 'contractsTraded',
+        'buyPrice': 'entryPrice',
+        'sellPrice': 'exitPrice',
+        'pnl': 'netPnl',
+        'duration': 'duration',
+        'boughtTimestamp': 'openDate',
+        'soldTimestamp': 'closeDate'
       },
-      dateFormat: 'MM/DD/YYYY',
+      dateFormat: 'YYYY-MM-DD',
       transformations: {
-        'P/L': (value: string) => parseFloat(value.replace(/,/g, '')) || 0,
-        'Trade Date': (value: string) => {
-          // Convert YYYY-MM-DD to standard format
-          return value
+        'symbol': (value: string) => String(value || '').toUpperCase(),
+        'qty': (value: string) => {
+          const n = parseInt(String(value).replace(/[^0-9-]/g, ''), 10)
+          return isNaN(n) ? 1 : n
         },
-        'Bought Timestamp': (value: string) => {
-          // Extract time from MM/DD/YYYY HH:mm:ss
-          const timePart = value.split(' ')[1]
-          return timePart || value
+        'buyPrice': (value: string) => {
+          const n = parseFloat(String(value).replace(/[$,]/g, ''))
+          return isNaN(n) ? undefined : n
         },
-        'Sold Timestamp': (value: string) => {
-          // Extract time from MM/DD/YYYY HH:mm:ss
-          const timePart = value.split(' ')[1]
-          return timePart || value
+        'sellPrice': (value: string) => {
+          const n = parseFloat(String(value).replace(/[$,]/g, ''))
+          return isNaN(n) ? undefined : n
         },
-        'Contract': (value: string) => {
-          // Extract base symbol from futures contract (NQU5 -> NQ)
-          return value.replace(/[UMZ]\d+$/, '') // Remove month/year suffix
+        'pnl': (value: string) => {
+          const cleaned = String(value).replace(/[$,]/g, '').replace(/[()]/g, '-')
+          const n = parseFloat(cleaned)
+          return isNaN(n) ? 0 : n
+        },
+        'boughtTimestamp': (value: string) => {
+          const v = String(value).trim()
+          const datePart = v.split(/[T\s]/)[0]
+          if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart
+          const mdy = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+          if (mdy) {
+            const m = mdy[1].padStart(2, '0'); const d = mdy[2].padStart(2, '0'); const y = mdy[3]
+            return `${y}-${m}-${d}`
+          }
+          return v
+        },
+        'soldTimestamp': (value: string) => {
+          const v = String(value).trim()
+          const datePart = v.split(/[T\s]/)[0]
+          if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart
+          const mdy = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+          if (mdy) {
+            const m = mdy[1].padStart(2, '0'); const d = mdy[2].padStart(2, '0'); const y = mdy[3]
+            return `${y}-${m}-${d}`
+          }
+          return v
         }
       },
       validation: {
-        required: ['Position ID', 'Trade Date', 'P/L', 'Contract'],
-        optional: ['Paired Qty', 'Buy Price', 'Sell Price', 'Bought Timestamp', 'Sold Timestamp', 'Account']
+        required: ['symbol', 'pnl', 'boughtTimestamp'],
+        optional: ['qty', 'buyPrice', 'sellPrice', 'soldTimestamp', 'duration']
       }
     })
+
 
     // NinjaTrader Configuration
     this.brokerConfigs.set('ninjatrader', {
@@ -325,9 +370,18 @@ export class CSVImportService {
   private static detectBroker(csvContent: string): string {
     const firstLine = csvContent.split('\n')[0].toLowerCase()
 
-    // Tradovate detection - unique fields
-    if (firstLine.includes('position id') && firstLine.includes('pair id') && firstLine.includes('bought timestamp')) {
+    // Tradovate detection - Performance.csv format (new standard)
+    if (
+      firstLine.includes('symbol') &&
+      firstLine.includes('pnl') &&
+      (firstLine.includes('boughttimestamp') || firstLine.includes('bought timestamp'))
+    ) {
       return 'tradovate'
+    }
+
+    // Legacy Tradovate detection - old format (keep for backward compatibility)
+    if (firstLine.includes('position id') && firstLine.includes('pair id') && firstLine.includes('bought timestamp')) {
+      return 'tradovate_legacy'
     }
 
     // NinjaTrader detection
@@ -414,6 +468,28 @@ export class CSVImportService {
           usedIds.add(uniqueId)
         }
 
+        // Preserve intraday times for Tradovate CSVs
+        if (brokerConfig.id === 'tradovate') {
+          const bt = String(row['boughtTimestamp'] || row['Bought Timestamp'] || '').trim()
+          const st = String(row['soldTimestamp'] || row['Sold Timestamp'] || '').trim()
+          const timeOf = (v: string): string | undefined => {
+            if (!v) return undefined
+            // extract time component if present
+            const parts = v.split(/[T\s]/)
+            if (parts.length >= 2) {
+              const time = parts[1].trim()
+              // ensure HH:mm or HH:mm:ss
+              const m = time.match(/^(\d{1,2}:\d{2})(?::\d{2})?/) 
+              return m ? m[0] : undefined
+            }
+            return undefined
+          }
+          const et = timeOf(bt)
+          const xt = timeOf(st)
+          if (et) trade.entryTime = et
+          if (xt) trade.exitTime = xt
+        }
+
         // Set derived fields
         this.setDerivedFields(trade, brokerConfig.id)
 
@@ -454,6 +530,24 @@ export class CSVImportService {
     // Set default values
     trade.contractsTraded = trade.contractsTraded || 1
     trade.side = trade.side || 'LONG' // Default assumption
+
+    // Compute and set human-readable trade duration if possible
+    // Skip calculation if duration is already provided from CSV (e.g., Tradovate Performance.csv)
+    if (!trade.duration) {
+      try {
+        const duration = calculateTradeDuration(
+          trade.entryTime,
+          trade.exitTime,
+          trade.openDate,
+          trade.closeDate
+        )
+        if (duration && duration.formatted) {
+          trade.duration = duration.formatted
+        }
+      } catch (err) {
+        console.debug('Duration computation failed for trade', { id: trade.id, err })
+      }
+    }
   }
 
   private static validateTradeData(trade: Partial<Trade>, brokerConfig: BrokerConfig): boolean {
@@ -515,5 +609,43 @@ export class CSVImportService {
 
     result.push(current.trim())
     return result
+  }
+
+  // Verify basic calculation consistency and surface warnings (non-blocking)
+  private static verifyCalculations(trades: Trade[], brokerId: string): string[] {
+    const warnings: string[] = []
+    if (!trades || trades.length === 0) return warnings
+
+    // 1) NaN or undefined netPnl check
+    const invalidPnl = trades.filter(t => typeof t.netPnl !== 'number' || Number.isNaN(t.netPnl as any))
+    if (invalidPnl.length > 0) {
+      warnings.push(`Detected ${invalidPnl.length} trade(s) with invalid netPnl. They may be excluded from analytics.`)
+    }
+
+    // 2) Sign consistency between price delta and netPnl when both prices exist
+    const withPrices = trades.filter(t => typeof t.entryPrice === 'number' && typeof t.exitPrice === 'number' && typeof t.netPnl === 'number')
+    if (withPrices.length > 0) {
+      let inconsistent = 0
+      for (const t of withPrices) {
+        const delta = (t.exitPrice as number) - (t.entryPrice as number)
+        const s1 = delta === 0 ? 0 : delta > 0 ? 1 : -1
+        const s2 = (t.netPnl as number) === 0 ? 0 : (t.netPnl as number) > 0 ? 1 : -1
+        if (s1 !== 0 && s2 !== 0 && s1 !== s2) inconsistent++
+      }
+      const ratio = inconsistent / withPrices.length
+      if (ratio > 0.15) {
+        warnings.push(`Approximately ${(ratio*100).toFixed(0)}% of trades have price-vs-P&L sign mismatches. Please verify point values or commissions.`)
+      }
+    }
+
+    // 3) For Tradovate, ensure entry/exit intraday times preserved where present
+    if (brokerId === 'tradovate') {
+      const hadTimes = trades.filter(t => !!t.entryTime || !!t.exitTime).length
+      if (hadTimes === 0) {
+        warnings.push('No entry/exit time components were detected. Ensure timestamps include time (HH:mm or HH:mm:ss).')
+      }
+    }
+
+    return warnings
   }
 }

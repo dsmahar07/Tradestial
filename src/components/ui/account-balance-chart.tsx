@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
+import { accountService } from '@/services/account.service'
 import { motion } from 'framer-motion'
 import { ChevronDown, Info } from 'lucide-react'
 import { Button } from './button'
+import { formatDisplayTime, getDisplayTimezone } from '@/utils/display-time'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,11 +31,12 @@ interface AccountBalanceData {
 }
 
 interface AccountBalanceChartProps {
-  className?: string
-  data?: AccountBalanceData[]
-  title?: string
-  timeRanges?: string[]
-  height?: number
+  className?: string;
+  accountId?: string; // Add accountId to fetch specific account data
+  data?: AccountBalanceData[];
+  title?: string;
+  timeRanges?: string[];
+  height?: number;
 }
 
 const defaultData: AccountBalanceData[] = [
@@ -53,6 +56,7 @@ const defaultTimeRanges = ['1D', '1W', '1M', '3M', '6M', '1Y', 'ALL']
 
 export function AccountBalanceChart({ 
   className = "", 
+  accountId,
   data,
   title = "Account balance",
   timeRanges = defaultTimeRanges,
@@ -60,11 +64,27 @@ export function AccountBalanceChart({
 }: AccountBalanceChartProps) {
   const [selectedTimeRange, setSelectedTimeRange] = useState('ALL')
   const [chartData, setChartData] = useState<AccountBalanceData[]>(data || [])
-  const [hasData, setHasData] = useState<boolean>(() => DataStore.getAllTrades().length > 0)
+  const [hasData, setHasData] = useState<boolean>(false)
 
   useEffect(() => {
     const loadAccountBalanceData = () => {
-      const trades = DataStore.getAllTrades()
+      let trades = [];
+      let startingBalance = 0;
+
+      if (accountId) {
+        const account = accountService.getAccountById(accountId);
+        if (account) {
+          trades = account.trades;
+          startingBalance = account.balance.starting;
+        } else {
+          setHasData(false);
+          setChartData([]);
+          return;
+        }
+      } else {
+        trades = DataStore.getAllTrades();
+        startingBalance = DataStore.getStartingBalance();
+      }
       
       if (trades.length === 0) {
         setHasData(false)
@@ -72,11 +92,8 @@ export function AccountBalanceChart({
         return
       }
 
-      const startingBalance = DataStore.getStartingBalance()
-      
-      // Create account balance progression over time
       const dailyGroups = trades.reduce((groups, trade) => {
-        const day = trade.openDate.split('T')[0] // Get YYYY-MM-DD part
+        const day = trade.openDate.split('T')[0]
         if (!groups[day]) groups[day] = []
         groups[day].push(trade)
         return groups
@@ -85,26 +102,25 @@ export function AccountBalanceChart({
       const sortedDays = Object.keys(dailyGroups).sort()
       let runningBalance = startingBalance
 
-      const realData: AccountBalanceData[] = sortedDays.map((day, index) => {
+      const realData: AccountBalanceData[] = sortedDays.map((day) => {
         const dayTrades = dailyGroups[day]
         const dayPnL = dayTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
         runningBalance += dayPnL
         
         return {
-          date: new Date(day).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }),
-          accountBalance: runningBalance, // Starting balance + cumulative P&L (violet line)
-          startingBalance: startingBalance // Constant starting balance (red line)
+          date: formatDisplayTime(day, { timezone: getDisplayTimezone() }).split(' ')[0],
+          accountBalance: runningBalance,
+          startingBalance: startingBalance
         }
       })
 
-      // Add starting point if we have data
       if (realData.length > 0) {
         const firstDate = new Date(sortedDays[0])
         firstDate.setDate(firstDate.getDate() - 1)
         
         realData.unshift({
-          date: firstDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }),
-          accountBalance: startingBalance, // Both start at the same point
+          date: formatDisplayTime(firstDate.toISOString().split('T')[0], { timezone: getDisplayTimezone() }).split(' ')[0],
+          accountBalance: startingBalance,
           startingBalance: startingBalance
         })
       }
@@ -113,13 +129,14 @@ export function AccountBalanceChart({
       setChartData(realData)
     }
 
-    // Load initial data
     loadAccountBalanceData()
 
-    // Subscribe to data changes
-    const unsubscribe = DataStore.subscribe(loadAccountBalanceData)
+    const unsubscribe = accountId 
+      ? accountService.subscribe(loadAccountBalanceData)
+      : DataStore.subscribe(loadAccountBalanceData);
+      
     return unsubscribe
-  }, [])
+  }, [accountId])
 
   const actualData = data || chartData
 
@@ -132,18 +149,41 @@ export function AccountBalanceChart({
     return `$${value.toLocaleString()}`
   }
 
-  const maxValue = Math.max(
-    ...actualData.map(d => Math.max(d.accountBalance, d.startingBalance))
-  )
+  // Compute dynamic Y-axis ticks across both series (accountBalance & startingBalance)
+  const yTicks = useMemo(() => {
+    if (!actualData || actualData.length === 0) return [0]
+    const values: number[] = []
+    for (const d of actualData) {
+      if (typeof d.accountBalance === 'number' && isFinite(d.accountBalance)) values.push(d.accountBalance)
+      if (typeof d.startingBalance === 'number' && isFinite(d.startingBalance)) values.push(d.startingBalance)
+    }
+    if (values.length === 0) return [0]
 
-  const getYAxisTicks = () => {
-    const step = Math.ceil(maxValue / 6 / 10000) * 10000
-    const ticks = []
-    for (let i = 0; i <= Math.ceil(maxValue / step); i++) {
-      ticks.push(i * step)
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+
+    // Guard single-value or flat series
+    if (min === max) {
+      const pad = Math.max(1, Math.abs(min) * 0.1)
+      return [min - 2 * pad, min - pad, min, min + pad, min + 2 * pad]
+    }
+
+    // Nice step calculation for ~6 segments
+    const range = max - min
+    const rawStep = range / 6
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))))
+    const niceStep = Math.ceil(rawStep / magnitude) * magnitude
+
+    // Expand to nice bounds
+    const niceMin = Math.floor(min / niceStep) * niceStep
+    const niceMax = Math.ceil(max / niceStep) * niceStep
+
+    const ticks: number[] = []
+    for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
+      ticks.push(Number(v.toFixed(10)))
     }
     return ticks
-  }
+  }, [actualData])
 
   // Use raw data so deposits line sits on $0 until the spike
 
@@ -179,41 +219,13 @@ export function AccountBalanceChart({
       transition={{ duration: 0.3 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      {title && (
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {title}
           </h3>
-          <Info className="w-4 h-4 text-gray-400" />
         </div>
-        
-        {/* Time Range Selector (hide in empty state) */}
-        {hasData && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                {selectedTimeRange}
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]">
-              {timeRanges.map((range) => (
-                <DropdownMenuItem
-                  key={range}
-                  onClick={() => setSelectedTimeRange(range)}
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                >
-                  {range}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
+      )}
       {hasData ? (
         <>
           {/* Legend */}
@@ -238,7 +250,8 @@ export function AccountBalanceChart({
                 data={actualData}
                 margin={{ top: 20, right: 16, left: 0, bottom: 25 }}
               >
-                <CartesianGrid stroke="var(--grid)" strokeDasharray="3 3" vertical={false} style={{ shapeRendering: 'crispEdges' }} />
+                {/* Disable horizontal grid; we'll draw labeled-only lines per Y tick below */}
+                <CartesianGrid stroke="var(--grid)" strokeDasharray="3 3" vertical={false} horizontal={false} style={{ shapeRendering: 'crispEdges' }} />
                 <XAxis 
                   dataKey="date" 
                   stroke="#9ca3af"
@@ -259,8 +272,8 @@ export function AccountBalanceChart({
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatCurrency}
-                  domain={[0, 'dataMax + 5000']}
-                  ticks={getYAxisTicks()}
+                  domain={[Math.min(...yTicks), Math.max(...yTicks)]}
+                  ticks={yTicks}
                   width={68}
                   tick={{ 
                     dx: -12, 
@@ -274,8 +287,18 @@ export function AccountBalanceChart({
                   allowDecimals={false}
                   padding={{ top: 0, bottom: 0 }}
                 />
-                {/* Zero baseline reference (same brightness as grid) */}
-                <ReferenceLine y={0} stroke="var(--grid)" strokeDasharray="3 3" strokeWidth={1} style={{ shapeRendering: 'crispEdges' }} />
+                {/* Draw horizontal grid lines exactly at labeled ticks */}
+                {yTicks.map((t) => (
+                  <ReferenceLine
+                    key={`grid-${t}`}
+                    y={t}
+                    stroke="var(--grid)"
+                    strokeDasharray="3 3"
+                    strokeWidth={1}
+                    ifOverflow="visible"
+                    style={{ shapeRendering: 'crispEdges' }}
+                  />
+                ))}
                 <Tooltip content={<CustomTooltip />} cursor={false} />
                 {/* Violet line: Account Balance (starting balance + cumulative P&L) */}
                 <Line

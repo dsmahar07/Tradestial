@@ -77,16 +77,7 @@ function validateDurationResult(result: TradeDuration | null): TradeDuration | n
   
   const { totalMinutes } = result
   
-  // If duration is suspiciously long for day trading (>20 hours), cap it
-  if (totalMinutes > 20 * 60) {
-    console.debug('📊 Duration validation: Capping suspicious long duration:', result)
-    return {
-      hours: 3,
-      minutes: 0,
-      totalMinutes: 180,
-      formatted: '3h'
-    }
-  }
+  // Do not aggressively cap genuine long durations. Only sanity-check extremely large values elsewhere.
   
   return result
 }
@@ -155,40 +146,14 @@ function calculatePreciseDuration(
     
     console.debug('📊 Calculated duration:', { totalMinutes, hours, minutes })
     
-    // Validate duration for day trading scenarios
+    // Validate duration for day trading scenarios — log but do not override
     if (totalMinutes > 12 * 60) { // More than 12 hours
-      console.debug('📊 Duration seems too long for typical day trade:', {
+      console.debug('📊 Duration seems long for typical day trade (no override applied):', {
         totalMinutes,
         hours,
         entry: entry.toISOString(),
         exit: exit.toISOString()
       })
-      
-      // Check if it's the same calendar day
-      const entryDay = entry.toDateString()
-      const exitDay = exit.toDateString()
-      
-      if (entryDay === exitDay) {
-        console.debug('📊 Same day trade but long duration - likely time parsing issue')
-        // For same-day trades showing unrealistic durations, use a reasonable estimate
-        return {
-          hours: 2,
-          minutes: 30,
-          totalMinutes: 150,
-          formatted: '2h 30m'
-        }
-      }
-      
-      // Multi-day trade - validate it's reasonable
-      if (totalMinutes > 7 * 24 * 60) { // More than 7 days
-        console.debug('📊 Duration too large (>7 days), capping at swing trade estimate')
-        return {
-          hours: 72,
-          minutes: 0,
-          totalMinutes: 72 * 60,
-          formatted: '3d'
-        }
-      }
     }
     
     return {

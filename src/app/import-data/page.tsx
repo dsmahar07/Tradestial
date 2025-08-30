@@ -2,7 +2,7 @@
 
 import { useRef, useState, useMemo } from 'react'
 
-import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,15 +24,16 @@ import {
   SelectLabel,
 } from '@/components/ui/fancy-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import * as Notification from '@/components/ui/notification'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { useRouter } from 'next/navigation'
-import { Sidebar } from '@/components/layout/sidebar'
-import { DashboardHeader } from '@/components/layout/header'
 import { Trade } from '@/services/trade-data.service'
 import { DataStore } from '@/services/data-store.service'
 import { CSVImportService } from '@/services/csv-import.service'
+import { accountService } from '@/services/account.service'
 import * as FileUpload from '@/components/ui/file-upload'
+import { TIMEZONE_REGIONS, ALL_TIMEZONES, getCurrentTimezone, getBrokerTimezoneDefault, formatTimezoneOffset } from '@/utils/timezones'
 
 interface Broker {
   id: string
@@ -352,7 +353,24 @@ export default function ImportDataPage() {
     }
   }, [])
   const [selectedDateFormat, setSelectedDateFormat] = useState('MM/DD/YYYY')
-  const [startingBalance, setStartingBalance] = useState<string>('10000')
+  const [selectedTimezone, setSelectedTimezone] = useState<number>(() => getCurrentTimezone().value)
+  // Local toasts
+  const [toasts, setToasts] = useState<Array<{
+    id: string
+    status: 'success' | 'warning' | 'error' | 'information' | 'feature' | 'default'
+    title: string
+    description?: string
+  }>>([])
+  const addToast = (
+    status: 'success' | 'warning' | 'error' | 'information' | 'feature' | 'default',
+    title: string,
+    description?: string,
+  ) => {
+    setToasts(prev => [
+      ...prev,
+      { id: Math.random().toString(36).slice(2), status, title, description },
+    ])
+  }
   const [importState, setImportState] = useState<ImportState>({
     step: 'broker-selection',
     selectedBroker: null,
@@ -361,6 +379,63 @@ export default function ImportDataPage() {
     fieldMapping: {},
     importResults: null
   })
+
+  // ----- Strict header validation for Tradovate Performance.csv -----
+  const expectedTradovatePerfHeaders = [
+    'symbol','_priceFormat','_priceFormatType','_tickSize','buyFillId','sellFillId','qty','buyPrice','sellPrice','pnl','boughtTimestamp','soldTimestamp','duration'
+  ]
+
+  const getFileFirstLine = async (file: File): Promise<string> => {
+    const text = await file.text()
+    const first = text.split(/\r?\n/)[0] || ''
+    return first.trim()
+  }
+
+  const parseSimpleCSVHeader = (line: string): string[] => {
+    return line.split(',').map(h => h.trim())
+  }
+
+  // Robust CSV header parsing that handles quotes and embedded commas
+  const parseCsvHeaderAdvanced = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"'
+          i++
+        } else {
+          inQuotes = !inQuotes
+        }
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += ch
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
+  const validateTradovatePerformanceHeaders = async (file: File): Promise<boolean> => {
+    try {
+      const headerLine = await getFileFirstLine(file)
+      // Use advanced parser to handle quotes/commas
+      const headers = parseCsvHeaderAdvanced(headerLine)
+      // Normalize: lowercase and remove spaces for flexible matching
+      const normalized = headers.map(h => h.replace(/\s+/g, '').toLowerCase())
+      const has = (name: string) => normalized.includes(name.replace(/\s+/g, '').toLowerCase())
+      // Minimal required fields for Performance.csv
+      const required = ['symbol', 'pnl', 'boughtTimestamp']
+      const ok = required.every(r => has(r))
+      return ok
+    } catch {
+      return false
+    }
+  }
 
   // ----- Timezone helper (compute offset for local time zone) -----
 
@@ -438,6 +513,10 @@ export default function ImportDataPage() {
   const otherBrokers = filteredBrokers.filter(broker => !['Futures', 'Options', 'Forex', 'Crypto'].includes(broker.category))
 
   const handleBrokerSelect = (broker: Broker) => {
+    // Set broker-specific timezone default
+    const brokerTimezone = getBrokerTimezoneDefault(broker.id)
+    setSelectedTimezone(brokerTimezone)
+    
     setImportState(prev => ({
       ...prev,
       selectedBroker: broker,
@@ -469,13 +548,13 @@ export default function ImportDataPage() {
 
     // Check file type
     if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
-      alert('Please select a CSV file (.csv extension required)')
+      addToast('warning', 'Invalid file type', 'Please select a CSV file (.csv extension required).')
       return
     }
 
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File is too large. Please select a file smaller than 10MB.')
+      addToast('warning', 'File too large', 'Please select a file smaller than 10MB.')
       return
     }
     // Re-entrancy guard: avoid duplicate processing if already in-flight
@@ -488,6 +567,14 @@ export default function ImportDataPage() {
     
     try {
       console.log('📊 Starting broker-specific CSV processing...')
+      // Enforce strict acceptance when Tradovate is selected: only Performance.csv schema
+      if (importState.selectedBroker?.id === 'tradovate') {
+        const ok = await validateTradovatePerformanceHeaders(file)
+        if (!ok) {
+          addToast('warning', 'Invalid Tradovate CSV', 'Only Tradovate Performance.csv with the exact columns is accepted on this form.')
+          return
+        }
+      }
       
       // Use the CSV import service to process the file
       const result = await CSVImportService.importCSV(
@@ -496,21 +583,44 @@ export default function ImportDataPage() {
         undefined,
         {
           preferredDateFormat: selectedDateFormat,
-          timezoneOffsetMinutes: getOffsetMinutes(localTimeZone)
+          timezoneOffsetMinutes: selectedTimezone
         }
       )
       
       console.log('📄 Import result:', result)
 
+      // Surface warnings/errors as toasts for visibility (e.g., auto-switched broker)
+      if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+        result.warnings.forEach(w => addToast('warning', 'Import warning', w))
+      }
+      if (!result.success && Array.isArray(result.errors) && result.errors.length > 0) {
+        addToast('error', 'Import issues', result.errors[0])
+      }
+
       if (result.success && result.trades.length > 0) {
-        // Save trades to DataStore and prepare all analytics data
-        await DataStore.addTrades(result.trades)
+        // Create a new trading account with default values
+        const balance = 10000 // Default starting balance
+        const detectedBrokerName = (result as any)?.metadata?.broker as string | undefined
+        const brokerDisplayName = detectedBrokerName || importState.selectedBroker?.name || 'Unknown Broker'
+        const defaultAccountName = `${brokerDisplayName} Account`
         
-        // Set the starting balance
-        const balance = parseFloat(startingBalance) || 10000
-        await DataStore.setStartingBalance(balance)
+        const newAccount = await accountService.createAccount(
+          defaultAccountName,
+          brokerDisplayName,
+          result.trades,
+          balance,
+          importState.selectedBroker?.icon,
+          `Imported from ${brokerDisplayName} CSV on ${new Date().toLocaleDateString()}`
+        )
         
-        console.log('🔄 Preparing analytics data for all pages...')
+        // Switch to the new account (this will update DataStore)
+        await accountService.switchToAccount(newAccount.id)
+        
+        console.log('🔄 Created new account and prepared analytics data...')
+        addToast('success', 'Import complete', `Imported ${result.trades.length} trade${result.trades.length !== 1 ? 's' : ''}.`)
+      }
+      else if (result.success && result.trades.length === 0) {
+        addToast('information', 'No trades imported', 'No valid rows were found in the CSV.')
       }
       
       setImportState(prev => ({
@@ -527,6 +637,7 @@ export default function ImportDataPage() {
       
     } catch (error) {
       console.error('❌ CSV processing failed:', error)
+      addToast('error', 'CSV processing failed', 'Please check the file format and try again.')
       
       setImportState(prev => ({
         ...prev,
@@ -557,17 +668,38 @@ export default function ImportDataPage() {
     setImportState(prev => ({ ...prev, step: 'processing', fieldMapping: mapping }))
     
     try {
+      // Enforce strict acceptance when Tradovate is selected even in mapping flow
+      if (importState.selectedBroker?.id === 'tradovate') {
+        const ok = await validateTradovatePerformanceHeaders(importState.uploadedFile)
+        if (!ok) {
+          addToast('warning', 'Invalid Tradovate CSV', 'Only Tradovate Performance.csv with the exact columns is accepted on this form.')
+          setIsProcessing(false)
+          isImportingRef.current = false
+          return
+        }
+      }
       const result = await CSVImportService.importCSV(
         importState.uploadedFile,
         importState.selectedBroker?.id,
         mapping,
         {
           preferredDateFormat: selectedDateFormat,
-          timezoneOffsetMinutes: getOffsetMinutes(localTimeZone)
+          timezoneOffsetMinutes: selectedTimezone
         }
       )
+      // Surface warnings/errors as toasts when running via field-mapping flow
+      if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+        result.warnings.forEach(w => addToast('warning', 'Import warning', w))
+      }
+      if (!result.success && Array.isArray(result.errors) && result.errors.length > 0) {
+        addToast('error', 'Import issues', result.errors[0])
+      }
       
-      await processImport(result.trades, parseFloat(startingBalance) || 10000)
+      await processImport(
+        result.trades,
+        10000, // Default starting balance
+        (result as any)?.metadata?.broker as string | undefined
+      )
       
     } catch (error) {
       console.error('Import failed:', error)
@@ -587,18 +719,24 @@ export default function ImportDataPage() {
     }
   }
   
-  const processImport = async (trades: Partial<Trade>[], balance?: number) => {
+  const processImport = async (trades: Partial<Trade>[], balance?: number, brokerNameOverride?: string) => {
     try {
-      // Clear any existing data first to ensure fresh import
-      DataStore.clearData()
+      // Create a new trading account with default values
+      const actualBalance = balance || 10000
+      const brokerDisplayName = brokerNameOverride || importState.selectedBroker?.name || 'Unknown Broker'
+      const defaultAccountName = `${brokerDisplayName} Account`
       
-      // Save the trades to DataStore (replace existing trades)
-      await DataStore.addTrades(trades, true)
+      const newAccount = await accountService.createAccount(
+        defaultAccountName,
+        brokerDisplayName,
+        trades as Trade[],
+        actualBalance,
+        importState.selectedBroker?.icon,
+        `Imported from ${brokerDisplayName} CSV on ${new Date().toLocaleDateString()}`
+      )
       
-      // Set starting balance if provided
-      if (balance !== undefined) {
-        await DataStore.setStartingBalance(balance)
-      }
+      // Switch to the new account (this will update DataStore)
+      await accountService.switchToAccount(newAccount.id)
       
       // Simulate processing time for better UX
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -610,7 +748,7 @@ export default function ImportDataPage() {
           success: true,
           trades,
           errors: [],
-          warnings: [`Successfully imported ${trades.length} trades to your portfolio`]
+          warnings: [`Successfully imported ${trades.length} trades and created account "${newAccount.name}"`]
         }
       }))
       
@@ -639,7 +777,7 @@ export default function ImportDataPage() {
     })
     setIsProcessing(false)
     setSelectedDateFormat('MM/DD/YYYY')
-    setStartingBalance('10000')
+    setSelectedTimezone(getCurrentTimezone().value)
   }
   
   const goBackToUpload = () => {
@@ -653,136 +791,128 @@ export default function ImportDataPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader />
-        
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C]">
-          <div className="max-w-7xl mx-auto p-6 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <Image
-                    src="/new-tradtrace-logo.png"
-                    alt="Tradestial Logo"
-                    width={32}
-                    height={32}
-                    className="object-contain"
-                  />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Import Trading Data
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Sync and import your trading data from various platforms
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                      )}
-                    >
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filters
-                      {selectedFilters.length > 0 && (
-                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-[#3559E9] dark:bg-[#3559E9] text-white rounded-full">
-                          {selectedFilters.length}
-                        </span>
-                      )}
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="start" 
-                    className="w-56 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]"
-                  >
-                    {filterOptions.map((option) => (
-                      <DropdownMenuItem
-                        key={option.id}
-                        onClick={() => toggleFilter(option.id)}
-                        className="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span className="text-gray-900 dark:text-white">{option.label}</span>
-                          {selectedFilters.includes(option.id) && (
-                            <Check className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                          )}
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                    {selectedFilters.length > 0 && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={clearAllFilters}
-                          className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-                        >
-                          Clear All Filters
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button variant="outline" size="sm" className="border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300">
-                  View Connections
-                </Button>
-                <Button 
-                  size="sm"
-                  className="w-auto h-9 relative bg-[#3559E9] hover:bg-[#2947d1] text-white border-none shadow-sm overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none px-4"
-                >
-                  <Plus className="w-4 h-4 mr-2 relative z-10" />
-                  <span className="relative z-10">New Import</span>
-                </Button>
-              </div>
+    <div className="min-h-screen bg-white dark:bg-[#171717]">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Standalone Header */}
+        <div className="text-center py-8">
+          <div className="flex items-center justify-center space-x-4 mb-6">
+            <div className="w-16 h-16 flex items-center justify-center">
+              <Image
+                src="/new-tradtrace-logo.png"
+                alt="Tradestial Logo"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
             </div>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+                Import Trading Data
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
+                Sync and import your trading data from various platforms
+              </p>
+            </div>
+          </div>
+          
+          {/* Filter Controls */}
+          <div className="flex items-center justify-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                  )}
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                  {selectedFilters.length > 0 && (
+                    <span className="ml-2 px-1.5 py-0.5 text-xs bg-[#3559E9] dark:bg-[#3559E9] text-white rounded-full">
+                      {selectedFilters.length}
+                    </span>
+                  )}
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                align="center" 
+                className="w-56 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]"
+              >
+                {filterOptions.map((option) => (
+                  <DropdownMenuItem
+                    key={option.id}
+                    onClick={() => toggleFilter(option.id)}
+                    className="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-gray-900 dark:text-white">{option.label}</span>
+                      {selectedFilters.includes(option.id) && (
+                        <Check className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+                {selectedFilters.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={clearAllFilters}
+                      className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                    >
+                      Clear All Filters
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] dark:text-gray-300"
+              onClick={() => router.push('/account')}
+            >
+              View Dashboard
+            </Button>
+          </div>
+        </div>
 
             {/* Import Steps */}
             {importState.step === 'broker-selection' && (
               <>
-                {/* Search and Filters */}
-                <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
-                  <CardContent className="p-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search brokers..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+            {/* Search and Filters */}
+            <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
+              <CardContent className="p-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search brokers..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                {/* Specialty Brokers Section */}
-                {popularBrokers.length > 0 && (
-                  <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
-                    <CardHeader>
-                      <div className="flex items-center space-x-2">
-                        <CardTitle className="text-lg font-semibold">Specialty Brokers</CardTitle>
-                        <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
-                          {popularBrokers.length}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Specialty Brokers Section */}
+            {popularBrokers.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-lg font-semibold">Specialty Brokers</h2>
+                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
+                    {popularBrokers.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {popularBrokers.map((broker) => (
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm cursor-pointer group"
+                            className="p-4 rounded-lg bg-white dark:bg-[#171717] cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -796,7 +926,7 @@ export default function ImportDataPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-lg", broker.color)}>
+                                <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center text-white", broker.color)}>
                                   <span className="text-xl">{broker.icon}</span>
                                 </div>
                               )}
@@ -825,28 +955,24 @@ export default function ImportDataPage() {
                           </div>
                         ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
+              </div>
+            )}
 
-                {/* Traditional & Mobile Brokers Section */}
-                {otherBrokers.length > 0 && (
-                  <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
-                    <CardHeader>
-                      <div className="flex items-center space-x-2">
-                        <CardTitle className="text-lg font-semibold">Traditional & Mobile Brokers</CardTitle>
-                        <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
-                          {otherBrokers.length}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Traditional & Mobile Brokers Section */}
+            {otherBrokers.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-lg font-semibold">Traditional & Mobile Brokers</h2>
+                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
+                    {otherBrokers.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {otherBrokers.map((broker) => (
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] shadow-sm cursor-pointer group"
+                            className="p-4 rounded-lg bg-white dark:bg-[#171717] cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -860,7 +986,7 @@ export default function ImportDataPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-lg", broker.color)}>
+                                <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center text-white", broker.color)}>
                                   <span className="text-xl">{broker.icon}</span>
                                 </div>
                               )}
@@ -889,8 +1015,7 @@ export default function ImportDataPage() {
                           </div>
                         ))}
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
                 )}
               </>
             )}
@@ -908,8 +1033,8 @@ export default function ImportDataPage() {
                   Back to Brokers
                 </Button>
 
-                {/* Selected Broker Info */}
-                <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
+            {/* Selected Broker Info */}
+            <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -924,7 +1049,7 @@ export default function ImportDataPage() {
                             />
                           </div>
                         ) : (
-                          <div className={cn("w-16 h-16 rounded-lg flex items-center justify-center text-white shadow-lg", importState.selectedBroker.color)}>
+                          <div className={cn("w-16 h-16 rounded-lg flex items-center justify-center text-white", importState.selectedBroker.color)}>
                             <span className="text-2xl">{importState.selectedBroker.icon}</span>
                           </div>
                         )}
@@ -942,8 +1067,8 @@ export default function ImportDataPage() {
                   </CardHeader>
                 </Card>
 
-                {/* Upload Area */}
-                <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
+            {/* Upload Area */}
+            <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <span>Upload CSV File</span>
@@ -953,26 +1078,6 @@ export default function ImportDataPage() {
                   <CardContent>
                     {/* Import Settings */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 justify-items-center">
-                      <div className="space-y-2 w-full max-w-sm text-center">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Starting Account Balance
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
-                          <input
-                            type="number"
-                            value={startingBalance}
-                            onChange={(e) => setStartingBalance(e.target.value)}
-                            placeholder="10000"
-                            min="0"
-                            step="0.01"
-                            className="w-full pl-8 pr-3 py-2.5 text-sm border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-0 focus:border-gray-200 dark:focus:border-[#2a2a2a]"
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Your account balance before these trades
-                        </p>
-                      </div>
                       <div className="space-y-2 w-full max-w-sm text-center">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Date Format
@@ -1001,6 +1106,35 @@ export default function ImportDataPage() {
                             </SelectGroup>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2 w-full max-w-sm text-center">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          CSV Timezone
+                        </label>
+                        <Select 
+                          value={selectedTimezone.toString()} 
+                          onValueChange={(value) => setSelectedTimezone(parseInt(value))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select timezone" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-80">
+                            {Object.entries(TIMEZONE_REGIONS).map(([region, timezones]) => (
+                              <SelectGroup key={region}>
+                                <SelectLabel>{region}</SelectLabel>
+                                {timezones.map((tz) => (
+                                  <SelectItem key={`${tz.region}-${tz.value}`} value={tz.value.toString()}>
+                                    {tz.label} ({formatTimezoneOffset(tz.value)})
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Timezone of timestamps in your CSV file
+                        </p>
                       </div>
                     </div>
 
@@ -1061,9 +1195,6 @@ export default function ImportDataPage() {
                 </Card>
               </div>
             )}
-
-            {/* Field Mapping Step - Removed for broker-specific detection system */}
-
             {/* Processing Step */}
             {importState.step === 'processing' && (
               <div className="flex flex-col items-center justify-center py-16 space-y-6">
@@ -1095,7 +1226,7 @@ export default function ImportDataPage() {
 
                 {importState.importResults.success ? (
                   <div className="max-w-md mx-auto">
-                    <div className="bg-white dark:bg-[#171717] rounded-2xl p-8 text-center shadow-lg border border-gray-100 dark:border-gray-800">
+                    <div className="bg-white dark:bg-[#171717] rounded-2xl p-8 text-center border-0 shadow-none">
                       <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                         <OrdersIcon className="text-green-600 dark:text-green-400" size={32} />
                       </div>
@@ -1111,9 +1242,9 @@ export default function ImportDataPage() {
                       <div className="flex flex-col space-y-3">
                         <Button 
                           className="w-full bg-[#3559E9] hover:bg-[#2947d1] text-white"
-                          onClick={() => router.push('/dashboard')}
+                          onClick={() => router.push('/account')}
                         >
-                          View Dashboard
+                          Go to Account Management
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -1169,8 +1300,24 @@ export default function ImportDataPage() {
                 )}
               </div>
             )}
-          </div>
-        </div>
+        {/* Notifications */}
+        <Notification.Provider swipeDirection="right">
+          {toasts.map((t) => (
+            <Notification.Root
+              key={t.id}
+              status={t.status}
+              variant={t.status === 'success' ? 'filled' : 'soft'}
+              duration={3000}
+              title={t.title}
+              description={t.description}
+              onOpenChange={(open) => {
+                if (!open) setToasts((prev) => prev.filter((x) => x.id !== t.id))
+              }}
+              open
+            />
+          ))}
+          <Notification.Viewport />
+        </Notification.Provider>
       </div>
     </div>
   )

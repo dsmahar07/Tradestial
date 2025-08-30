@@ -9,27 +9,25 @@ interface ModelChartProps {
   height?: number
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload || !payload.length) return null
+  // Read from payload value first, then fallback to original datum to avoid nulls from split series
+  const raw = payload[0]
+  const value = raw?.value ?? raw?.payload?.value
 
-  // Always use the original datum off payload[0].payload to avoid
-  // reading split-series values (positive/negative) which can be 0/null
-  const datum = payload[0]?.payload as { value?: number; time?: string } | undefined
-  const value = datum?.value
-  const time = datum?.time ?? label
+  if (value === undefined || value === null) {
+    return (
+      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+        <div className="font-semibold text-gray-500">No data</div>
+      </div>
+    )
+  }
 
-  if (value === undefined || value === null) return null
-
-  const formatted = new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  }).format(value)
+  const formattedValue = value >= 0 ? `$${Number(value).toLocaleString()}` : `-$${Math.abs(Number(value)).toLocaleString()}`
 
   return (
     <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
-      <div className="text-[11px] text-gray-500 dark:text-gray-400 mb-0.5">{time}</div>
-      <div className={`font-semibold ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatted}</div>
+      <div className={`font-semibold ${value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formattedValue}</div>
     </div>
   )
 }
@@ -51,12 +49,13 @@ export const ModelChart = React.memo(function ModelChart({
     })
     
     let cumulativePnL = 0
-    const dataPoints: { time: string; value: number; positiveValue: number | null; negativeValue: number | null }[] = []
+    const dataPoints: { time: string; value: number; positiveValue: number | null; negativeValue: number | null; index: number }[] = []
     
     // Start with first trade to avoid artificial $0 point
     // Remove baseline point to prevent red dot on $0 axis
     
     let prevValue: number | null = null
+    let runningIndex = 0
     sortedTrades.forEach((trade) => {
       const pnl = typeof trade.netPnl === 'number' ? trade.netPnl : 
                   typeof trade.pnl === 'number' ? trade.pnl : 
@@ -80,6 +79,7 @@ export const ModelChart = React.memo(function ModelChart({
           value: 0,
           positiveValue: 0,
           negativeValue: 0,
+          index: runningIndex++
         })
       }
 
@@ -87,7 +87,8 @@ export const ModelChart = React.memo(function ModelChart({
         time: formattedDate,
         value: currentValue,
         positiveValue: currentValue > 0 ? currentValue : null,
-        negativeValue: currentValue < 0 ? currentValue : null
+        negativeValue: currentValue < 0 ? currentValue : null,
+        index: runningIndex++
       })
 
       prevValue = currentValue
@@ -134,7 +135,11 @@ export const ModelChart = React.memo(function ModelChart({
             </defs>
             
             <XAxis 
-              dataKey="time" 
+              dataKey="index"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              allowDecimals={false}
+              scale="linear"
               axisLine={false}
               tickLine={false}
               tick={{ 
@@ -143,9 +148,10 @@ export const ModelChart = React.memo(function ModelChart({
                 fontWeight: 600
               }}
               tickFormatter={(value) => {
-                // Skip empty labels (baseline point)
-                if (!value || value === '') return ''
-                return value
+                const v = typeof value === 'number' ? value : Number(value)
+                const d = chartData.find(pt => pt.index === v)
+                const label = d?.time || ''
+                return label
               }}
               interval="preserveStartEnd"
               minTickGap={20}

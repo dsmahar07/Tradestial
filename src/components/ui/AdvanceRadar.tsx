@@ -14,6 +14,49 @@ const AdvanceRadar: React.FC = () => {
   const [dataVersion, setDataVersion] = useState(0)
   const [hasData, setHasData] = useState(() => DataStore.getAllTrades().length > 0)
 
+  const calculateOverallScore = () => {
+    const trades = DataStore.getAllTrades()
+    const m = DataStore.calculateMetrics(trades)
+    
+    const winRate = (m.winRate || 0) / 100
+    const profitFactor = Math.min((m.profitFactor || 0) / 4, 1)
+    const avgWinAmount = m.avgWinAmount || 0
+    const avgLossAmount = Math.abs(m.avgLossAmount) || 0
+    const avgWinLoss = avgLossAmount > 0 ? Math.min(avgWinAmount / avgLossAmount, 3) / 3 : 0
+    // Derive recovery factor from available metrics: netCumulativePnl / maxDrawdown (capped, normalized to 0..1)
+    const dd = m.maxDrawdown || 0
+    const rfRaw = dd > 0 ? (m.netCumulativePnl || 0) / dd : 0
+    const recoveryFactor = Math.min(Math.max(rfRaw, 0), 2) / 2 // clamp 0..2 then normalize to 0..1
+    const maxDrawdown = m.maxDrawdown || 0
+    const totalTurnover = (m.totalWinAmount || 0) + (m.totalLossAmount || 0)
+    const drawdownScore = totalTurnover > 0 ? Math.max(0, 1 - (maxDrawdown / totalTurnover)) : 0
+    const consistency = Math.min((m.profitabilityIndex || (winRate)) || 0, 1)
+    
+    const score = (winRate * 0.2 + profitFactor * 0.2 + avgWinLoss * 0.15 + recoveryFactor * 0.15 + drawdownScore * 0.15 + consistency * 0.15) * 100
+    return Math.round(score * 10) / 10
+  }
+
+  // Map score (0..100) to a gradient color from red -> yellow -> green
+  const getScoreColor = (score: number) => {
+    const s = Math.max(0, Math.min(100, score))
+    // Interpolate: 0..50 red -> yellow, 50..100 yellow -> green
+    const lerp = (a: number, b: number, t: number) => Math.round(a + (b - a) * t)
+    const hex = (n: number) => n.toString(16).padStart(2, '0')
+    if (s <= 50) {
+      const t = s / 50 // 0..1 from red (239,68,68) to yellow (245,158,11)
+      const r = lerp(239, 245, t)
+      const g = lerp(68, 158, t)
+      const b = lerp(68, 11, t)
+      return `#${hex(r)}${hex(g)}${hex(b)}`
+    } else {
+      const t = (s - 50) / 50 // 0..1 from yellow (245,158,11) to green (34,197,94)
+      const r = lerp(245, 34, t)
+      const g = lerp(158, 197, t)
+      const b = lerp(11, 94, t)
+      return `#${hex(r)}${hex(g)}${hex(b)}`
+    }
+  }
+
   // Detect theme changes
   useEffect(() => {
     const checkTheme = () => {
@@ -81,6 +124,7 @@ const AdvanceRadar: React.FC = () => {
         maxDrawdownVal
       ]
     }
+
 
     // Prepare overlay point data for per-indicator tooltip
     const indicatorNames = ['Consistency', 'Win Rate', 'Profit Factor', 'Risk Management', 'Avg Win/Loss', 'Max Drawdown']
@@ -313,20 +357,67 @@ const AdvanceRadar: React.FC = () => {
           </div>
         </div>
 
-        {hasData ? (
-          // ECharts Radar Chart
-          <div className="h-80">
+      {hasData ? (
+        <div className="h-80 flex flex-col">
+          {/* ECharts Radar Chart */}
+          <div className="flex-1 mb-2">
             <div ref={chartRef} style={{ width: "100%", height: "100%" }} />
           </div>
-        ) : (
-          // Idle empty state
-          <div className="h-80 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">No symbol data available</div>
-              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Import your CSV to see symbol performance</div>
-            </div>
+          {/* Score + Progress (single row) */}
+          <div className="px-2 pb-1">
+            {(() => {
+              const overall = Math.max(0, Math.min(100, calculateOverallScore()))
+              // Prevent visual clipping at the edges while keeping value accurate
+              const markerPos = Math.min(99, Math.max(1, overall))
+              const scoreColor = getScoreColor(overall)
+              return (
+                <div className="flex items-center gap-4">
+                  {/* Left: label + value */}
+                  <div className="min-w-[140px]">
+                    <div className="text-xs text-gray-600 dark:text-gray-400">Score</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{overall}</div>
+                  </div>
+
+                  {/* Right: gradient progress with marker and ticks */}
+                  <div className="relative flex-1">
+                    {/* Track */}
+                    <div className="relative h-2 rounded-full bg-gray-200 dark:bg-neutral-800">
+                      {/* Dynamic gradient fill up to score */}
+                      <div
+                        className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+                        style={{ width: `${markerPos}%` }}
+                      />
+                      {/* Marker */}
+                      <span
+                        aria-label="score-marker"
+                        className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                        style={{ left: `${markerPos}%`, borderColor: '#693EE0' }}
+                      />
+                    </div>
+                    {/* ticks */}
+                    <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                      <span>0</span>
+                      <span>20</span>
+                      <span>40</span>
+                      <span>60</span>
+                      <span>80</span>
+                      <span>100</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
-        )}
+        </div>
+      ) : (
+        // Idle empty state
+        <div className="h-80 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-sm font-medium text-gray-500 dark:text-gray-400">No symbol data available</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Import your CSV to see symbol performance</div>
+          </div>
+        </div>
+      )}
       </div>
     </motion.div>
   );

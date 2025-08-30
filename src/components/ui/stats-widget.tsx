@@ -222,7 +222,7 @@ export function StatsWidget({
       {/* Trade Metrics */}
       <div className="space-y-2 text-sm">
         <div className="flex justify-between items-center py-1">
-          <span className="text-gray-500 dark:text-gray-400">Side</span>
+          <span className="font-semibold" style={{color: '#7F85AF'}}>Side</span>
           <span 
             className="font-bold dark:text-gray-300"
             style={{
@@ -307,14 +307,11 @@ export function StatsWidget({
           <span className="font-semibold" style={{color: '#7F85AF'}}>Model</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200 bg-white dark:bg-gray-800">
-                <span className="font-bold text-gray-600 dark:text-gray-300">
-                  {(() => {
-                    const current = strategies.find(s => s.id === selectedStrategyId)
-                    return current ? current.name : 'No model selected'
-                  })()}
-                </span>
-                <span className="ml-1 text-blue-500">🔗</span>
+              <button className="text-xs font-medium hover:underline transition-colors" style={{color: '#7F85AF'}}>
+                {(() => {
+                  const current = strategies.find(s => s.id === selectedStrategyId)
+                  return current ? current.name : 'Add model'
+                })()}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 p-1">
@@ -618,44 +615,84 @@ export function StatsWidget({
           <span className="font-semibold" style={{color: '#7F85AF'}}>Running P&L</span>
           <div className="h-8 w-24">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={runningPnlData.slice(-8)}>
-                <defs>
-                  <linearGradient id="miniPnlGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop 
-                      offset="0%" 
-                      stopColor={trade && trade.netPnl >= 0 ? "#14b8a6" : "#ef4444"} 
-                      stopOpacity={0.6}
-                    />
-                    <stop 
-                      offset="100%" 
-                      stopColor={trade && trade.netPnl >= 0 ? "#14b8a6" : "#ef4444"} 
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
-                </defs>
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 text-xs">
-                          <p className="font-medium text-gray-900 dark:text-white">{label}</p>
-                          <p className={`${payload[0].value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            P&L: ${payload[0].value >= 0 ? '+' : ''}${payload[0].value.toFixed(2)}
-                          </p>
-                        </div>
-                      )
+              {(() => {
+                // Map to numeric X-axis with zero-crossing insertion and split pos/neg fills
+                const raw = (runningPnlData || []).slice(-12) // show last ~12 points for mini chart
+                const base = raw.map((d, i) => ({ idx: i, label: d.time ?? String(i), value: Number(d.value || 0) }))
+
+                // Insert zero-crossing points to avoid gradient bleed
+                const expanded: Array<{ idx: number; label: string; value: number }> = []
+                for (let i = 0; i < base.length; i++) {
+                  const cur = base[i]
+                  const prev = i > 0 ? base[i - 1] : undefined
+                  if (prev) {
+                    const s1 = Math.sign(prev.value)
+                    const s2 = Math.sign(cur.value)
+                    if (s1 !== 0 && s2 !== 0 && s1 !== s2) {
+                      // Linear interpolate crossing at zero between prev.idx and cur.idx
+                      const dv = cur.value - prev.value
+                      const di = cur.idx - prev.idx || 1
+                      const t = Math.abs(prev.value) / Math.abs(dv)
+                      const xi = prev.idx + t * di
+                      expanded.push({ idx: xi, label: cur.label, value: 0 })
                     }
-                    return null
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#4C25A7"
-                  strokeWidth={1.5}
-                  fill="url(#miniPnlGradient)"
-                />
-              </AreaChart>
+                  }
+                  expanded.push(cur)
+                }
+
+                const data = expanded
+                  .sort((a, b) => a.idx - b.idx)
+                  // Use null for inactive series so Recharts doesn't create a second tooltip/dot at 0
+                  .map(p => ({
+                    ...p,
+                    pos: p.value > 0 ? p.value : (null as unknown as number),
+                    neg: p.value < 0 ? p.value : (null as unknown as number),
+                  }))
+
+                return (
+                  <AreaChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                    <defs>
+                      <linearGradient id="miniPnlPosGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.6} />
+                        <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.1} />
+                      </linearGradient>
+                      <linearGradient id="miniPnlNegGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.6} />
+                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis type="number" dataKey="idx" domain={["dataMin", "dataMax"]} hide />
+                    <YAxis type="number" domain={["auto", "auto"]} hide />
+                    <Tooltip
+                      isAnimationActive
+                      cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const main: any = payload.find((p: any) => p.dataKey === 'value') || payload[0]
+                          const v = Number(main?.payload?.value ?? 0)
+                          const lbl = String(main?.payload?.label ?? '')
+                          const isPos = v >= 0
+                          return (
+                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow p-1.5 text-[10px]">
+                              <div className="font-semibold text-gray-900 dark:text-white">{lbl}</div>
+                              <div className={isPos ? 'text-green-600' : 'text-red-600'}>
+                                ${isPos ? '+' : ''}{v.toFixed(2)}
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                    {/* Stroke line */}
+                    <Area type="linear" dataKey="value" stroke="#4C25A7" strokeWidth={1.25} fillOpacity={0} baseValue={0 as any} activeDot={{ r: 2.5 }} dot={false} />
+                    {/* Positive fill */}
+                    <Area type="linear" dataKey="pos" strokeOpacity={0} fill="url(#miniPnlPosGradient)" baseValue={0 as any} activeDot={false} dot={false} />
+                    {/* Negative fill */}
+                    <Area type="linear" dataKey="neg" strokeOpacity={0} fill="url(#miniPnlNegGradient)" baseValue={0 as any} activeDot={false} dot={false} />
+                  </AreaChart>
+                )
+              })()}
             </ResponsiveContainer>
           </div>
         </div>

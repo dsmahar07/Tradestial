@@ -19,3 +19,4 @@ export { PerformanceIcon } from './PerformanceIcon';
 export { LightningIcon } from './LightningIcon';
 export { ChartBarsIcon } from './ChartBarsIcon';
 export { GridIcon } from './GridIcon';
+export { AccountsIcon } from './AccountsIcon';
