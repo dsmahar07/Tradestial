@@ -79,15 +79,16 @@ export async function previewTradovateCSV() {
     const csvBlob = new Blob([csvContent], { type: 'text/csv' })
     const csvFile = new File([csvBlob], 'Tradovate.csv', { type: 'text/csv' })
     
-    const preview = await CSVImportService.previewCSV(csvFile, 5)
+    const result = await TradovateCsvParser.parseCSV(csvContent)
     
-    console.log('📋 CSV Preview:', {
-      headers: preview.headers,
-      sampleRows: preview.sampleRows,
-      detectedBroker: preview.detectedBroker
+    console.log('📋 CSV Parse Result:', {
+      success: result.success,
+      tradeCount: result.trades.length,
+      errors: result.errors,
+      metadata: result.metadata
     })
     
-    return preview
+    return result
     
   } catch (error) {
     console.error('❌ Preview failed:', error)
@@ -103,8 +104,7 @@ export function clearAllData() {
 }
 
 // Add to window for browser console testing
-if (typeof window !== 'undefined') {
-  (window as any).testTradovateImport = testTradovateImport
-  (window as any).previewTradovateCSV = previewTradovateCSV
-  (window as any).clearAllData = clearAllData
-}
+// if (typeof window !== 'undefined') {
+//   (window as any).testTradovateImport = testTradovateImport
+//   (window as any).clearAllData = clearAllData
+// }

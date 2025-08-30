@@ -573,10 +573,24 @@ export function DailyJournalContent() {
       id: string
       date: string
       dayTrades: Trade[]
+      trades: Trade[]
       totalPnL: number
+      netPnl: number
+      isProfit: boolean
       winners: number
       losers: number
       winRate: string
+      chartData: Array<{ time: string; value: number }>
+      stats: {
+        totalTrades: number
+        winners: number
+        losers: number
+        winrate: string
+        grossPnl: number
+        volume: number
+        commissions: number
+        profitFactor: number
+      }
     }> = []
 
     tradesByDate.forEach((dayTrades, dateKey) => {
@@ -592,8 +606,9 @@ export function DailyJournalContent() {
         id: `day_${date.getTime()}`,
         date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
         dayTrades: dayTrades,
+        trades: dayTrades,
         totalPnL: Math.round(totalPnL),
-        netPnl: Math.round(totalPnL), // For compatibility with existing code
+        netPnl: Math.round(totalPnL),
         isProfit: totalPnL >= 0,
         winners: winners,
         losers: losers,
@@ -703,7 +718,7 @@ export function DailyJournalContent() {
                       variant="outline" 
                       size="sm" 
                       className="text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      onClick={() => handleAddNote(card)}
+                      onClick={() => handleAddNote(card as TradeCard)}
                     >
                       <Edit3 className="w-4 h-4 mr-2" />
                       Add note
@@ -905,18 +920,18 @@ export function DailyJournalContent() {
                             <th className="w-12 px-4 py-3 text-center">
                               <div className="flex justify-center">
                                 <Checkbox.Root
-                                  checked={selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0}
+                                  checked={selectedTrades.length === card.trades.length && card.trades.length > 0}
                                   onCheckedChange={() => {
-                                    if (selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0) {
+                                    if (selectedTrades.length === card.trades.length && card.trades.length > 0) {
                                       setSelectedTrades([])
                                     } else {
-                                      setSelectedTrades(card.dayTrades.map(trade => trade.id))
+                                      setSelectedTrades((card as any).trades.map((trade: any) => trade.id))
                                     }
                                   }}
                                   className="w-4 h-4 border border-gray-300 dark:border-[#2a2a2a] rounded flex items-center justify-center outline-none"
                                   style={{
-                                    backgroundColor: selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0 ? '#3559E9' : 'white',
-                                    borderColor: selectedTrades.length === card.dayTrades.length && card.dayTrades.length > 0 ? '#3559E9' : '#d1d5db'
+                                    backgroundColor: selectedTrades.length === card.trades.length && card.trades.length > 0 ? '#3559E9' : 'white',
+                                    borderColor: selectedTrades.length === card.trades.length && card.trades.length > 0 ? '#3559E9' : '#d1d5db'
                                   }}
                                 >
                                   <Checkbox.Indicator className="text-white">
@@ -1001,7 +1016,7 @@ export function DailyJournalContent() {
                           </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-[#171717] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
-                          {card.dayTrades.map((trade) => (
+                          {(card as any).trades.map((trade: any) => (
                             <tr 
                               key={trade.id} 
                               className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer"

@@ -48,16 +48,26 @@ const TradeCountLabel = ({ tradeCount }: { tradeCount: number }) => (
 )
 
 // Get real-time data from DataStore
-export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
+export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCardConfig[] => {
   // Prevent hydration mismatch by always returning empty state on server
   if (typeof window === 'undefined') {
+    return getEmptyAnalyticsCards()
+  }
+  
+  // Don't load real data unless explicitly requested (after hydration)
+  if (!forceReal) {
+    return getEmptyAnalyticsCards()
+  }
+  
+  // Additional safety check - ensure DataStore is available
+  if (!DataStore || typeof DataStore.getAllTrades !== 'function') {
     return getEmptyAnalyticsCards()
   }
   
   const trades = DataStore.getAllTrades()
   
   // If no trades, return empty state
-  if (trades.length === 0) {
+  if (!trades || trades.length === 0) {
     return getEmptyAnalyticsCards()
   }
   
@@ -155,7 +165,7 @@ export const getAnalyticsCardsConfig = (): AnalyticsCardConfig[] => {
 }
 
 // Empty state for when no trades are imported
-function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
+export function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
   return [
     {
       title: "NET PNL",
@@ -201,7 +211,7 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
     },
     {
       title: "Avg Win/Loss",
-      value: "0:0",
+      value: "0.00",
       change: 0,
       changeLabel: "Go to Import Data",
       delay: 0.3,
@@ -246,4 +256,4 @@ function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
 }
 
 // Legacy export for components that haven't been updated yet
-export const analyticsCardsConfig: AnalyticsCardConfig[] = getAnalyticsCardsConfig()
+export const analyticsCardsConfig: AnalyticsCardConfig[] = getEmptyAnalyticsCards()

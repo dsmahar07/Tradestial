@@ -108,8 +108,7 @@ export default function TrackerPage() {
       
       data.push({
         time: timeLabel,
-        value: Math.round(currentPnl * 100) / 100,
-        price: Math.round(currentPrice * 100) / 100
+        value: Math.round(currentPnl * 100) / 100
       })
     }
 

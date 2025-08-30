@@ -273,44 +273,8 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                       onEmojiClick={onEmojiClick}
                       width={350}
                       height={400}
-                      theme="auto"
                       searchDisabled={false}
                       skinTonesDisabled={false}
-                      emojiStyle="apple"
-                      categories={[
-                        {
-                          category: "smileys_people",
-                          name: "Smileys & People"
-                        },
-                        {
-                          category: "animals_nature", 
-                          name: "Animals & Nature"
-                        },
-                        {
-                          category: "food_drink",
-                          name: "Food & Drink"
-                        },
-                        {
-                          category: "travel_places",
-                          name: "Travel & Places"
-                        },
-                        {
-                          category: "activities",
-                          name: "Activities"
-                        },
-                        {
-                          category: "objects",
-                          name: "Objects"
-                        },
-                        {
-                          category: "symbols",
-                          name: "Symbols"
-                        },
-                        {
-                          category: "flags",
-                          name: "Flags"
-                        }
-                      ]}
                       previewConfig={{
                         defaultEmoji: "1f60a",
                         defaultCaption: "Choose your perfect emoji!",

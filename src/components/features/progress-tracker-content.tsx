@@ -5,6 +5,7 @@ import { X, Edit, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressTrackerHeatmap } from '@/components/ui/progress-tracker-heatmap'
 import { RulesDialog } from '@/components/features/rules-dialog'
+import { RuleTrackingService } from '@/services/rule-tracking.service'
 
 interface TradingRule {
   id: string
@@ -46,7 +47,7 @@ export function ProgressTrackerContent() {
     },
     {
       id: '2',
-      name: 'Start my day by',
+      name: 'Step into the day',
       enabled: true,
       type: 'start_day',
       config: { time: '08:30' }
@@ -89,12 +90,60 @@ export function ProgressTrackerContent() {
   ])
 
   // Store today's rule completions and day completion status - MOVED HERE BEFORE useMemo
-  const [todayCompletions, setTodayCompletions] = useState<Record<string, boolean>>({})
+  const [todayCompletions, setTodayCompletions] = useState<Record<string, boolean>>(() => {
+    return RuleTrackingService.getDayCompletions()
+  })
   const [isDayFinished, setIsDayFinished] = useState(false)
   const [isRulesDialogOpen, setIsRulesDialogOpen] = useState(false)
 
   // History of daily progress: key YYYY-MM-DD -> { completed, total, score }
   const [history, setHistory] = useState<Record<string, { completed: number; total: number; score: number }>>({})
+
+  // Auto-check rules based on user actions
+  useEffect(() => {
+    const checkRules = () => {
+      const today = toKey(new Date())
+      
+      // Check all trading rules for completion
+      tradingRules.forEach(rule => {
+        if (!rule.enabled) return
+        
+        switch (rule.type) {
+          case 'start_day':
+            // This will be triggered when user accesses journal
+            break
+          case 'link_model':
+            RuleTrackingService.trackLinkTradesToModelRule(today)
+            break
+          case 'stop_loss':
+            RuleTrackingService.trackStopLossRule(today)
+            break
+          case 'max_loss_trade':
+            if (rule.config?.amount) {
+              RuleTrackingService.trackMaxLossPerTradeRule(rule.config.amount, today)
+            }
+            break
+          case 'max_loss_day':
+            if (rule.config?.amount) {
+              RuleTrackingService.trackMaxLossPerDayRule(rule.config.amount, today)
+            }
+            break
+        }
+      })
+      
+      // Update completions from tracking service
+      setTodayCompletions(RuleTrackingService.getDayCompletions())
+    }
+    
+    // Check rules on component mount and when trading rules change
+    checkRules()
+    
+    // Set up interval to check rules periodically
+    const interval = setInterval(checkRules, 60000) // Check every minute
+    
+    return () => clearInterval(interval)
+  }, [tradingRules])
+
 
   // Helpers
   const toKey = (d: Date) => {
@@ -319,6 +368,9 @@ export function ProgressTrackerContent() {
     })
   }, [progressMetrics.completed, progressMetrics.total])
 
+  // Daily Check List visibility
+  const [showDailyCheckList, setShowDailyCheckList] = useState(false)
+
   // Finish My Day functionality
   const finishMyDay = () => {
     if (progressMetrics.percentage === 100) {
@@ -342,10 +394,14 @@ export function ProgressTrackerContent() {
         )
       )
     } else {
-      // Handle trading rule completion
+      // Handle trading rule completion - both manual override and tracking service
+      const currentStatus = todayCompletions[ruleId] || false
+      const newStatus = !currentStatus
+      
+      RuleTrackingService.setRuleCompletion(ruleId, newStatus)
       setTodayCompletions(prev => ({
         ...prev,
-        [ruleId]: !prev[ruleId]
+        [ruleId]: newStatus
       }))
     }
   }
@@ -456,6 +512,88 @@ export function ProgressTrackerContent() {
         </div>
         
         
+        {/* Daily Check List Section */}
+        {isTradingDay && progressMetrics.hasActiveRules && (
+          <div className="bg-white dark:bg-[#171717] rounded-lg">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-3">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Check List</h2>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {progressMetrics.completed} of {progressMetrics.total} completed
+                </span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowDailyCheckList(!showDailyCheckList)}
+                className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
+              >
+                {showDailyCheckList ? 'Hide' : 'Show'} List
+              </Button>
+            </div>
+            
+            {showDailyCheckList && (
+              <div className="p-6 space-y-3">
+                {activeRules.map((rule) => (
+                  <div key={rule.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => toggleRuleCompletion(rule.id)}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                          rule.completed
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-green-500'
+                        }`}
+                      >
+                        {rule.completed && <CheckCircle2 className="w-3 h-3" />}
+                      </button>
+                      <div>
+                        <span className={`text-sm font-medium ${
+                          rule.completed 
+                            ? 'text-green-600 dark:text-green-400 line-through' 
+                            : 'text-gray-900 dark:text-white'
+                        }`}>
+                          {rule.name}
+                        </span>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Target: {rule.condition}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-xs font-medium ${
+                        rule.completed ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {rule.completed ? 'Completed' : 'Pending'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {progressMetrics.percentage === 100 && (
+                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                          All rules completed! Great job!
+                        </span>
+                      </div>
+                      <Button 
+                        variant="solid" 
+                        size="sm"
+                        onClick={finishMyDay}
+                        className="bg-green-500 hover:bg-green-600 text-white"
+                      >
+                        Finish My Day
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Current Rules Table */}
         <div className="bg-white dark:bg-[#171717] rounded-lg">
@@ -505,11 +643,11 @@ export function ProgressTrackerContent() {
                         ) : (
                           <X className="w-4 h-4 text-gray-400" />
                         )}
-                        <span className={`text-sm ${
+                        <span className={`text-sm font-medium ${
                           rule.completed 
                             ? 'text-green-600 dark:text-green-400 line-through' 
                             : rule.isActive
-                            ? 'text-gray-900 dark:text-white'
+                            ? 'text-[#4B5563]'
                             : 'text-gray-500 dark:text-gray-400'
                         }`}>
                           {rule.name}
@@ -521,13 +659,13 @@ export function ProgressTrackerContent() {
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
+                    <td className="py-4 px-6 text-sm text-[#4B5563] font-medium">
                       {rule.condition}
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-900 dark:text-white">
+                    <td className="py-4 px-6 text-sm text-[#4B5563] font-medium">
                       {rule.streak}
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-900 dark:text-white">
+                    <td className="py-4 px-6 text-sm text-[#4B5563] font-medium">
                       {rule.avgPerformance}
                     </td>
                     <td className="py-4 px-6">

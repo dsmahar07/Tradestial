@@ -482,8 +482,8 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
             <Area
               type="linear"
               dataKey="value"
-              stroke="#693EE0"
-              strokeWidth={2}
+              stroke="#5B2CC9"
+              strokeWidth={1.5}
               fill="none"
               connectNulls={true}
               isAnimationActive={shouldAnimate}
@@ -492,10 +492,10 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               dot={false}
               activeDot={{
                 r: 5,
-                fill: "#693EE0",
+                fill: "#5B2CC9",
                 stroke: "#fff",
                 strokeWidth: 3,
-                filter: "drop-shadow(0 2px 4px rgba(105, 62, 224, 0.3))"
+                filter: "drop-shadow(0 2px 4px rgba(91, 44, 201, 0.3))"
               }}
             />
           </AreaChart>

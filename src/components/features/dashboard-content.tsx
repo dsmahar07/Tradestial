@@ -5,9 +5,10 @@ import { AnalyticsCard } from '@/components/ui/optimized'
 import { TradeDashboardCalendar } from '@/components/ui/trade-dashboard-calendar'
 import { RadixJournalDatePicker } from '@/components/ui/radix-journal-date-picker'
 import { ChartSkeleton } from '@/components/ui/chart-skeleton'
-import { getAnalyticsCardsConfig, AnalyticsCardConfig } from '@/components/ui/analytics-cards-config'
+import { getAnalyticsCardsConfig, getEmptyAnalyticsCards, AnalyticsCardConfig } from '@/components/ui/analytics-cards-config'
 import { DataStore } from '@/services/data-store.service'
 import { useRouter } from 'next/navigation'
+import { useHydrated } from '@/hooks/use-hydrated'
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
@@ -28,17 +29,32 @@ const AdvanceRadar = lazy(() => import('@/components/ui/AdvanceRadar').then(m =>
 
 export function DashboardContent() {
   const [isNavigating, setIsNavigating] = useState(false)
-  const [analyticsCards, setAnalyticsCards] = useState<AnalyticsCardConfig[]>(getAnalyticsCardsConfig())
+  const isHydrated = useHydrated()
+  const [analyticsCards, setAnalyticsCards] = useState<AnalyticsCardConfig[]>(() => {
+    // Always start with empty state to prevent hydration mismatch
+    // Force empty state for both server and client initial render
+    return getEmptyAnalyticsCards()
+  })
   const router = useRouter()
 
-  // Subscribe to data changes and update analytics cards
+  // Update analytics cards after hydration
   useEffect(() => {
-    const unsubscribe = DataStore.subscribe(() => {
-      setAnalyticsCards(getAnalyticsCardsConfig())
-    })
+    if (isHydrated) {
+      // Small delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        setAnalyticsCards(getAnalyticsCardsConfig(true)) // forceReal = true
+      }, 0)
+      
+      const unsubscribe = DataStore.subscribe(() => {
+        setAnalyticsCards(getAnalyticsCardsConfig(true)) // forceReal = true
+      })
 
-    return unsubscribe
-  }, [])
+      return () => {
+        clearTimeout(timeoutId)
+        unsubscribe()
+      }
+    }
+  }, [isHydrated])
 
   const handleDateSelect = (date: Date) => {
     setIsNavigating(true)

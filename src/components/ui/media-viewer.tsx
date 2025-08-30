@@ -331,7 +331,6 @@ export function MediaViewer({
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               muted={isMuted}
-              volume={volume}
               onClick={togglePlay}
             />
           )}

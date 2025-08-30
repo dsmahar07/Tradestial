@@ -266,13 +266,13 @@ export function RulesDialog({
                 )}
               </div>
 
-              {/* Start my day by */}
+              {/* Step into the day */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Start my day by</h3>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Step into the day</h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                      The time you should start your day by and enter your starting journal entry before your trading session.
+                      The time you should step into the day by and enter your starting journal entry before your trading session.
                     </p>
                   </div>
                   <Switch

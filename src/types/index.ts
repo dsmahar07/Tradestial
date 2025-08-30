@@ -28,4 +28,4 @@ export type ButtonVariant = "default" | "destructive" | "outline" | "secondary" 
 export type ButtonSize = "default" | "sm" | "lg" | "icon"
 
 // Re-export dashboard types
-export * from './dashboard'
+// export * from './dashboard' // File does not exist

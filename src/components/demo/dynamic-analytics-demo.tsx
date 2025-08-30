@@ -42,7 +42,7 @@ export function DynamicAnalyticsDemo() {
     switch (filterType) {
       case 'last30Days':
         await updateFilters({
-          dateRange: { start: thirtyDaysAgo, end: now }
+          dateRange: { startDate: thirtyDaysAgo.toISOString(), endDate: now.toISOString() }
         })
         break
       case 'winningTrades':
@@ -274,7 +274,7 @@ export function DynamicAnalyticsDemo() {
                   className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
                 >
                   <div className="flex items-center space-x-3">
-                    <Badge variant={trade.status === 'WIN' ? 'default' : 'destructive'}>
+                    <Badge variant="solid" color={trade.status === 'WIN' ? 'green' : 'red'}>
                       {trade.status}
                     </Badge>
                     <span className="font-medium">{trade.symbol}</span>

@@ -12,6 +12,7 @@ import TradingViewWidget from '@/components/ui/tradingview-widget'
 import { themeColors } from '@/config/theme'
 import { PageLoading } from '@/components/ui/loading-spinner'
 import { DataStore } from '@/services/data-store.service'
+import { RuleTrackingService } from '@/services/rule-tracking.service'
 import JournalHeaderStats from '@/components/ui/journal-header-stats'
 import JournalTradesTable from '@/components/ui/journal-trades-table'
 
@@ -122,6 +123,12 @@ function JournalPageContent() {
       // Only update tags if explicitly provided
       ...(tags !== undefined && { tags })
     }))
+    
+    // Track journal entry for Step into the day rule
+    if (content && content.trim().length > 0) {
+      RuleTrackingService.recordJournalEntry(selectedYMD, content)
+      console.log('Journal entry recorded for Step into the day rule tracking:', selectedYMD)
+    }
   }
 
   const handleDateChange = (selectedDate: Date) => {

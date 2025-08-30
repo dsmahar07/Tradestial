@@ -195,7 +195,11 @@ export function ModelModelsTable() {
     setMounted(true)
     setStrategies(readStrategies())
     setAssignments(readAssignments())
-    setTrades(DataStore.getAllTrades())
+    setTrades(DataStore.getAllTrades().map(trade => ({
+      ...trade,
+      date: trade.openDate,
+      pnl: trade.netPnl
+    })))
 
     const refresh = () => {
       setStrategies(readStrategies())
@@ -204,7 +208,11 @@ export function ModelModelsTable() {
     
     const refreshStats = () => {
       // Force re-render by updating state and refreshing trade data
-      setTrades(DataStore.getAllTrades())
+      setTrades(DataStore.getAllTrades().map(trade => ({
+        ...trade,
+        date: trade.openDate,
+        pnl: trade.netPnl
+      })))
       setStrategies(prev => [...prev])
     }
     

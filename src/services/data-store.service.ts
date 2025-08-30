@@ -1,5 +1,6 @@
 import { Trade, TradeMetrics, TradeDataService } from './trade-data.service'
 import TradeMetadataService from './trade-metadata.service'
+import { RuleTrackingService } from './rule-tracking.service'
 
 /**
  * Centralized data store for managing imported trade data
@@ -82,6 +83,9 @@ export class DataStore {
 
     this.persistTrades()
     this.notifyListeners()
+    
+    // Trigger rule tracking checks for affected dates
+    this.triggerRuleChecks(validTrades)
   }
 
   // Get all trades
@@ -101,13 +105,23 @@ export class DataStore {
     
     if (!partials || partials.length === 0) return
     const byId = new Map(partials.filter(p => p.id).map(p => [p.id as string, p]))
+    const updatedTrades: Trade[] = []
+    
     this.trades = this.trades.map(t => {
       const patch = byId.get(t.id)
-      return patch ? { ...t, ...patch } : t
+      if (patch) {
+        const updatedTrade = { ...t, ...patch }
+        updatedTrades.push(updatedTrade)
+        return updatedTrade
+      }
+      return t
     })
     
     this.persistTrades()
     this.notifyListeners()
+    
+    // Trigger rule tracking checks for affected dates
+    this.triggerRuleChecks(updatedTrades)
   }
 
   // Get trades by date range
@@ -287,12 +301,12 @@ export class DataStore {
       },
       profitFactor: {
         value: metrics.profitFactor,
-        formatted: `${metrics.profitFactor.toFixed(2)}:1`,
+        formatted: `${metrics.profitFactor.toFixed(2)}`,
         isPositive: metrics.profitFactor > 1
       },
       avgWinLoss: {
         value: metrics.avgWinAmount / Math.max(metrics.avgLossAmount, 1),
-        formatted: `${(metrics.avgWinAmount / Math.max(metrics.avgLossAmount, 1)).toFixed(2)}:1`,
+        formatted: `${(metrics.avgWinAmount / Math.max(metrics.avgLossAmount, 1)).toFixed(2)}`,
         isPositive: metrics.avgWinAmount > metrics.avgLossAmount
       },
       currentStreak: this.calculateCurrentStreak(trades),
@@ -771,5 +785,29 @@ export class DataStore {
         console.warn('DataStore listener error:', err)
       }
     }
+  }
+
+  // Trigger rule tracking checks for trades from affected dates
+  private static triggerRuleChecks(trades: Trade[]): void {
+    if (!trades.length) return
+
+    // Get unique dates from trades
+    const affectedDates = new Set<string>()
+    trades.forEach(trade => {
+      const dateStr = trade.openDate.split('T')[0] // Get YYYY-MM-DD part
+      affectedDates.add(dateStr)
+    })
+
+    // Trigger rule checks for each affected date
+    affectedDates.forEach(dateStr => {
+      // Link trades to model rule
+      RuleTrackingService.trackLinkTradesToModelRule(dateStr)
+      
+      // Stop loss rule  
+      RuleTrackingService.trackStopLossRule(dateStr)
+      
+      // Note: Max loss rules would need their configured amounts from trading rules
+      // These are handled by the progress tracker when it gets the rule configuration
+    })
   }
 }

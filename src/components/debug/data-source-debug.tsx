@@ -91,7 +91,7 @@ export function DataSourceDebug() {
             <div className="text-xs text-blue-600">Total Trades</div>
           </div>
           <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
-            <Badge variant={dataInfo.count > 0 ? "default" : "secondary"}>
+            <Badge variant={dataInfo.count > 0 ? "solid" : "light"} color={dataInfo.count > 0 ? "green" : "gray"}>
               {dataInfo.count > 0 ? "Has Data" : "Empty"}
             </Badge>
           </div>

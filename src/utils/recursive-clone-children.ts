@@ -14,7 +14,7 @@ export function recursiveCloneChildren(
 
     // Check if this child should receive the shared props
     const shouldReceiveProps = targetDisplayNames.some(
-      (name) => child.type && typeof child.type === 'function' && child.type.displayName === name
+      (name) => child.type && typeof child.type === 'function' && (child.type as any).displayName === name
     )
 
     let clonedChild = child
@@ -22,23 +22,23 @@ export function recursiveCloneChildren(
     if (shouldReceiveProps) {
       clonedChild = React.cloneElement(child, {
         ...sharedProps,
-        ...child.props,
-        key: child.key || `${uniqueId}-${targetDisplayNames.indexOf(child.type?.displayName || '')}`
+        ...(child.props || {}),
+        key: child.key || `${uniqueId}-${targetDisplayNames.indexOf((child.type as any)?.displayName || '')}`
       })
     }
 
     // Recursively clone children if they exist
-    if (clonedChild.props.children) {
+    if ((clonedChild.props as any)?.children) {
       clonedChild = React.cloneElement(clonedChild, {
-        ...clonedChild.props,
+        ...(clonedChild.props || {}),
         children: recursiveCloneChildren(
-          clonedChild.props.children,
+          (clonedChild.props as any).children,
           sharedProps,
           targetDisplayNames,
           uniqueId,
           asChild
         )
-      })
+      } as any)
     }
 
     return clonedChild

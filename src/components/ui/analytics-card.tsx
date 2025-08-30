@@ -69,11 +69,20 @@ export function AnalyticsCard({
   showCustomContent = false,
   customContent
 }: AnalyticsCardProps) {
-  const [localTradeCount, setLocalTradeCount] = useState(() => DataStore.getAllTrades().length)
+  const [localTradeCount, setLocalTradeCount] = useState(() => {
+    // Prevent hydration mismatch by using 0 on server-side
+    if (typeof window === 'undefined') {
+      return 0
+    }
+    return DataStore.getAllTrades().length
+  })
   
   // Subscribe to data changes to update trade count
   useEffect(() => {
     if (title === "NET PNL") {
+      // Update immediately after hydration
+      setLocalTradeCount(DataStore.getAllTrades().length)
+      
       const unsubscribe = DataStore.subscribe(() => {
         setLocalTradeCount(DataStore.getAllTrades().length)
       })
@@ -347,9 +356,9 @@ export function AnalyticsCard({
                   const maxValue = Math.max(...verticalBarsData.map(b => b.value));
                   const barHeight = (bar.value / maxValue) * 40; // Max height 40px
                   return (
-                    <div key={bar.name} className="flex flex-col items-center space-y-1">
+                    <div key={bar.name} className="flex flex-col items-center space-y-1 relative group">
                       <motion.div
-                        className="w-4 rounded-t-sm bg-opacity-90 hover:bg-opacity-100 transition-opacity cursor-pointer"
+                        className="w-4 rounded-t-sm bg-opacity-90 hover:bg-opacity-100 transition-opacity cursor-pointer relative"
                         style={{ 
                           backgroundColor: bar.color,
                           height: `${barHeight}px`,
@@ -362,8 +371,14 @@ export function AnalyticsCard({
                           delay: delay + 0.3 + (index * 0.2), 
                           ease: "easeOut" 
                         }}
-                        title={`${bar.name}: ${bar.value}`} // Simple tooltip
                       />
+                      {/* Hover tooltip */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                        {title === "Current streak" 
+                          ? `${bar.name} streak: ${bar.value} ${bar.value === 1 ? 'trade' : 'trades'}`
+                          : `${bar.name}: ${bar.value}`
+                        }
+                      </div>
                       <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                         {bar.name}
                       </span>

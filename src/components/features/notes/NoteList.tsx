@@ -19,73 +19,55 @@ const mockNotes: Note[] = [
     id: '1',
     title: 'Thu Apr 13, 2023',
     content: 'Pre-Market Watchlist and session thoughts...',
-    date: '07/20/2023',
-    category: 'Trade Notes',
-    tags: ['SPY', 'AMZN'],
-    netPnl: 1330.00,
-    trades: {
-      total: 11,
-      winners: 6,
-      losers: 5,
-      winrate: '54.55%'
-    }
+    createdAt: '2023-07-20T09:00:00Z',
+    updatedAt: '2023-07-20T09:00:00Z',
+    folder: 'Trade Notes',
+    tags: ['SPY', 'AMZN']
   },
   {
     id: '2', 
     title: 'Mon Jul 10, 2023',
     content: 'Today was a challenging day...',
-    date: '07/10/2023',
-    category: 'Daily Journal',
-    tags: ['Mistakes'],
-    netPnl: -250.75,
-    trades: {
-      total: 8,
-      winners: 3,
-      losers: 5,
-      winrate: '37.5%'
-    }
+    createdAt: '2023-07-10T09:00:00Z',
+    updatedAt: '2023-07-10T09:00:00Z',
+    folder: 'Daily Journal',
+    tags: ['Mistakes']
   },
   {
     id: '3',
     title: 'Tue May 09, 2023',
     content: 'Great session today with solid execution...',
-    date: '05/09/2023',
-    category: 'Sessions Recap',
-    tags: ['Good Trades'],
-    netPnl: 875.25,
-    trades: {
-      total: 6,
-      winners: 5,
-      losers: 1,
-      winrate: '83.33%'
-    }
+    createdAt: '2023-05-09T09:00:00Z',
+    updatedAt: '2023-05-09T09:00:00Z',
+    folder: 'Sessions Recap',
+    tags: ['Good Trades']
   },
   {
     id: '4',
     title: 'Mon Apr 05, 2023',
     content: 'Market analysis and preparation...',
-    date: '04/05/2023',
-    category: 'Trading Plan',
-    tags: ['Planning'],
-    netPnl: 425.50
+    createdAt: '2023-04-05T09:00:00Z',
+    updatedAt: '2023-04-05T09:00:00Z',
+    folder: 'Trading Plan',
+    tags: ['Planning']
   },
   {
     id: '5',
     title: 'Tue Mar 21, 2023',
     content: 'FOMC day trading strategy...',
-    date: '03/21/2023',
-    category: 'Trade Notes',
-    tags: ['FOMC'],
-    netPnl: -125.00
+    createdAt: '2023-03-21T09:00:00Z',
+    updatedAt: '2023-03-21T09:00:00Z',
+    folder: 'Trade Notes',
+    tags: ['FOMC']
   },
   {
     id: '6',
     title: 'Wed Mar 08, 2023',
     content: 'Weekly performance review...',
-    date: '03/08/2023',
-    category: 'Sessions Recap',
-    tags: ['Review'],
-    netPnl: 650.75
+    createdAt: '2023-03-08T09:00:00Z',
+    updatedAt: '2023-03-08T09:00:00Z',
+    folder: 'Sessions Recap',
+    tags: ['Review']
   }
 ]
 
@@ -94,7 +76,7 @@ export function NoteList({ selectedFolder, selectedNote, onNoteSelect }: NoteLis
   
   // Filter notes based on selected folder and search query
   const filteredNotes = mockNotes.filter(note => {
-    const matchesFolder = selectedFolder === 'All notes' || note.category === selectedFolder
+    const matchesFolder = selectedFolder === 'All notes' || note.folder === selectedFolder
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -188,10 +170,9 @@ export function NoteList({ selectedFolder, selectedNote, onNoteSelect }: NoteLis
                   {note.title}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {formatDate(note.date)}
+                  {formatDate(note.createdAt)}
                 </p>
               </div>
-              {formatPnl(note.netPnl)}
             </div>
             
             <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 line-clamp-2">
@@ -211,12 +192,6 @@ export function NoteList({ selectedFolder, selectedNote, onNoteSelect }: NoteLis
               </div>
             )}
             
-            {note.trades && (
-              <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                <span>Trades: {note.trades.total}</span>
-                <span>Winrate: {note.trades.winrate}</span>
-              </div>
-            )}
           </motion.div>
         ))}
       </div>

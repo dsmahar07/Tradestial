@@ -97,7 +97,7 @@ const FancyButtonRoot = React.forwardRef<HTMLButtonElement, FancyButtonProps>(
     
     try {
       const variants = fancyButtonVariants({ variant, size });
-      const rootClassName = variants.root({ class: className });
+      const rootClassName = (variants as any).root({ class: className });
 
       const sharedProps: FancyButtonSharedProps = {
         variant,
@@ -109,7 +109,7 @@ const FancyButtonRoot = React.forwardRef<HTMLButtonElement, FancyButtonProps>(
         sharedProps,
         [FANCY_BUTTON_ICON_NAME],
         uniqueId,
-        asChild,
+        asChild as boolean,
       );
 
       return (
@@ -134,7 +134,7 @@ const FancyButtonRoot = React.forwardRef<HTMLButtonElement, FancyButtonProps>(
           } ${className || ''}`}
           {...rest}
         >
-          {children}
+          {children as React.ReactNode}
         </Component>
       );
     }
@@ -150,7 +150,7 @@ function FancyButtonIcon<T extends React.ElementType>({
   ...rest
 }: PolymorphicComponentProps<T, FancyButtonSharedProps>) {
   const Component = as || 'div';
-  const { icon } = fancyButtonVariants({ variant, size });
+  const { icon } = fancyButtonVariants({ variant, size }) as any;
 
   return <Component className={icon({ class: className })} {...rest} />;
 }

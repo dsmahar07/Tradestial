@@ -38,10 +38,10 @@ export function tv(config: TVConfig) {
             const variantValue = mergedProps[variantKey]
             if (variantValue && variants[variantKey] && variants[variantKey][variantValue]) {
               const variantClasses = variants[variantKey][variantValue]
-              if (typeof variantClasses === 'object' && variantClasses[slotName]) {
-                const slotClasses = Array.isArray(variantClasses[slotName]) 
-                  ? variantClasses[slotName] 
-                  : [variantClasses[slotName]]
+              if (typeof variantClasses === 'object' && (variantClasses as any)[slotName]) {
+                const slotClasses = Array.isArray((variantClasses as any)[slotName]) 
+                  ? (variantClasses as any)[slotName] 
+                  : [(variantClasses as any)[slotName]]
                 classes.push(...slotClasses)
               }
             }
@@ -57,10 +57,10 @@ export function tv(config: TVConfig) {
             })
             
             if (matches && compoundClass) {
-              if (typeof compoundClass === 'object' && compoundClass[slotName]) {
-                const slotClasses = Array.isArray(compoundClass[slotName]) 
-                  ? compoundClass[slotName] 
-                  : [compoundClass[slotName]]
+              if (typeof compoundClass === 'object' && (compoundClass as any)[slotName]) {
+                const slotClasses = Array.isArray((compoundClass as any)[slotName]) 
+                  ? (compoundClass as any)[slotName] 
+                  : [(compoundClass as any)[slotName]]
                 classes.push(...slotClasses)
               }
             }
@@ -92,4 +92,3 @@ export function tv(config: TVConfig) {
   }
 }
 
-export type { VariantProps as VariantProps }
