@@ -296,7 +296,9 @@ export default function AccountManagementPage() {
                           <div className="w-10 h-10 mr-4 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-lg">{acc.broker.charAt(0)}</div>
                         )}
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{acc.name}</p>
+                          <p className="font-semibold truncate">
+                            <span className="bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">{acc.name}</span>
+                          </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">{acc.broker}</p>
                         </div>
                         {acc.id === activeAccountId && (

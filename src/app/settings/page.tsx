@@ -69,7 +69,7 @@ export default function SettingsPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <div className="flex-1 bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto">
+        <div className="flex-1 bg-gray-50 dark:bg-[#1C1C1C] p-6 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             <Tabs.Root defaultValue="profile" className="w-full">
               <div className="flex gap-8">

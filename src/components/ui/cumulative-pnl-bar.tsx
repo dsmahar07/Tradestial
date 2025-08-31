@@ -17,7 +17,8 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  ReferenceLine
 } from 'recharts'
 import { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
@@ -143,6 +144,46 @@ export function CumulativePnlBar() {
 
   const chartData = getChartData()
 
+  // Compute dynamic Y-axis ticks across chart data (matches Account Balance widget)
+  const yTicks = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [0]
+    const values: number[] = []
+    for (const d of chartData) {
+      if (typeof d.value === 'number' && isFinite(d.value)) values.push(d.value)
+    }
+    if (values.length === 0) return [0]
+
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+
+    // Guard single-value or flat series
+    if (min === max) {
+      const pad = Math.max(1, Math.abs(min) * 0.1)
+      return [min - 2 * pad, min - pad, min, min + pad, min + 2 * pad]
+    }
+
+    // Nice step calculation for ~6 segments
+    const range = max - min
+    const rawStep = range / 6
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))))
+    const niceStep = Math.ceil(rawStep / magnitude) * magnitude
+
+    // Expand to nice bounds
+    const niceMin = Math.floor(min / niceStep) * niceStep
+    const niceMax = Math.ceil(max / niceStep) * niceStep
+
+    const ticks: number[] = []
+    for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
+      // Round to avoid floating point precision issues that can cause fractional pixel positioning
+      const roundedTick = Math.round(Number(v.toFixed(10)))
+      // Avoid duplicate ticks that would cause overlapping grid lines
+      if (!ticks.includes(roundedTick)) {
+        ticks.push(roundedTick)
+      }
+    }
+    return ticks
+  }, [chartData])
+
   // Show empty state when no trades
   if (!trades.length) {
     return (
@@ -197,12 +238,17 @@ export function CumulativePnlBar() {
     return null
   }
 
-  // Format Y-axis labels
+  // Format Y-axis labels (matches Account Balance widget)
+  const formatCurrency = (value: number) => {
+    // Full currency with thousands separators, e.g. $60,000
+    return `$${Math.round(value).toLocaleString()}`
+  }
+
   const formatYAxisLabel = (value: number) => {
     if (selectedMetric === 'Trade Count') {
       return value.toString()
     }
-    return `$${(value/1000).toFixed(0)}k`
+    return formatCurrency(value)
   }
 
   return (
@@ -212,7 +258,7 @@ export function CumulativePnlBar() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -279,33 +325,49 @@ export function CumulativePnlBar() {
               data={chartData}
               margin={{ top: 20, right: 5, left: -10, bottom: 5 }}
             >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="#e5e7eb" 
-                className="dark:stroke-gray-600"
-                vertical={false}
-              />
+              {/* Disable default grid entirely */}
+              <CartesianGrid stroke="none" vertical={false} horizontal={false} />
               <XAxis 
                 dataKey="period" 
+                stroke="#9ca3af"
                 axisLine={false}
                 tickLine={false}
+                padding={{ left: 0, right: 0 }}
                 tick={{ 
                   fontSize: 12, 
                   fill: '#9ca3af',
                   fontWeight: 600
                 }}
                 className="dark:fill-gray-400"
+                height={25}
+                tickMargin={5}
               />
               <YAxis
-                axisLine={false}
+                stroke="#6b7280"
                 tickLine={false}
+                axisLine={false}
+                tickFormatter={formatYAxisLabel}
+                domain={[Math.min(...yTicks), Math.max(...yTicks)]}
+                ticks={yTicks}
                 tick={{ 
                   fontSize: 11, 
                   fill: '#9ca3af'
                 }}
                 className="dark:fill-gray-400"
-                tickFormatter={formatYAxisLabel}
+                scale="linear"
+                allowDecimals={false}
               />
+              {/* Draw horizontal grid lines exactly at labeled ticks */}
+              {yTicks.map((t) => (
+                <ReferenceLine
+                  key={`grid-${t}`}
+                  y={t}
+                  stroke="var(--grid)"
+                  strokeDasharray="3 3"
+                  strokeWidth={1}
+                  ifOverflow="visible"
+                />
+              ))}
               <Tooltip content={<CustomTooltip />} />
               <Bar 
                 dataKey="value" 

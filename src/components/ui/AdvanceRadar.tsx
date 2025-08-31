@@ -240,9 +240,10 @@ const AdvanceRadar: React.FC = () => {
                 color: 'transparent'
               },
               areaStyle: { 
-                color: new echarts.graphic.RadialGradient(0.5, 0.5, 1, [
-                  { offset: 0, color: 'rgba(53, 89, 233, 0.82)' },
-                  { offset: 1, color: 'rgba(53, 89, 233, 0.50)' }
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                  { offset: 0, color: 'rgba(79, 125, 255, 0.6)' },
+                  { offset: 0.5, color: 'rgba(139, 92, 246, 0.6)' },
+                  { offset: 1, color: 'rgba(246, 181, 30, 0.6)' }
                 ])
               },
               symbol: 'circle',
@@ -384,9 +385,17 @@ const AdvanceRadar: React.FC = () => {
                     <div className="relative h-2 rounded-full bg-gray-200 dark:bg-neutral-800">
                       {/* Dynamic gradient fill up to score */}
                       <div
-                        className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+                        className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
                         style={{ width: `${markerPos}%` }}
                       />
+                      {/* Checkpoint dividers - always on top, aligned to text below */}
+                      {[20, 40, 60, 80].map(checkpoint => (
+                        <div
+                          key={checkpoint}
+                          className="absolute top-0 h-2 w-px bg-white dark:bg-gray-700 z-20"
+                          style={{ left: `calc(${checkpoint}% - 0.5px)` }}
+                        />
+                      ))}
                       {/* Marker */}
                       <span
                         aria-label="score-marker"

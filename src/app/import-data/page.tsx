@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo, useEffect } from 'react'
 
 import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe, X } from 'lucide-react'
 import Image from 'next/image'
@@ -344,6 +344,30 @@ export default function ImportDataPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilters, setSelectedFilters] = useState<string[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Force this route to always render in light mode
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    const hadDarkHtml = html.classList.contains('dark')
+    const hadDarkBody = body.classList.contains('dark')
+    // Remove dark class so Tailwind dark: variants do not apply
+    html.classList.remove('dark')
+    body.classList.remove('dark')
+    // Ensure color scheme stays light for form controls
+    const prevHtmlScheme = html.style.colorScheme
+    const prevBodyScheme = body.style.colorScheme
+    html.style.colorScheme = 'light'
+    body.style.colorScheme = 'light'
+
+    return () => {
+      // Restore previous state when navigating away
+      if (hadDarkHtml) html.classList.add('dark')
+      if (hadDarkBody) body.classList.add('dark')
+      html.style.colorScheme = prevHtmlScheme
+      body.style.colorScheme = prevBodyScheme
+    }
+  }, [])
   // Determine user's local timezone as default (fallback to UTC)
   const localTimeZone = useMemo(() => {
     try {
@@ -634,7 +658,7 @@ export default function ImportDataPage() {
       }))
       
     } catch (error) {
-      console.error('❌ CSV processing failed:', error)
+      console.warn('❌ CSV processing failed:', error)
       addToast('error', 'CSV processing failed', 'Please check the file format and try again.')
       
       setImportState(prev => ({
@@ -700,7 +724,7 @@ export default function ImportDataPage() {
       )
       
     } catch (error) {
-      console.error('Import failed:', error)
+      console.warn('Import failed:', error)
       setImportState(prev => ({
         ...prev,
         step: 'results',
@@ -789,7 +813,7 @@ export default function ImportDataPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-white dark:text-gray-900 [color-scheme:light]" data-theme="light">
       {/* Header */}
       <div className="max-w-7xl mx-auto px-6 py-3 relative flex items-center justify-between">
         <button className="p-1" onClick={() => router.push('/dashboard')}>
@@ -806,7 +830,7 @@ export default function ImportDataPage() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg">
             <span className="text-white text-xl font-semibold">U</span>
           </div>
-          <h2 className="text-xl font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <h2 className="text-xl font-medium text-gray-700 mb-2">
             Welcome, User
           </h2>
           <p className="text-2xl font-semibold max-w-md mx-auto bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">
@@ -823,7 +847,7 @@ export default function ImportDataPage() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <h2 className="text-lg font-semibold">Specialty Brokers</h2>
-                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
+                  <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
                     {popularBrokers.length}
                   </span>
                 </div>
@@ -832,12 +856,12 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 rounded-lg bg-white dark:bg-[#171717] cursor-pointer group relative shadow-sm"
+                            className="p-4 rounded-lg bg-white cursor-pointer group relative shadow-sm"
                           >
                             {/* Link icon for Tradovate and NinjaTrader */}
                             {(broker.id === 'tradovate' || broker.id === 'ninjatrader') && (
                               <div className="absolute top-3 right-3 group/tooltip cursor-help" onClick={(e) => e.stopPropagation()}>
-                                <div className="absolute -top-8 -right-2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                <div className="absolute -top-8 -right-2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                                   This broker supports Auto Sync
                                 </div>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -883,13 +907,13 @@ export default function ImportDataPage() {
                                 </div>
                               </div>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+                            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
                               {broker.description}
                             </p>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300"
+                              className="w-full border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                             >
                               <Upload className="w-4 h-4 mr-2" />
                               Import
@@ -905,7 +929,7 @@ export default function ImportDataPage() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <h2 className="text-lg font-semibold">Traditional & Mobile Brokers</h2>
-                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
+                  <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
                     {otherBrokers.length}
                   </span>
                 </div>
@@ -914,7 +938,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 rounded-lg bg-white dark:bg-[#171717] cursor-pointer group"
+                            className="p-4 rounded-lg bg-white cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
@@ -946,13 +970,13 @@ export default function ImportDataPage() {
                                 </div>
                               </div>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+                            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
                               {broker.description}
                             </p>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full border-gray-300 dark:border-[#2a2a2a] dark:bg-[#171717] dark:text-gray-300"
+                              className="w-full border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                             >
                               <Upload className="w-4 h-4 mr-2" />
                               Import
@@ -979,7 +1003,7 @@ export default function ImportDataPage() {
                 </Button>
 
             {/* Selected Broker Info */}
-            <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
+            <Card className="border-0 shadow-none bg-white">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -1000,12 +1024,12 @@ export default function ImportDataPage() {
                         )}
                         <div>
                           <CardTitle className="text-xl">{importState.selectedBroker.name}</CardTitle>
-                          <p className="text-gray-600 dark:text-gray-400">
+                          <p className="text-gray-600">
                             Upload your {importState.selectedBroker.csvFormat} file
                           </p>
                         </div>
                       </div>
-                      <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">
+                      <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
                         Smart Detection Enabled
                       </div>
                     </div>
@@ -1013,7 +1037,7 @@ export default function ImportDataPage() {
                 </Card>
 
             {/* Upload Area */}
-            <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
+            <Card className="border-0 shadow-none bg-white">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <span>Upload CSV File</span>
@@ -1024,7 +1048,7 @@ export default function ImportDataPage() {
                     {/* Import Settings */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 justify-items-center">
                       <div className="space-y-2 w-full max-w-sm text-center">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label className="text-sm font-medium text-gray-700">
                           Date Format
                         </label>
                         <Select value={selectedDateFormat} onValueChange={setSelectedDateFormat}>
@@ -1053,7 +1077,7 @@ export default function ImportDataPage() {
                         </Select>
                       </div>
                       <div className="space-y-2 w-full max-w-sm text-center">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 flex items-center justify-center gap-2">
                           <Globe className="w-4 h-4" />
                           CSV Timezone
                         </label>
@@ -1077,7 +1101,7 @@ export default function ImportDataPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500">
                           Timezone of timestamps in your CSV file
                         </p>
                       </div>
@@ -1085,7 +1109,7 @@ export default function ImportDataPage() {
 
                     <FileUpload.Root
                       className={cn(
-                        isProcessing && "border-blue-300 bg-blue-50 dark:bg-blue-900/20"
+                        isProcessing && "border-blue-300 bg-blue-50"
                       )}
                       htmlFor="file-upload"
                       onDrop={(e: React.DragEvent<HTMLLabelElement>) => handleFileDrop(e)}
@@ -1107,10 +1131,10 @@ export default function ImportDataPage() {
                       )}
                       
                       <div className="text-center">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
                           {isProcessing ? 'Processing your CSV...' : 'Drop your CSV file here'}
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        <p className="text-gray-600 mb-4">
                           {isProcessing ? 'Extracting trade data and preparing analytics...' : 'or click to browse files'}
                         </p>
                         
@@ -1128,7 +1152,7 @@ export default function ImportDataPage() {
                               <Upload className="w-4 h-4 mr-2" />
                               Choose CSV File
                             </FileUpload.Button>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            <p className="text-xs text-gray-500 mt-2">
                               Supports: .csv files up to 10MB
                             </p>
                           </>
@@ -1143,14 +1167,14 @@ export default function ImportDataPage() {
             {/* Processing Step */}
             {importState.step === 'processing' && (
               <div className="flex flex-col items-center justify-center py-16 space-y-6">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                   <Clock className="w-8 h-8 text-blue-500 animate-spin" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     Processing Your Trades
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-600">
                     Analyzing CSV data and preparing all analytics...
                   </p>
                 </div>
@@ -1171,17 +1195,17 @@ export default function ImportDataPage() {
 
                 {importState.importResults.success ? (
                   <div className="max-w-md mx-auto">
-                    <div className="bg-white dark:bg-[#171717] rounded-2xl p-8 text-center border-0 shadow-none">
+                    <div className="bg-white rounded-2xl p-8 text-center border-0 shadow-none">
                       <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <OrdersIcon className="text-green-600 dark:text-green-400" size={32} />
+                        <OrdersIcon className="text-green-600" size={32} />
                       </div>
                       
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         Import Complete
                       </h3>
                       
-                      <p className="text-gray-600 dark:text-gray-400 mb-6">
-                        Successfully imported <span className="font-medium text-green-600 dark:text-green-400">{importState.importResults.trades.length} trades</span> and prepared all analytics data
+                      <p className="text-gray-600 mb-6">
+                        Successfully imported <span className="font-medium text-green-600">{importState.importResults.trades.length} trades</span> and prepared all analytics data
                       </p>
                       
                       <div className="flex flex-col space-y-3">
@@ -1194,7 +1218,7 @@ export default function ImportDataPage() {
                         <Button 
                           variant="ghost" 
                           onClick={resetImport}
-                          className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                          className="w-full text-gray-600 hover:text-gray-900"
                         >
                           Import More Data
                         </Button>
@@ -1202,15 +1226,15 @@ export default function ImportDataPage() {
                     </div>
                   </div>
                 ) : (
-                  <Card className="border-0 shadow-none bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800">
+                  <Card className="border-0 shadow-none bg-red-50 border-2 border-red-200">
                     <CardHeader>
                       <div className="flex items-center space-x-3">
                         <AlertCircle className="w-8 h-8 text-red-500" />
                         <div>
-                          <CardTitle className="text-red-800 dark:text-red-200">
+                          <CardTitle className="text-red-800">
                             Import Failed
                           </CardTitle>
-                          <p className="text-red-600 dark:text-red-400">
+                          <p className="text-red-600">
                             There were errors processing your CSV file
                           </p>
                         </div>
@@ -1220,10 +1244,10 @@ export default function ImportDataPage() {
                       <div className="space-y-4">
                         {importState.importResults.errors.length > 0 && (
                           <div>
-                            <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">Errors:</h4>
+                            <h4 className="font-semibold text-red-800 mb-2">Errors:</h4>
                             <ul className="list-disc list-inside space-y-1">
                               {importState.importResults.errors.map((error, index) => (
-                                <li key={index} className="text-red-600 dark:text-red-400 text-sm">
+                                <li key={index} className="text-red-600 text-sm">
                                   {error}
                                 </li>
                               ))}

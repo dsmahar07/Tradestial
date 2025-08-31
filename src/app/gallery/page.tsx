@@ -256,13 +256,13 @@ export default function GalleryPage() {
   const selected = viewerIndex !== null ? filteredAndSortedItems[viewerIndex] : null
 
   return (
-    <div className="flex h-screen bg-white dark:bg-[#0B0B0B]">
+    <div className="flex h-screen">
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C]">
           {/* Hero */}
           <section className="relative">
             <div className="border-b border-black/5 dark:border-white/10">

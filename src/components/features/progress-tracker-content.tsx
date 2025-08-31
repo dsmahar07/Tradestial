@@ -547,7 +547,7 @@ export function ProgressTrackerContent() {
   
   return (
     <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="space-y-6">
         
         {/* Top Section */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

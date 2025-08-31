@@ -247,14 +247,16 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
         <div className="h-[320px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
+              margin={{ top: 20, right: 5, left: -10, bottom: 25 }}
             >
               <XAxis 
                 type="number"
                 dataKey="x"
                 name="time"
+                stroke="#9ca3af"
                 axisLine={false}
                 tickLine={false}
+                padding={{ left: 0, right: 0 }}
                 tick={{ 
                   fontSize: 12, 
                   fill: '#9ca3af',
@@ -272,8 +274,8 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                   y={y}
                   stroke="var(--grid)"
                   strokeDasharray="3 3"
+                  strokeWidth={1}
                   ifOverflow="extendDomain"
-                  style={{ shapeRendering: 'crispEdges' }}
                 />
               ))}
               <YAxis 
@@ -282,15 +284,16 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                 name="pnl"
                 axisLine={false}
                 tickLine={false}
+                tickFormatter={formatYAxis}
+                domain={[ niceMinY, niceMaxY ]}
+                ticks={uniqueYTicks}
                 tick={{ 
                   fontSize: 11, 
                   fill: '#9ca3af'
                 }}
                 className="dark:fill-gray-400"
-                tickFormatter={formatYAxis}
-                domain={[ niceMinY, niceMaxY ]}
-                ticks={uniqueYTicks}
-                width={55}
+                scale="linear"
+                allowDecimals={false}
               />
               
               

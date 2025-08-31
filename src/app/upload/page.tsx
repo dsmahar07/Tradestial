@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo, useEffect } from 'react'
+import { useToast } from '@/components/ui/notification-toast'
 import { ArrowLeft, X, Play, Check, ChevronDown } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
@@ -14,10 +15,12 @@ export default function UploadPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isImportingRef = useRef(false)
+  const { success: toastSuccess, error: toastError, warning: toastWarning, ToastContainer } = useToast()
   const [isDragOver, setIsDragOver] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedTimezone, setSelectedTimezone] = useState<number>(() => {
     const brokerId = searchParams.get('brokerId') || 'tradovate'
     return getBrokerTimezoneDefault(brokerId)
@@ -84,7 +87,7 @@ export default function UploadPage() {
 
   const processFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
-      alert('Please select a CSV file')
+      toastWarning('Invalid file type', 'Please select a .csv file')
       return
     }
 
@@ -93,7 +96,7 @@ export default function UploadPage() {
     try {
       // Validate timezone offset before processing
       if (isNaN(selectedTimezone)) {
-        alert('Please select a valid timezone')
+        toastWarning('Invalid timezone', 'Please select a valid timezone before uploading')
         setIsProcessing(false)
         return
       }
@@ -124,17 +127,16 @@ export default function UploadPage() {
         
         // Redirect to account page
         router.push('/account')
+        toastSuccess('Import complete', `Imported ${result.trades.length} trade${result.trades.length !== 1 ? 's' : ''}.`)
       } else {
         const errorMessage = result.errors && result.errors.length > 0 
           ? `Import failed: ${result.errors.join(', ')}` 
           : 'Failed to import trades. Please check your CSV format.'
-        alert(errorMessage)
-        console.error('CSV import errors:', result.errors)
+        toastError('CSV import failed', errorMessage)
       }
       
     } catch (error) {
-      console.error('Import failed:', error)
-      alert(`Failed to process CSV file: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toastError('Failed to process CSV file', error instanceof Error ? error.message : 'Unknown error')
     } finally {
       setIsProcessing(false)
     }
@@ -142,6 +144,7 @@ export default function UploadPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <ToastContainer />
       {/* Header */}
       <div className="max-w-5xl mx-auto px-5 py-5 mb-16 relative flex items-center justify-between">
         <button className="p-1" onClick={() => router.push('/import-data')}>
@@ -239,6 +242,10 @@ export default function UploadPage() {
               onDrop={handleFileDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
+              onClick={() => { if (!isProcessing) fileInputRef.current?.click() }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (!isProcessing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fileInputRef.current?.click() } }}
             >
               {isProcessing ? (
                 <div className="w-12 h-12 mx-auto mb-4 text-purple-600">
@@ -257,7 +264,7 @@ export default function UploadPage() {
               </p>
               {!isProcessing && (
                 <>
-                  <input type="file" accept=".csv" className="hidden" id="file-upload" onChange={handleFileUpload} />
+                  <input ref={fileInputRef} type="file" accept=".csv" className="hidden" id="file-upload" onChange={handleFileUpload} />
                   <label htmlFor="file-upload" className="px-4 py-2 text-white text-sm rounded hover:opacity-90 cursor-pointer inline-block" style={{backgroundColor: '#5B2CC9'}}>
                     Upload file
                   </label>

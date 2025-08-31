@@ -228,7 +228,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
           <ResponsiveContainer width="100%" height="100%" className="focus:outline-none [&>*]:focus:outline-none">
             <ComposedChart
               data={drawdownData}
-              margin={{ top: 20, right: 15, left: 0, bottom: 25 }}
+              margin={{ top: 20, right: 5, left: -15, bottom: 25 }}
             >
               {yTicks.map((y) => (
                 <ReferenceLine
@@ -236,8 +236,8 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                   y={y}
                   stroke="var(--grid)"
                   strokeDasharray="3 3"
+                  strokeWidth={1}
                   ifOverflow="extendDomain"
-                  style={{ shapeRendering: 'crispEdges' }}
                 />
               ))}
               <defs>
@@ -249,8 +249,10 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               
               <XAxis 
                 dataKey="index"
+                stroke="#9ca3af"
                 axisLine={false}
                 tickLine={false}
+                padding={{ left: 0, right: 0 }}
                 tick={{ 
                   fontSize: 12, 
                   fill: '#9ca3af',
@@ -281,8 +283,8 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 tickFormatter={formatYAxis}
                 domain={[Math.min(...yTicks), 0]}
                 ticks={yTicks}
-                padding={{ top: 5, bottom: 0 }}
-                width={55}
+                scale="linear"
+                allowDecimals={false}
               />
               
               <Tooltip content={<DrawdownTooltip />} cursor={false} />
@@ -305,6 +307,9 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 dot={false}
                 isAnimationActive={false}
                 connectNulls={true}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ shapeRendering: 'geometricPrecision' } as React.CSSProperties}
                 activeDot={{
                   r: 6,
                   fill: "#2547D0",

@@ -237,42 +237,44 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
     return chartData.filter(d => d.time).map(d => d.index)
   }, [chartData])
 
-  // Precompute Y-axis ticks so only labeled lines are rendered (includes $0)
+  // Compute dynamic Y-axis ticks across data values (matches Account Balance widget)
   const yTicks = useMemo(() => {
     if (!chartData || chartData.length === 0) return [0]
-    const values = chartData
-      .map(d => d.value)
-      .filter((v): v is number => typeof v === 'number' && isFinite(v))
+    const values: number[] = []
+    for (const d of chartData) {
+      if (typeof d.value === 'number' && isFinite(d.value)) values.push(d.value)
+    }
     if (values.length === 0) return [0]
 
     const min = Math.min(...values)
     const max = Math.max(...values)
 
-    // all zeros
-    if (min === 0 && max === 0) return [-100, -50, 0, 50, 100]
-
-    // single-value band
+    // Guard single-value or flat series
     if (min === max) {
-      if (min > 0) return [0, min * 0.25, min * 0.5, min * 0.75, min]
-      if (min < 0) return [min, min * 0.75, min * 0.5, min * 0.25, 0]
-      return [0]
+      const pad = Math.max(1, Math.abs(min) * 0.1)
+      return [min - 2 * pad, min - pad, min, min + pad, min + 2 * pad]
     }
 
-    // ensure 0 is part of ticks
-    if (min >= 0) {
-      const ymax = max * 1.1
-      const step = ymax / 6
-      return [0, step, step * 2, step * 3, step * 4, step * 5, ymax]
-    }
-    if (max <= 0) {
-      const ymin = min * 1.1
-      const step = Math.abs(ymin) / 6
-      return [ymin, -step * 5, -step * 4, -step * 3, -step * 2, -step, 0]
-    }
+    // Nice step calculation for ~6 segments
+    const range = max - min
+    const rawStep = range / 6
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))))
+    const niceStep = Math.ceil(rawStep / magnitude) * magnitude
 
-    const absMax = Math.max(Math.abs(min), Math.abs(max)) * 1.1
-    const step = absMax / 3
-    return [-absMax, -step * 2, -step, 0, step, step * 2, absMax]
+    // Expand to nice bounds
+    const niceMin = Math.floor(min / niceStep) * niceStep
+    const niceMax = Math.ceil(max / niceStep) * niceStep
+
+    const ticks: number[] = []
+    for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
+      // Round to avoid floating point precision issues that can cause fractional pixel positioning
+      const roundedTick = Math.round(Number(v.toFixed(10)))
+      // Avoid duplicate ticks that would cause overlapping grid lines
+      if (!ticks.includes(roundedTick)) {
+        ticks.push(roundedTick)
+      }
+    }
+    return ticks
   }, [chartData])
 
   if (loading) {
@@ -304,7 +306,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
+    <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
@@ -358,7 +360,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 20, right: 15, left: 20, bottom: 20 }}
+            margin={{ top: 20, right: 5, left: -10, bottom: 20 }}
           >
             <defs>
               {/* Green gradient for positive areas */}
@@ -373,15 +375,8 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               </linearGradient>
             </defs>
             
-            {/* Disable built-in horizontal grid to avoid unlabeled lines; we'll draw lines per Y tick below */}
-            <CartesianGrid 
-              strokeDasharray="2 2" 
-              stroke="#d1d5db" 
-              className="dark:stroke-gray-600"
-              horizontal={false}
-              vertical={false}
-              strokeOpacity={0.8}
-            />
+            {/* Disable default grid entirely */}
+            <CartesianGrid stroke="none" vertical={false} horizontal={false} />
             
             <XAxis 
               dataKey="index" 
@@ -389,15 +384,16 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               domain={["dataMin", "dataMax"]}
               allowDecimals={false}
               scale="linear"
+              stroke="#9ca3af"
               axisLine={false}
               tickLine={false}
+              padding={{ left: 0, right: 0 }}
               tick={{ 
                 fontSize: 12, 
                 fill: '#9ca3af',
                 fontWeight: 600
               }}
               className="dark:fill-gray-400"
-              padding={{ left: 0, right: 0 }}
               height={25}
               tickMargin={5}
               tickFormatter={(value) => {
@@ -413,29 +409,22 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               // Only place ticks where we have labels to avoid unlabeled grid positions
               ticks={xTicks}
             />
-            <YAxis 
+            <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ 
-                fontSize: 12, 
-                fill: '#6b7280',
-                fontWeight: 500
+                fontSize: 11, 
+                fill: '#9ca3af'
               }}
               className="dark:fill-gray-400"
               tickFormatter={(value) => {
                 if (value === 0) return '$0';
                 return formatCurrency(value);
               }}
-              width={80}
-              tickMargin={15}
-              padding={{ top: 10, bottom: 10 }}
               domain={[Math.min(...yTicks), Math.max(...yTicks)]}
               ticks={yTicks}
-            />
-            
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={false}
+              scale="linear"
+              allowDecimals={false}
             />
             
             {/* Draw horizontal grid lines explicitly for each labeled Y tick (including $0) */}
@@ -443,12 +432,17 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
               <ReferenceLine
                 key={`grid-${t}`}
                 y={t}
-                stroke="#d1d5db"
-                strokeDasharray="2 2"
-                strokeOpacity={0.8}
+                stroke="var(--grid)"
+                strokeDasharray="3 3"
+                strokeWidth={1}
                 ifOverflow="visible"
               />
             ))}
+            
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={false}
+            />
             
             {/* Positive area - clip to line using split series */}
             <Area

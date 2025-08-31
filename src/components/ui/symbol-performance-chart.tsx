@@ -276,7 +276,7 @@ export function SymbolPerformanceChart() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -345,20 +345,24 @@ export function SymbolPerformanceChart() {
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
-                stroke="#e5e7eb" 
-                className="dark:stroke-gray-600"
+                stroke="var(--grid)" 
                 vertical={false}
+                horizontal={true}
               />
               <XAxis 
                 dataKey="symbol" 
+                stroke="#9ca3af"
                 axisLine={false}
                 tickLine={false}
+                padding={{ left: 0, right: 0 }}
                 tick={{ 
                   fontSize: 12, 
                   fill: '#9ca3af',
                   fontWeight: 600
                 }}
                 className="dark:fill-gray-400"
+                height={25}
+                tickMargin={5}
               />
               <YAxis
                 axisLine={false}

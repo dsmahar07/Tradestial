@@ -180,7 +180,12 @@ export function AccountBalanceChart({
 
     const ticks: number[] = []
     for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
-      ticks.push(Number(v.toFixed(10)))
+      // Round to avoid floating point precision issues that can cause fractional pixel positioning
+      const roundedTick = Math.round(Number(v.toFixed(10)))
+      // Avoid duplicate ticks that would cause overlapping grid lines
+      if (!ticks.includes(roundedTick)) {
+        ticks.push(roundedTick)
+      }
     }
     return ticks
   }, [actualData])
@@ -248,10 +253,10 @@ export function AccountBalanceChart({
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={actualData}
-                margin={{ top: 20, right: 16, left: 0, bottom: 25 }}
+                margin={{ top: 20, right: 5, left: -5, bottom: 20 }}
               >
-                {/* Disable horizontal grid; we'll draw labeled-only lines per Y tick below */}
-                <CartesianGrid stroke="var(--grid)" strokeDasharray="3 3" vertical={false} horizontal={false} style={{ shapeRendering: 'crispEdges' }} />
+                {/* Disable default grid entirely */}
+                <CartesianGrid stroke="none" vertical={false} horizontal={false} />
                 <XAxis 
                   dataKey="date" 
                   stroke="#9ca3af"
@@ -274,18 +279,13 @@ export function AccountBalanceChart({
                   tickFormatter={formatCurrency}
                   domain={[Math.min(...yTicks), Math.max(...yTicks)]}
                   ticks={yTicks}
-                  width={68}
                   tick={{ 
-                    dx: -12, 
-                    textAnchor: 'end', 
-                    fontSize: 10, 
+                    fontSize: 11, 
                     fill: '#9ca3af'
                   }}
                   className="dark:fill-gray-400"
-                  tickMargin={2}
                   scale="linear"
                   allowDecimals={false}
-                  padding={{ top: 0, bottom: 0 }}
                 />
                 {/* Draw horizontal grid lines exactly at labeled ticks */}
                 {yTicks.map((t) => (
@@ -296,7 +296,6 @@ export function AccountBalanceChart({
                     strokeDasharray="3 3"
                     strokeWidth={1}
                     ifOverflow="visible"
-                    style={{ shapeRendering: 'crispEdges' }}
                   />
                 ))}
                 <Tooltip content={<CustomTooltip />} cursor={false} />
@@ -310,7 +309,7 @@ export function AccountBalanceChart({
                   isAnimationActive={false}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ shapeRendering: 'geometricPrecision', vectorEffect: 'non-scaling-stroke' } as React.CSSProperties}
+                  style={{ shapeRendering: 'geometricPrecision' } as React.CSSProperties}
                   activeDot={{ r: 4, fill: '#5B2CC9' }}
                 />
                 {/* Red line: Starting Balance (constant baseline) */}
@@ -323,7 +322,7 @@ export function AccountBalanceChart({
                   isAnimationActive={false}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ shapeRendering: 'geometricPrecision', vectorEffect: 'non-scaling-stroke' } as React.CSSProperties}
+                  style={{ shapeRendering: 'geometricPrecision' } as React.CSSProperties}
                   activeDot={{ r: 4, fill: '#FB3748' }}
                 />
               </LineChart>
