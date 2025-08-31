@@ -145,14 +145,39 @@ export class RuleTrackingService {
       return tradeDate === dateKey
     })
     
-    // Check if all trades have models linked
-    const allTradesHaveModels = dayTrades.length > 0 && dayTrades.every(trade => 
-      trade.modelId || trade.model || trade.strategy
-    )
+    // Rule can only be completed if there are actual trades to validate
+    if (dayTrades.length === 0) {
+      this.setRuleCompletion('3', false, dateKey, {
+        totalTrades: 0,
+        tradesWithModels: 0,
+        reason: 'No trades found for validation'
+      })
+      return
+    }
+    
+    // Check if all trades have models linked (check metadata service for model selection)
+    const allTradesHaveModels = dayTrades.every(trade => {
+      // Check if model is selected in trade metadata (from stats widget)
+      try {
+        const metadata = JSON.parse(localStorage.getItem('tradestial:trade-metadata') || '{}')
+        const tradeMetadata = metadata[trade.id]
+        return tradeMetadata && tradeMetadata.selectedModel && tradeMetadata.selectedModel.trim() !== ''
+      } catch {
+        return trade.model || false
+      }
+    })
     
     this.setRuleCompletion('3', allTradesHaveModels, dateKey, {
       totalTrades: dayTrades.length,
-      tradesWithModels: dayTrades.filter(trade => trade.modelId || trade.model || trade.strategy).length
+      tradesWithModels: dayTrades.filter(trade => {
+        try {
+          const metadata = JSON.parse(localStorage.getItem('tradestial:trade-metadata') || '{}')
+          const tradeMetadata = metadata[trade.id]
+          return tradeMetadata && tradeMetadata.selectedModel && tradeMetadata.selectedModel.trim() !== ''
+        } catch {
+          return trade.model || false
+        }
+      }).length
     })
   }
 
@@ -167,16 +192,39 @@ export class RuleTrackingService {
       return tradeDate === dateKey
     })
     
-    // Check if all trades have stop loss set
-    const allTradesHaveStopLoss = dayTrades.length > 0 && dayTrades.every(trade => 
-      trade.stopLoss !== undefined && trade.stopLoss !== null && trade.stopLoss !== 0
-    )
+    // Rule can only be completed if there are actual trades to validate
+    if (dayTrades.length === 0) {
+      this.setRuleCompletion('4', false, dateKey, {
+        totalTrades: 0,
+        tradesWithStopLoss: 0,
+        reason: 'No trades found for validation'
+      })
+      return
+    }
     
-    this.setRuleCompletion('stop_loss', allTradesHaveStopLoss, dateKey, {
+    // Check if all trades have stop loss set (check metadata service for stop loss values)
+    const allTradesHaveStopLoss = dayTrades.every(trade => {
+      // Check if stop loss is set in trade metadata (from stats widget)
+      try {
+        const metadata = JSON.parse(localStorage.getItem('tradestial:trade-metadata') || '{}')
+        const tradeMetadata = metadata[trade.id]
+        return tradeMetadata && tradeMetadata.stopLoss && tradeMetadata.stopLoss.trim() !== ''
+      } catch {
+        return false
+      }
+    })
+    
+    this.setRuleCompletion('4', allTradesHaveStopLoss, dateKey, {
       totalTrades: dayTrades.length,
-      tradesWithStopLoss: dayTrades.filter(trade => 
-        trade.stopLoss !== undefined && trade.stopLoss !== null && trade.stopLoss !== 0
-      ).length
+      tradesWithStopLoss: dayTrades.filter(trade => {
+        try {
+          const metadata = JSON.parse(localStorage.getItem('tradestial:trade-metadata') || '{}')
+          const tradeMetadata = metadata[trade.id]
+          return tradeMetadata && tradeMetadata.stopLoss && tradeMetadata.stopLoss.trim() !== ''
+        } catch {
+          return false
+        }
+      }).length
     })
   }
 
@@ -191,18 +239,31 @@ export class RuleTrackingService {
       return tradeDate === dateKey
     })
     
+    // Rule can only be completed if there are actual trades to validate
+    // If no trades exist, the rule should remain incomplete (not auto-completed)
+    if (dayTrades.length === 0) {
+      this.setRuleCompletion('5', false, dateKey, {
+        maxLossLimit: maxLoss,
+        worstLoss: 0,
+        totalTrades: 0,
+        violatingTrades: 0,
+        reason: 'No trades found for validation'
+      })
+      return
+    }
+    
     // Check if all trades stayed within max loss limit
     const allTradesWithinLimit = dayTrades.every(trade => {
       const loss = Math.abs(Math.min(0, trade.netPnl || 0))
       return loss <= maxLoss
     })
     
-    const worstTrade = dayTrades.reduce((worst, trade) => {
+    const worstTrade = dayTrades.reduce<{ trade: any; loss: number }>((worst, trade) => {
       const loss = Math.abs(Math.min(0, trade.netPnl || 0))
       return loss > worst.loss ? { trade, loss } : worst
     }, { trade: null, loss: 0 })
     
-    this.setRuleCompletion('max_loss_trade', allTradesWithinLimit, dateKey, {
+    this.setRuleCompletion('5', allTradesWithinLimit, dateKey, {
       maxLossLimit: maxLoss,
       worstLoss: worstTrade.loss,
       totalTrades: dayTrades.length,
@@ -224,13 +285,26 @@ export class RuleTrackingService {
       return tradeDate === dateKey
     })
     
+    // Rule can only be completed if there are actual trades to validate
+    // If no trades exist, the rule should remain incomplete (not auto-completed)
+    if (dayTrades.length === 0) {
+      this.setRuleCompletion('6', false, dateKey, {
+        maxDailyLossLimit: maxDailyLoss,
+        actualDayLoss: 0,
+        dayPnL: 0,
+        totalTrades: 0,
+        reason: 'No trades found for validation'
+      })
+      return
+    }
+    
     // Calculate total P&L for the day
     const dayPnL = dayTrades.reduce((total, trade) => total + (trade.netPnl || 0), 0)
     const dayLoss = Math.abs(Math.min(0, dayPnL))
     
     const withinLimit = dayLoss <= maxDailyLoss
     
-    this.setRuleCompletion('max_loss_day', withinLimit, dateKey, {
+    this.setRuleCompletion('6', withinLimit, dateKey, {
       maxDailyLossLimit: maxDailyLoss,
       actualDayLoss: dayLoss,
       dayPnL: dayPnL,
@@ -266,10 +340,56 @@ export class RuleTrackingService {
 
   // Auto-check Step into day rule when conditions are met
   private static autoCheckStepIntoDayRule(date: string): void {
-    // This would be called from the trading rules to get the time setting
-    // For now, we'll use a default or check the current rules
-    const defaultTime = '08:30' // This should come from the actual rule configuration
-    this.trackStepIntoDayRule(defaultTime, date)
+    // Get the actual rule configuration from progress tracker
+    try {
+      const storedRules = localStorage.getItem('progress:tradingRules')
+      if (storedRules) {
+        const rules = JSON.parse(storedRules)
+        const stepIntoDayRule = rules.find((rule: any) => rule.type === 'start_day')
+        const ruleTime = stepIntoDayRule?.config?.time || '08:30'
+        this.trackStepIntoDayRule(ruleTime, date)
+      } else {
+        this.trackStepIntoDayRule('08:30', date)
+      }
+    } catch {
+      this.trackStepIntoDayRule('08:30', date)
+    }
+  }
+
+  // Track model selection in stats widget
+  static trackModelSelection(tradeId: string, modelName: string): void {
+    try {
+      const metadata = JSON.parse(localStorage.getItem('tradestial:trade-metadata') || '{}')
+      if (!metadata[tradeId]) {
+        metadata[tradeId] = {}
+      }
+      metadata[tradeId].selectedModel = modelName
+      localStorage.setItem('tradestial:trade-metadata', JSON.stringify(metadata))
+      
+      // Re-check link trades to model rule
+      this.trackLinkTradesToModelRule()
+      console.log(`Model ${modelName} linked to trade ${tradeId}`)
+    } catch (error) {
+      console.error('Failed to track model selection:', error)
+    }
+  }
+
+  // Track stop loss input in stats widget
+  static trackStopLossInput(tradeId: string, stopLoss: string): void {
+    try {
+      const metadata = JSON.parse(localStorage.getItem('tradestial:trade-metadata') || '{}')
+      if (!metadata[tradeId]) {
+        metadata[tradeId] = {}
+      }
+      metadata[tradeId].stopLoss = stopLoss
+      localStorage.setItem('tradestial:trade-metadata', JSON.stringify(metadata))
+      
+      // Re-check stop loss rule
+      this.trackStopLossRule()
+      console.log(`Stop loss ${stopLoss} set for trade ${tradeId}`)
+    } catch (error) {
+      console.error('Failed to track stop loss input:', error)
+    }
   }
 
   // Get completion statistics for a date range

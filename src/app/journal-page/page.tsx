@@ -76,7 +76,7 @@ function JournalPageContent() {
     color: themeColors.primary
   })
 
-  // Update title when date parameter changes
+  // Update title when date parameter changes and track journal access
   useEffect(() => {
     const getUpdatedTitle = () => {
       let targetDate = new Date()
@@ -109,7 +109,15 @@ function JournalPageContent() {
       title: getUpdatedTitle(),
       updatedAt: new Date().toISOString()
     }))
-  }, [dateParam])
+    
+    // Track journal access for Step into the day rule (when user navigates to journal)
+    if (dateParam || selectedYMD) {
+      const dateToTrack = dateParam || selectedYMD
+      // Record a minimal journal entry to indicate user accessed the journal
+      RuleTrackingService.recordJournalEntry(dateToTrack, 'Journal accessed')
+      console.log('Journal access tracked for Step into the day rule:', dateToTrack)
+    }
+  }, [dateParam, selectedYMD])
 
   const handleUpdateNote = (id: string, content: string, title?: string, color?: string, tags?: string[]) => {
     console.log('Updating journal entry:', id, 'with content length:', content.length)
@@ -270,6 +278,7 @@ function JournalPageContent() {
                 total={0}
                 title="Progress"
                 emptyMessage="No active rules today"
+                selectedDate={selectedYMD}
               />
 
               <div className="bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl overflow-hidden shadow-lg p-3">

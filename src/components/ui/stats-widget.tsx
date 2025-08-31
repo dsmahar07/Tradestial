@@ -14,6 +14,7 @@ import { PencilIcon, SwatchIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Trade, RunningPnlPoint } from '@/services/trade-data.service'
 import { chartColorPalette } from '@/config/theme'
 import { modelStatsService } from '@/services/model-stats.service'
+import { RuleTrackingService } from '@/services/rule-tracking.service'
 
 interface StatsWidgetProps {
   trade: Trade | null
@@ -353,14 +354,16 @@ export function StatsWidget({
                     key={s.id}
                     className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
                     onClick={() => {
-                      // Assign current trade to selected model
                       if (trade && trade.id) {
                         modelStatsService.assignTradeToModel(trade.id, s.id)
                         setSelectedStrategyId(s.id)
-                        console.log(`Assigned trade ${trade.id} to model ${s.name} (${s.id})`)
+                        console.log(`Assigned trade ${trade.id} to model ${s.name}`)
                         
-                        // Notify others that model stats have been updated
-                        try { window.dispatchEvent(new Event('tradestial:model-stats-updated')) } catch {}
+                        // Track model selection for rule completion
+                        RuleTrackingService.trackModelSelection(trade.id, s.name)
+                        
+                        // Dispatch event to notify other components
+                        window.dispatchEvent(new CustomEvent('tradestial:model-stats-updated'))
                       }
                     }}
                   >
@@ -808,7 +811,15 @@ export function StatsWidget({
             <span className="mr-1 text-gray-500">$</span>
             <input
               value={stopLoss}
-              onChange={(e) => onStopLossChange(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value
+                onStopLossChange(newValue)
+                
+                // Track stop loss input for rule completion
+                if (trade && trade.id && newValue.trim() !== '') {
+                  RuleTrackingService.trackStopLossInput(trade.id, newValue)
+                }
+              }}
               placeholder="0.00"
               className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400"
             />

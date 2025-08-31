@@ -4,6 +4,7 @@ interface ProgressWidgetProps {
   title?: string
   emptyMessage?: string
   className?: string
+  selectedDate?: string
 }
 
 export function ProgressWidget({ 
@@ -11,7 +12,8 @@ export function ProgressWidget({
   total = 0, 
   title = "Progress",
   emptyMessage = "No active rules today",
-  className = ""
+  className = "",
+  selectedDate
 }: ProgressWidgetProps) {
   const progressPercentage = total > 0 ? (completed / total) * 100 : 0
 

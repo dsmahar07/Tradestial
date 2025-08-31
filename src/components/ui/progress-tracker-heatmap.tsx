@@ -17,6 +17,7 @@ interface ProgressTrackerHeatmapProps {
   todayCompleted?: number
   todayTotal?: number
   history?: Record<string, { completed: number; total: number; score: number }>
+  onOpenDailyChecklist?: () => void
 }
 
 const toKey = (d: Date) => {
@@ -47,7 +48,8 @@ export function ProgressTrackerHeatmap({
   todayScore = 0, 
   todayCompleted = 0, 
   todayTotal = 0,
-  history = {}
+  history = {},
+  onOpenDailyChecklist
 }: ProgressTrackerHeatmapProps = {}) {
   const gridAreaRef = useRef<HTMLDivElement | null>(null)
   const firstRowCellsRef = useRef<HTMLDivElement | null>(null)
@@ -92,6 +94,50 @@ export function ProgressTrackerHeatmap({
     return merged
   }, [history, todayData])
 
+  const monthHeaders = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthRanges: { month: string; startWeek: number; weekCount: number }[] = []
+    
+    // Group consecutive weeks by month
+    let currentMonth = ''
+    let currentStart = 0
+    let currentCount = 0
+    
+    weeks.forEach((startOfWeek, weekIndex) => {
+      const month = months[startOfWeek.getMonth()]
+      
+      if (month !== currentMonth) {
+        // Save previous month if it had weeks
+        if (currentMonth && currentCount > 0) {
+          monthRanges.push({ 
+            month: currentMonth, 
+            startWeek: currentStart, 
+            weekCount: currentCount 
+          })
+        }
+        
+        // Start new month
+        currentMonth = month
+        currentStart = weekIndex
+        currentCount = 1
+      } else {
+        currentCount++
+      }
+    })
+    
+    // Add the last month
+    if (currentMonth && currentCount > 0) {
+      monthRanges.push({ 
+        month: currentMonth, 
+        startWeek: currentStart, 
+        weekCount: currentCount 
+      })
+    }
+    
+    // Only show months with significant presence (at least 2 weeks)
+    return monthRanges.filter(({ weekCount }) => weekCount >= 2)
+  }, [weeks])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -119,47 +165,63 @@ export function ProgressTrackerHeatmap({
         
         {/* Fixed Height Content Area */}
         <div className="h-72 flex flex-col px-1 overflow-visible">
-          {/* Month Headers */}
-          <div className="flex justify-center gap-6 mb-2 text-center">
-            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Nov</div>
-            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Dec</div>
-            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Jan</div>
+          {/* Month Headers - Optimized Layout */}
+          <div className="flex mb-3">
+            <div className="w-10"></div> {/* Space for day labels */}
+            <div className="flex-1 grid grid-cols-12 gap-1.5">
+              {monthHeaders.map(({ month, startWeek, weekCount }) => (
+                <div
+                  key={month}
+                  className="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center bg-gray-50 dark:bg-gray-800 rounded px-1 py-0.5"
+                  style={{
+                    gridColumn: `${startWeek + 1} / ${startWeek + weekCount + 1}`
+                  }}
+                >
+                  {month}
+                </div>
+              ))}
+            </div>
           </div>
           
-          {/* Weekly Calendar Grid */}
-          <div ref={gridAreaRef} className="mb-3 flex-1 overflow-x-hidden overflow-y-visible pr-1">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, dayIndex) => (
-              <div key={dayName} className="flex items-center gap-2 mb-1">
-                <div className="text-xs text-gray-500 dark:text-gray-400 w-8 text-left">
-                  {dayName}
-                </div>
-                
-                {/* 12 weeks of calendar cells */}
-                <div
-                  className="flex gap-1.5 pl-2 items-center flex-nowrap"
-                  ref={dayIndex === 0 ? firstRowCellsRef : undefined}
-                >
-                  {weeks.map((startOfWeek, weekIndex) => {
-                    const cellDate = new Date(startOfWeek)
-                    cellDate.setDate(cellDate.getDate() + dayIndex)
-                    const key = toKey(cellDate)
-                    const entry = historyWithToday[key]
-                    const score = entry?.score ?? 0
-                    const title = `${cellDate.toDateString()} — ${entry ? `${entry.completed}/${entry.total} (${score}%)` : 'No data'}`
-                    const intensity = entry ? getIntensity(score) : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600'
-
-                    return (
-                      <div
-                        key={weekIndex}
-                        className={`rounded-[4px] ${intensity}`}
-                        style={{ width: `${cellSize}px`, height: `${cellSize}px`, flex: '0 0 auto' }}
-                        title={title}
-                      />
-                    )
-                  })}
-                </div>
+          {/* Weekly Calendar Grid - Optimized */}
+          <div ref={gridAreaRef} className="mb-4 flex-1">
+            <div className="grid grid-cols-[40px_1fr] gap-2">
+              {/* Day Labels */}
+              <div className="space-y-1">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName) => (
+                  <div key={dayName} className="h-4 flex items-center">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {dayName}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+              
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-12 gap-1.5">
+                {weeks.map((startOfWeek, weekIndex) => (
+                  <div key={weekIndex} className="space-y-1">
+                    {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
+                      const cellDate = new Date(startOfWeek)
+                      cellDate.setDate(cellDate.getDate() + dayIndex)
+                      const key = toKey(cellDate)
+                      const entry = historyWithToday[key]
+                      const score = entry?.score ?? 0
+                      const title = `${cellDate.toDateString()} — ${entry ? `${entry.completed}/${entry.total} (${score}%)` : 'No data'}`
+                      const intensity = entry ? getIntensity(score) : 'bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600'
+
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={`w-4 h-4 rounded-sm ${intensity} transition-colors hover:ring-1 hover:ring-blue-300`}
+                          title={title}
+                        />
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
           
           {/* Legend */}
@@ -203,6 +265,7 @@ export function ProgressTrackerHeatmap({
             <Button
               variant="outline"
               size="sm"
+              onClick={onOpenDailyChecklist}
               className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:text-gray-900 dark:hover:text-white text-sm"
             >
               Daily checklist

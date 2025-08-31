@@ -148,23 +148,23 @@ export default function UploadPage() {
           <ArrowLeft className="w-5 h-5 text-gray-700" />
         </button>
         <div className="absolute left-1/2 -translate-x-1/2 top-3 text-center">
-          <div className="mx-auto w-64 h-1.5 bg-purple-600 rounded-full mb-3" />
           <div className="text-base md:text-lg text-[#636A9D] font-semibold">Add Trades</div>
-          <div className="text-3xl md:text-4xl font-semibold text-gray-900">Upload file</div>
+          <div className="text-3xl md:text-4xl font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">Upload file</div>
         </div>
         <button className="p-1" onClick={() => router.push('/import-data')}>
           <X className="w-5 h-5 text-gray-700" />
         </button>
       </div>
 
+
       {/* Main Content */}
       <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 px-5 pb-14">
         {/* Left Side - Upload */}
-        <div className="pt-2">
+        <div className="p-6 rounded-lg bg-white">
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-medium text-[#636A9D]">Upload your file</h2>
-              <span className="px-3 py-1.5 bg-blue-700 text-white text-sm rounded-full font-medium">
+              <span className="px-3 py-1.5 text-white text-sm rounded-full font-medium bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]">
                 Takes less than 2 min
               </span>
             </div>
@@ -235,7 +235,7 @@ export default function UploadPage() {
 
             {/* Upload Area */}
             <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center bg-white ${isDragOver ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}`}
+              className={`border-2 border-dashed rounded-lg p-6 text-center bg-white transition-colors duration-200 hover:bg-gray-50 cursor-pointer ${isDragOver ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}`}
               onDrop={handleFileDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -258,7 +258,7 @@ export default function UploadPage() {
               {!isProcessing && (
                 <>
                   <input type="file" accept=".csv" className="hidden" id="file-upload" onChange={handleFileUpload} />
-                  <label htmlFor="file-upload" className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 cursor-pointer inline-block">
+                  <label htmlFor="file-upload" className="px-4 py-2 text-white text-sm rounded hover:opacity-90 cursor-pointer inline-block" style={{backgroundColor: '#5B2CC9'}}>
                     Upload file
                   </label>
                 </>
@@ -268,59 +268,33 @@ export default function UploadPage() {
         </div>
 
         {/* Right Side - Dynamic Broker Info */}
-        <div className="pt-2 lg:border-l lg:border-gray-200 lg:pl-10">
+        <div className="p-6 rounded-lg bg-white">
           <div className="flex items-center space-x-2 mb-4">
-            <div className="w-6 h-6 text-blue-500">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            </div>
-            <h2 className="text-lg font-medium text-gray-900">{selectedBroker.name}</h2>
+            {selectedBroker.icon.startsWith('/') ? (
+              <div className="w-10 h-10 flex items-center justify-center">
+                <img
+                  src={selectedBroker.icon}
+                  alt={`${selectedBroker.name} logo`}
+                  className="w-10 h-10 object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 text-blue-500 flex items-center justify-center">
+                <span className="text-2xl">{selectedBroker.icon}</span>
+              </div>
+            )}
+            <h2 className="text-lg font-bold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">{selectedBroker.name}</h2>
           </div>
 
           <div className="space-y-4">
             {/* Supported Asset Types */}
             <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Supported Asset Types:</h4>
-              <div className="flex flex-wrap gap-3">
-                {/* Supported */}
-                <div className="flex items-center text-xs font-semibold text-gray-900">
-                  <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-blue-200 bg-white">
-                    <Check className="w-3 h-3 text-[#2547D0]" />
-                  </span>
-                  <span>Futures</span>
-                </div>
-                {/* Unsupported */}
-                <div className="flex items-center text-xs font-medium text-gray-500">
-                  <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white">
-                    <X className="w-3 h-3 text-[#FB3748]" />
-                  </span>
-                  <span>Options</span>
-                </div>
-                <div className="flex items-center text-xs font-medium text-gray-500">
-                  <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white">
-                    <X className="w-3 h-3 text-[#FB3748]" />
-                  </span>
-                  <span>Stocks</span>
-                </div>
-                <div className="flex items-center text-xs font-medium text-gray-500">
-                  <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white">
-                    <X className="w-3 h-3 text-[#FB3748]" />
-                  </span>
-                  <span>Forex</span>
-                </div>
-                <div className="flex items-center text-xs font-medium text-gray-500">
-                  <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white">
-                    <X className="w-3 h-3 text-[#FB3748]" />
-                  </span>
-                  <span>Crypto</span>
-                </div>
-                <div className="flex items-center text-xs font-medium text-gray-500">
-                  <span className="mr-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-gray-300 bg-white">
-                    <X className="w-3 h-3 text-[#FB3748]" />
-                  </span>
-                  <span>CFD</span>
-                </div>
+              <h4 className="text-sm font-medium text-gray-900 mb-3">Supported Asset Types:</h4>
+              <div className="flex items-center gap-1">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-gray-700 font-medium">
+                  Futures
+                </span>
               </div>
             </div>
 

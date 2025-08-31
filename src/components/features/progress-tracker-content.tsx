@@ -5,6 +5,7 @@ import { X, Edit, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressTrackerHeatmap } from '@/components/ui/progress-tracker-heatmap'
 import { RulesDialog } from '@/components/features/rules-dialog'
+import { DailyCheckListDialog } from '@/components/features/daily-checklist-dialog'
 import { RuleTrackingService } from '@/services/rule-tracking.service'
 
 interface TradingRule {
@@ -80,14 +81,40 @@ export function ProgressTrackerContent() {
     }
   ])
   
-  const [manualRules, setManualRules] = useState<ManualRule[]>([
-    {
-      id: '1',
-      name: 'Sleep',
-      days: 'Mon-Fri',
-      completed: false
+  const [manualRules, setManualRules] = useState<ManualRule[]>(() => {
+    try {
+      const saved = localStorage.getItem('tradestial:manual-rules')
+      if (saved) {
+        return JSON.parse(saved)
+      } else {
+        // Initialize with default manual rules if none exist
+        const defaultRules = [
+          {
+            id: 'mr1',
+            name: 'Review market analysis',
+            days: 'Daily',
+            completed: false
+          },
+          {
+            id: 'mr2', 
+            name: 'Check economic calendar',
+            days: 'Mon-Fri',
+            completed: false
+          },
+          {
+            id: 'mr3',
+            name: 'Update trading journal',
+            days: 'Daily',
+            completed: false
+          }
+        ]
+        localStorage.setItem('tradestial:manual-rules', JSON.stringify(defaultRules))
+        return defaultRules
+      }
+    } catch {
+      return []
     }
-  ])
+  })
 
   // Store today's rule completions and day completion status - MOVED HERE BEFORE useMemo
   const [todayCompletions, setTodayCompletions] = useState<Record<string, boolean>>(() => {
@@ -160,14 +187,13 @@ export function ProgressTrackerContent() {
     return tradingDays.includes(dayMap[today])
   }, [tradingDays])
 
-  // Calculate active rules for today (for the progress tracker section)
-  const activeRules = useMemo(() => {
-    console.log('Calculating active rules:', { isTradingDay, tradingRules, manualRules })
+  // Calculate active trading rules for today (automatic rules only)
+  const activeTradingRules = useMemo(() => {
     if (!isTradingDay) return []
     
     const rules: Rule[] = []
     
-    // Add enabled trading rules
+    // Add enabled trading rules only
     tradingRules.forEach(rule => {
       if (rule.enabled) {
         let condition = ''
@@ -203,6 +229,13 @@ export function ProgressTrackerContent() {
       }
     })
     
+    return rules
+  }, [isTradingDay, tradingRules, todayCompletions])
+
+  // Calculate active manual rules for today (manual rules only)
+  const activeManualRules = useMemo(() => {
+    const rules: Rule[] = []
+    
     // Add manual rules for today
     manualRules.forEach(rule => {
       const today = new Date().getDay()
@@ -219,7 +252,7 @@ export function ProgressTrackerContent() {
           condition: '–',
           streak: 0,
           avgPerformance: '–',
-          followRate: '0%',
+          followRate: '–',
           isActive: true,
           completed: rule.completed || false
         })
@@ -227,11 +260,92 @@ export function ProgressTrackerContent() {
     })
     
     return rules
-  }, [tradingRules, manualRules, isTradingDay, todayCompletions])
+  }, [manualRules])
+
+  // Combined rules for overall progress calculation
+  const activeRules = useMemo(() => {
+    return [...activeTradingRules, ...activeManualRules]
+  }, [activeTradingRules, activeManualRules])
+
+  const toggleRuleCompletion = (ruleId: string) => {
+    if (isDayFinished) return // Prevent changes after day is finished
+    
+    // Handle manual rules differently
+    if (ruleId.startsWith('manual_')) {
+      const actualRuleId = ruleId.replace('manual_', '')
+      setManualRules(prev => 
+        prev.map(rule => 
+          rule.id === actualRuleId 
+            ? { ...rule, completed: !rule.completed }
+            : rule
+        )
+      )
+      
+      // Also update localStorage for manual rule completions tracking
+      try {
+        const today = toKey(new Date())
+        const allCompletions = JSON.parse(localStorage.getItem('tradestial:rule-completions') || '{}')
+        if (!allCompletions[today]) allCompletions[today] = {}
+        allCompletions[today][ruleId] = !allCompletions[today][ruleId]
+        localStorage.setItem('tradestial:rule-completions', JSON.stringify(allCompletions))
+      } catch (error) {
+        console.error('Error saving manual rule completions:', error)
+      }
+    } else {
+      // Handle automatic trading rules - use RuleTrackingService for consistency
+      const currentStatus = todayCompletions[ruleId] || false
+      const newStatus = !currentStatus
+      
+      RuleTrackingService.setRuleCompletion(ruleId, newStatus)
+      setTodayCompletions(prev => ({
+        ...prev,
+        [ruleId]: newStatus
+      }))
+    }
+  }
+
+  // Calculate rule streaks and performance from localStorage
+  const calculateRuleStats = (ruleId: string, ruleType?: string) => {
+    try {
+      const completions = JSON.parse(localStorage.getItem('tradestial:rule-completions') || '{}')
+      const dates = Object.keys(completions).sort().reverse() // Most recent first
+      
+      let streak = 0
+      let totalDays = 0
+      let completedDays = 0
+      
+      // Calculate current streak (consecutive completed days from today backwards)
+      for (const date of dates) {
+        const dayCompletions = completions[date] || {}
+        if (dayCompletions[ruleId]) {
+          streak++
+          completedDays++
+        } else {
+          break // Streak broken
+        }
+        totalDays++
+        if (totalDays >= 30) break // Only look at last 30 days
+      }
+      
+      // Calculate follow rate (percentage of days completed in last 30 days)
+      const followRate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0
+      
+      // Calculate average performance based on rule type
+      let avgPerformance = '–'
+      if (ruleType?.includes('loss')) {
+        avgPerformance = '$0' // Could be enhanced to calculate actual loss data
+      } else if (ruleType?.includes('link') || ruleType?.includes('stop')) {
+        avgPerformance = `${followRate}%`
+      }
+      
+      return { streak, followRate: `${followRate}%`, avgPerformance }
+    } catch {
+      return { streak: 0, followRate: '0%', avgPerformance: '–' }
+    }
+  }
 
   // Calculate all rules for the table (regardless of trading day)
   const allRules = useMemo(() => {
-    console.log('Calculating all rules for table:', { tradingRules, manualRules })
     const rules: Rule[] = []
     
     // Add all trading rules (enabled and disabled)
@@ -256,34 +370,38 @@ export function ProgressTrackerContent() {
           condition = '–'
       }
       
+      const stats = calculateRuleStats(rule.id, rule.type)
+      
       rules.push({
         id: rule.id,
         name: rule.name,
         condition,
-        streak: 0,
-        avgPerformance: rule.type.includes('loss') ? '$0' : (rule.type.includes('link') || rule.type.includes('stop') ? '0%' : '–'),
-        followRate: '0%',
+        streak: stats.streak,
+        avgPerformance: stats.avgPerformance,
+        followRate: stats.followRate,
         isActive: rule.enabled,
-        completed: false
+        completed: todayCompletions[rule.id] || false
       })
     })
     
     // Add all manual rules
     manualRules.forEach(rule => {
+      const stats = calculateRuleStats(`manual_${rule.id}`)
+      
       rules.push({
         id: `manual_${rule.id}`,
         name: rule.name,
-        condition: '–',
-        streak: 0,
-        avgPerformance: '–',
-        followRate: '0%',
+        condition: rule.days,
+        streak: stats.streak,
+        avgPerformance: stats.avgPerformance,
+        followRate: stats.followRate,
         isActive: true,
         completed: rule.completed || false
       })
     })
     
     return rules
-  }, [tradingRules, manualRules])
+  }, [tradingRules, manualRules, todayCompletions])
 
   // Calculate progress metrics
   const progressMetrics = useMemo(() => {
@@ -329,12 +447,47 @@ export function ProgressTrackerContent() {
       window.localStorage.setItem('progress:tradingRules', JSON.stringify(tradingRules))
     } catch {}
   }, [tradingRules])
+
+  // Update manual rules in localStorage when they change
   useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return
-      window.localStorage.setItem('progress:manualRules', JSON.stringify(manualRules))
-    } catch {}
+    // Save manual rules to localStorage whenever they change
+    localStorage.setItem('tradestial:manual-rules', JSON.stringify(manualRules))
   }, [manualRules])
+
+  // Listen for manual rules updates from the Rules dialog
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem('tradestial:manual-rules')
+        if (saved) {
+          const parsedRules = JSON.parse(saved)
+          setManualRules(parsedRules)
+        }
+      } catch (error) {
+        console.error('Error loading manual rules from localStorage:', error)
+      }
+    }
+
+    const handleManualRulesUpdate = (event: CustomEvent) => {
+      setManualRules(event.detail.rules)
+    }
+
+    // Listen for storage changes (when rules are saved from dialog)
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Listen for immediate updates from Rules dialog
+    window.addEventListener('manualRulesUpdated', handleManualRulesUpdate as EventListener)
+    
+    // Also check periodically in case rules were updated in same tab
+    const interval = setInterval(handleStorageChange, 1000)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('manualRulesUpdated', handleManualRulesUpdate as EventListener)
+      clearInterval(interval)
+    }
+  }, [])
+
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return
@@ -369,7 +522,7 @@ export function ProgressTrackerContent() {
   }, [progressMetrics.completed, progressMetrics.total])
 
   // Daily Check List visibility
-  const [showDailyCheckList, setShowDailyCheckList] = useState(false)
+  const [isDailyCheckListDialogOpen, setIsDailyCheckListDialogOpen] = useState(false)
 
   // Finish My Day functionality
   const finishMyDay = () => {
@@ -380,31 +533,6 @@ export function ProgressTrackerContent() {
     }
   }
 
-  // Toggle rule completion
-  const toggleRuleCompletion = (ruleId: string) => {
-    if (isDayFinished) return // Prevent changes after day is finished
-    
-    if (ruleId.startsWith('manual_')) {
-      const manualId = ruleId.replace('manual_', '')
-      setManualRules(prev => 
-        prev.map(rule => 
-          rule.id === manualId 
-            ? { ...rule, completed: !rule.completed }
-            : rule
-        )
-      )
-    } else {
-      // Handle trading rule completion - both manual override and tracking service
-      const currentStatus = todayCompletions[ruleId] || false
-      const newStatus = !currentStatus
-      
-      RuleTrackingService.setRuleCompletion(ruleId, newStatus)
-      setTodayCompletions(prev => ({
-        ...prev,
-        [ruleId]: newStatus
-      }))
-    }
-  }
 
   // Reset progress functionality
   const handleResetProgress = () => {
@@ -506,6 +634,7 @@ export function ProgressTrackerContent() {
               todayCompleted={progressMetrics.completed}
               todayTotal={progressMetrics.total}
               history={history}
+              onOpenDailyChecklist={() => setIsDailyCheckListDialogOpen(true)}
             />
           </div>
           
@@ -522,76 +651,25 @@ export function ProgressTrackerContent() {
                   {progressMetrics.completed} of {progressMetrics.total} completed
                 </span>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowDailyCheckList(!showDailyCheckList)}
-                className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600"
-              >
-                {showDailyCheckList ? 'Hide' : 'Show'} List
-              </Button>
-            </div>
-            
-            {showDailyCheckList && (
-              <div className="p-6 space-y-3">
-                {activeRules.map((rule) => (
-                  <div key={rule.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => toggleRuleCompletion(rule.id)}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                          rule.completed
-                            ? 'bg-green-500 border-green-500 text-white'
-                            : 'border-gray-300 dark:border-gray-600 hover:border-green-500'
-                        }`}
-                      >
-                        {rule.completed && <CheckCircle2 className="w-3 h-3" />}
-                      </button>
-                      <div>
-                        <span className={`text-sm font-medium ${
-                          rule.completed 
-                            ? 'text-green-600 dark:text-green-400 line-through' 
-                            : 'text-gray-900 dark:text-white'
-                        }`}>
-                          {rule.name}
-                        </span>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Target: {rule.condition}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-xs font-medium ${
-                        rule.completed ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {rule.completed ? 'Completed' : 'Pending'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {progressMetrics.percentage === 100 && (
-                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                          All rules completed! Great job!
-                        </span>
-                      </div>
-                      <Button 
-                        variant="solid" 
-                        size="sm"
-                        onClick={finishMyDay}
-                        className="bg-green-500 hover:bg-green-600 text-white"
-                      >
-                        Finish My Day
-                      </Button>
-                    </div>
-                  </div>
-                )}
+              <div className="flex space-x-2">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => setIsDailyCheckListDialogOpen(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  Daily Check List
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={finishMyDay}
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  Finish My Day
+                </Button>
               </div>
-            )}
+            </div>
           </div>
         )}
         
@@ -695,6 +773,14 @@ export function ProgressTrackerContent() {
         manualRules={manualRules}
         setManualRules={setManualRules}
         onResetProgress={handleResetProgress}
+      />
+
+      {/* Daily Check List Dialog */}
+      <DailyCheckListDialog
+        open={isDailyCheckListDialogOpen}
+        onClose={() => setIsDailyCheckListDialogOpen(false)}
+        manualRules={manualRules}
+        onUpdateManualRules={setManualRules}
       />
     </main>
   )

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useMemo } from 'react'
 
-import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe } from 'lucide-react'
+import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe, X } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -789,112 +789,34 @@ export default function ImportDataPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#171717]">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Standalone Header */}
-        <div className="text-center py-8">
-          <div className="flex items-center justify-center space-x-4 mb-6">
-            <div className="w-16 h-16 flex items-center justify-center">
-              <Image
-                src="/new-tradtrace-logo.png"
-                alt="Tradestial Logo"
-                width={48}
-                height={48}
-                className="object-contain"
-              />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-                Import Trading Data
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-                Sync and import your trading data from various platforms
-              </p>
-            </div>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto px-6 py-3 relative flex items-center justify-between">
+        <button className="p-1" onClick={() => router.push('/dashboard')}>
+          <ArrowLeft className="w-5 h-5 text-gray-700" />
+        </button>
+        <button className="p-1" onClick={() => router.push('/dashboard')}>
+          <X className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-6 space-y-6">
+        {/* Welcome Section */}
+        <div className="text-center py-4">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg">
+            <span className="text-white text-xl font-semibold">U</span>
           </div>
-          
-          {/* Filter Controls */}
-          <div className="flex items-center justify-center space-x-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                  )}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filters
-                  {selectedFilters.length > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 text-xs bg-[#3559E9] dark:bg-[#3559E9] text-white rounded-full">
-                      {selectedFilters.length}
-                    </span>
-                  )}
-                  <ChevronDown className="w-4 h-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="center" 
-                className="w-56 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]"
-              >
-                {filterOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option.id}
-                    onClick={() => toggleFilter(option.id)}
-                    className="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-gray-900 dark:text-white">{option.label}</span>
-                      {selectedFilters.includes(option.id) && (
-                        <Check className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                      )}
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-                {selectedFilters.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={clearAllFilters}
-                      className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-                    >
-                      Clear All Filters
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] dark:text-gray-300"
-              onClick={() => router.push('/account')}
-            >
-              View Dashboard
-            </Button>
-          </div>
+          <h2 className="text-xl font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Welcome, User
+          </h2>
+          <p className="text-2xl font-semibold max-w-md mx-auto bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">
+            To start analyzing, please import your trading data.
+          </p>
         </div>
 
             {/* Import Steps */}
             {importState.step === 'broker-selection' && (
               <>
-            {/* Search and Filters */}
-            <Card className="border-0 shadow-none bg-white dark:bg-[#171717]">
-              <CardContent className="p-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search brokers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Specialty Brokers Section */}
             {popularBrokers.length > 0 && (
@@ -910,8 +832,27 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 rounded-lg bg-white dark:bg-[#171717] cursor-pointer group"
+                            className="p-4 rounded-lg bg-white dark:bg-[#171717] cursor-pointer group relative shadow-sm"
                           >
+                            {/* Link icon for Tradovate and NinjaTrader */}
+                            {(broker.id === 'tradovate' || broker.id === 'ninjatrader') && (
+                              <div className="absolute top-3 right-3 group/tooltip cursor-help" onClick={(e) => e.stopPropagation()}>
+                                <div className="absolute -top-8 -right-2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                  This broker supports Auto Sync
+                                </div>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <defs>
+                                    <linearGradient id="linkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                      <stop offset="0%" stopColor="#4F7DFF" />
+                                      <stop offset="50%" stopColor="#8B5CF6" />
+                                      <stop offset="100%" stopColor="#F6B51E" />
+                                    </linearGradient>
+                                  </defs>
+                                  <path d="M10.5217 13.4798C11.2884 14.2466 12.3286 14.6779 13.4135 14.6788C13.7721 14.6738 14.1291 14.6281 14.4774 14.5426C15.1679 14.3509 15.7974 13.9849 16.3052 13.4798L17.2737 12.5125L20.1517 9.62398C20.8746 8.84914 21.2681 7.82429 21.2494 6.76536C21.2307 5.70643 20.8012 4.69609 20.0515 3.94719C19.3017 3.1983 18.2903 2.76932 17.2301 2.75064C16.17 2.73195 15.144 3.12502 14.3683 3.84703L11.4902 6.73551" stroke="url(#linkGradient)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M12.4449 17.3357L9.55321 20.2241C8.77213 20.9143 7.75675 21.2805 6.71446 21.248C5.67216 21.2155 4.68161 20.7868 3.94511 20.0494C3.20861 19.312 2.78174 18.3215 2.75169 17.2803C2.72163 16.2391 3.09066 15.2258 3.7834 14.4472L6.67512 11.5587L7.64358 10.5913C8.1514 10.0862 8.78087 9.72024 9.47137 9.52861C10.1661 9.34294 10.8975 9.34342 11.5919 9.52999C12.2864 9.71656 12.9193 10.0826 13.427 10.5913" stroke="url(#linkGradient)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </div>
+                            )}
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
                                 <div className="w-12 h-12 flex items-center justify-center">
@@ -930,13 +871,16 @@ export default function ImportDataPage() {
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  <h4 className="font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">
                                     {broker.name}
                                   </h4>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {broker.csvFormat}
-                                </p>
+                                <div className="flex items-center gap-1">
+                                  <Check className="w-3 h-3 text-green-600" />
+                                  <span className="text-xs text-gray-600 font-medium">
+                                    {broker.category}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
@@ -990,13 +934,16 @@ export default function ImportDataPage() {
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  <h4 className="font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">
                                     {broker.name}
                                   </h4>
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                                  {broker.category} • {broker.csvFormat}
-                                </p>
+                                <div className="flex items-center gap-1">
+                                  <Check className="w-3 h-3 text-green-600" />
+                                  <span className="text-xs text-gray-600 font-medium">
+                                    {broker.category}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">

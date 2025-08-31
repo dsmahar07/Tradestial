@@ -143,6 +143,22 @@ export function RulesDialog({
     ))
   }
 
+  const updateManualRuleAndSync = (updatedRules: ManualRule[]) => {
+    setManualRules(updatedRules)
+    
+    // Immediately save to localStorage and notify parent
+    try {
+      localStorage.setItem('tradestial:manual-rules', JSON.stringify(updatedRules))
+      
+      // Trigger immediate update to parent component
+      window.dispatchEvent(new CustomEvent('manualRulesUpdated', { 
+        detail: { rules: updatedRules } 
+      }))
+    } catch (error) {
+      console.error('Error syncing manual rules:', error)
+    }
+  }
+
   const addManualRule = () => {
     const newRule: ManualRule = {
       id: Date.now().toString(),
@@ -150,15 +166,29 @@ export function RulesDialog({
       days: newManualRule.days,
       completed: false
     }
-    setManualRules([...manualRules, newRule])
+    const updatedRules = [...manualRules, newRule]
+    updateManualRuleAndSync(updatedRules)
     setNewManualRule({ name: '', days: 'Mon-Fri' })
   }
 
   const removeManualRule = (id: string) => {
-    setManualRules(manualRules.filter(rule => rule.id !== id))
+    const updatedRules = manualRules.filter(rule => rule.id !== id)
+    updateManualRuleAndSync(updatedRules)
   }
 
   const handleSaveChanges = () => {
+    // Save manual rules to localStorage
+    try {
+      localStorage.setItem('tradestial:manual-rules', JSON.stringify(manualRules))
+      
+      // Trigger a custom event to notify parent component immediately
+      window.dispatchEvent(new CustomEvent('manualRulesUpdated', { 
+        detail: { rules: manualRules } 
+      }))
+    } catch (error) {
+      console.error('Error saving manual rules:', error)
+    }
+    
     onClose()
   }
 
@@ -445,17 +475,23 @@ export function RulesDialog({
                     <input
                       type="text"
                       value={rule.name}
-                      onChange={(e) => setManualRules(manualRules.map(r => 
-                        r.id === rule.id ? { ...r, name: e.target.value } : r
-                      ))}
+                      onChange={(e) => {
+                        const updatedRules = manualRules.map(r => 
+                          r.id === rule.id ? { ...r, name: e.target.value } : r
+                        )
+                        updateManualRuleAndSync(updatedRules)
+                      }}
                       className="flex-1 px-2 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-0 focus:border-blue-300 dark:focus:border-blue-500"
                       placeholder="Name the rule"
                     />
                     <Select
                       value={rule.days}
-                      onValueChange={(value) => setManualRules(manualRules.map(r => 
-                        r.id === rule.id ? { ...r, days: value } : r
-                      ))}
+                      onValueChange={(value) => {
+                        const updatedRules = manualRules.map(r => 
+                          r.id === rule.id ? { ...r, days: value } : r
+                        )
+                        updateManualRuleAndSync(updatedRules)
+                      }}
                     >
                       <SelectTrigger className="w-24 h-7 text-xs">
                         <SelectValue />

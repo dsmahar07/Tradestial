@@ -9,6 +9,7 @@ import { getAnalyticsCardsConfig, getEmptyAnalyticsCards, AnalyticsCardConfig } 
 import { DataStore } from '@/services/data-store.service'
 import { useRouter } from 'next/navigation'
 import { useHydrated } from '@/hooks/use-hydrated'
+import { DailyCheckListDialog } from '@/components/features/daily-checklist-dialog'
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
@@ -29,6 +30,7 @@ const AdvanceRadar = lazy(() => import('@/components/ui/AdvanceRadar').then(m =>
 
 export function DashboardContent() {
   const [isNavigating, setIsNavigating] = useState(false)
+  const [isDailyChecklistOpen, setIsDailyChecklistOpen] = useState(false)
   const isHydrated = useHydrated()
   const [analyticsCards, setAnalyticsCards] = useState<AnalyticsCardConfig[]>(() => {
     // Always start with empty state to prevent hydration mismatch
@@ -126,7 +128,7 @@ export function DashboardContent() {
               <ReportChart />
             </Suspense>
             <Suspense fallback={<ChartSkeleton />}>
-              <ProgressTrackerHeatmap />
+              <ProgressTrackerHeatmap onOpenDailyChecklist={() => setIsDailyChecklistOpen(true)} />
             </Suspense>
           </div>
 
@@ -167,6 +169,14 @@ export function DashboardContent() {
           
         </div>
       </div>
+
+      {/* Daily Checklist Dialog */}
+      <DailyCheckListDialog 
+        open={isDailyChecklistOpen} 
+        onClose={() => setIsDailyChecklistOpen(false)}
+        manualRules={[]}
+        onUpdateManualRules={() => {}}
+      />
     </main>
   )
 }
