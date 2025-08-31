@@ -1,14 +1,6 @@
   'use client'
 
 import React, { useMemo, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { Button } from './button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip, CartesianGrid } from 'recharts'
 import { useChartData } from '@/hooks/use-analytics'
 import { DateTime } from 'luxon'
@@ -51,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     
     if (value === undefined || value === null) {
       return (
-        <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+        <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
           <div className="font-semibold text-gray-500">
             No data
           </div>
@@ -62,7 +54,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const formattedValue = formatCurrency(value)
     
     return (
-      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
         <div className={`font-semibold ${value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
           {formattedValue}
         </div>
@@ -75,7 +67,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 type TimeFilter = 'all' | 'month' | 'week'
 
 export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
+  const timeFilter: TimeFilter = 'all'
   
   // Pull reactive, filtered, cached chart data from analytics service
   const { data: rawData, loading } = useChartData('cumulativePnL')
@@ -279,7 +271,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-[385px] flex items-center justify-center">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-[385px] flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400 text-center">
           <div>Loading cumulative P&L…</div>
         </div>
@@ -289,11 +281,15 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
 
   if (!chartData.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-[385px] text-gray-900 dark:text-white">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 h-[385px] text-gray-900 dark:text-white">
         {/* Header (title visible, dropdown hidden) */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
         </div>
+        
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+        
         {/* Empty state */}
         <div className="h-[300px] flex items-center justify-center">
           <div className="text-gray-500 dark:text-gray-400 text-center">
@@ -306,50 +302,15 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
-              aria-label="Select time period for cumulative P&L chart"
-            >
-              <span>
-                {timeFilter === 'all' ? 'All time' : 
-                 timeFilter === 'month' ? 'Last month' : 'Last week'}
-              </span>
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
-          >
-            <DropdownMenuItem 
-              className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
-              onClick={() => setTimeFilter('all')}
-            >
-              All time
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
-              onClick={() => setTimeFilter('month')}
-            >
-              Last month
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
-              onClick={() => setTimeFilter('week')}
-            >
-              Last week
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       
+      {/* Header Divider */}
+      <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+
       {/* Chart */}
       <div 
         className="h-[300px] -ml-6 overflow-visible w-full" 

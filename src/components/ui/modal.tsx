@@ -48,7 +48,7 @@ const ModalContent = React.forwardRef<
           className={cn(
             // base
             'relative w-full max-w-[400px]',
-            'rounded-2xl bg-white shadow-regular-md dark:bg-[#1C1C1C] border border-gray-200 dark:border-[#2a2a2a]',
+            'rounded-2xl bg-white shadow-regular-md dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a]',
             // focus
             'focus:outline-none',
             // animation
@@ -101,7 +101,7 @@ function ModalHeader({
       {children || (
         <>
           {Icon && (
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-inset ring-gray-200 dark:bg-[#1C1C1C] dark:ring-[#2a2a2a]">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-inset ring-gray-200 dark:bg-[#171717] dark:ring-[#2a2a2a]">
               <Icon className="size-5 text-gray-500" />
             </div>
           )}

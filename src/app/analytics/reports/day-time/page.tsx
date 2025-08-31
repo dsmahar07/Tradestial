@@ -383,14 +383,14 @@ export default function DayTimePage() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation
             tabs={analyticsNavigationConfig.map(tab => ({ ...tab, isActive: tab.id === 'reports' }))}
             onTabChange={handleTabChange}
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="space-y-6">
             {/* No Data State */}
             {!loading && !error && (!trades || trades.length === 0) && (
@@ -420,7 +420,7 @@ export default function DayTimePage() {
             {/* Top Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {topMetrics.map((metric, index) => (
-                <div key={index} className="rounded-xl bg-white p-4 shadow-sm dark:bg-[#171717]">
+                <div key={index} className="rounded-xl bg-white p-4 shadow-sm dark:bg-[#0f0f0f]">
                   <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mb-2">
                     {(() => {
                       const isBest = metric.label.includes('Best performing')
@@ -465,7 +465,7 @@ export default function DayTimePage() {
                       'border-r border-gray-300 dark:border-gray-700 last:border-r-0',
                       activeFilter === filter.id
                         ? 'bg-indigo-100 text-indigo-700 font-semibold dark:bg-indigo-500/20 dark:text-indigo-300'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-[#171717] dark:text-gray-300 dark:hover:bg-gray-800/60'
+                        : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-[#0f0f0f] dark:text-gray-300 dark:hover:bg-gray-800/60'
                     )}
                   >
                     {filter.label}
@@ -475,7 +475,7 @@ export default function DayTimePage() {
               <div className="relative" ref={metricMenuRef}>
                 <button
                   onClick={() => setMetricMenuOpen(o => !o)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between focus:outline-none"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between focus:outline-none"
                   aria-label="Select header metric"
                   aria-expanded={metricMenuOpen}
                   aria-haspopup="true"
@@ -484,7 +484,7 @@ export default function DayTimePage() {
                   <ChevronDown className={cn('w-4 h-4 transition-transform duration-200', metricMenuOpen && 'rotate-180')} />
                 </button>
                 {metricMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
                     <button onClick={() => { setSelectedMetric('GROSS P&L'); setMetricMenuOpen(false) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150" role="option" aria-selected={selectedMetric === 'GROSS P&L'}>
                       Gross P&L
                     </button>
@@ -589,7 +589,7 @@ export default function DayTimePage() {
             </div>
 
             {/* Summary Table */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">
               <div className="p-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Summary</h2>
               </div>
@@ -624,21 +624,21 @@ export default function DayTimePage() {
             </div>
 
             {/* Cross Analysis */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">
               <div className="p-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Cross analysis</h2>
                   <div className="flex items-center gap-4">
-                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white">
                       <option>Account</option>
                     </select>
-                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white">
                       <option>Win rate</option>
                     </select>
-                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white">
                       <option>P&L</option>
                     </select>
-                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#171717] text-gray-900 dark:text-white">
+                    <select className="text-sm border border-gray-300 dark:border-[#2a2a2a] rounded px-3 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white">
                       <option>Trades</option>
                     </select>
                   </div>

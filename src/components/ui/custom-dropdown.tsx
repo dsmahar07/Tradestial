@@ -43,14 +43,14 @@ export function CustomDropdown({ value, onChange, options, className, variant = 
     'relative w-full h-9 text-left transition-colors focus:outline-none',
     variant === 'glass'
       ? 'px-3 pr-8 rounded-full bg-white/70 dark:bg-white/10 backdrop-blur ring-1 ring-black/10 dark:ring-white/10 text-neutral-900 dark:text-neutral-100 hover:bg-white/80 dark:hover:bg-white/15 focus:ring-2 focus:ring-[#3559E9]/40'
-      : 'px-3 pr-8 bg-white dark:bg-[#171717] border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 text-sm hover:border-gray-400 dark:hover:border-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400'
+      : 'px-3 pr-8 bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 text-sm hover:border-gray-400 dark:hover:border-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400'
   )
 
   const menuClasses = cn(
     'absolute z-50 w-full mt-1 max-h-60 overflow-auto',
     variant === 'glass'
       ? 'bg-white/80 dark:bg-[#0B0B0B]/70 backdrop-blur ring-1 ring-black/10 dark:ring-white/10 rounded-xl shadow-xl'
-      : 'bg-white dark:bg-[#171717] border border-gray-300 dark:border-gray-600 rounded-md shadow-lg'
+      : 'bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-gray-600 rounded-md shadow-lg'
   )
 
   const itemClasses = (isSelected: boolean) =>

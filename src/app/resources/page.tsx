@@ -17,11 +17,11 @@ export default function ResourcesPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C]">
+        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#171717]">
           <div className="max-w-4xl mx-auto p-6 space-y-6">
 
             {/* Economic Calendar Widget */}
-            <Card className="border-0 shadow-sm bg-white dark:bg-[#171717]">
+            <Card className="border-0 shadow-sm bg-white dark:bg-[#0f0f0f]">
               <CardHeader>
                 <div className="flex items-center space-x-2">
                   <CalendarIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />

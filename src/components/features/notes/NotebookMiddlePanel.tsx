@@ -130,9 +130,9 @@ export function NotebookMiddlePanel({
   }
 
   return (
-    <div className="w-80 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-[#404040] flex flex-col">
+    <div className="w-80 bg-white dark:bg-[#0f0f0f] border-r border-gray-200 dark:border-[#404040] flex flex-col">
       {/* Header with back arrow and New note */}
-      <div className="p-4 bg-white dark:bg-[#171717] border-b border-gray-200 dark:border-[#404040]">
+      <div className="p-4 bg-white dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-[#404040]">
         <div className="flex items-center justify-between mb-4">
           <button 
             onClick={onToggleCollapse}
@@ -154,7 +154,7 @@ export function NotebookMiddlePanel({
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               <DropdownMenuItem 
                 className="text-red-600 dark:text-red-400 dark:hover:bg-[#2A2A2A]"
                 onClick={() => {
@@ -179,7 +179,7 @@ export function NotebookMiddlePanel({
             placeholder="Search notes"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#404040] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           />
         </div>
       </div>
@@ -204,10 +204,10 @@ export function NotebookMiddlePanel({
               onDragEnd={handleNoteDragEnd}
               onDrop={(e) => handleNoteDrop(e, index)}
               className={cn(
-                "p-4 border-b border-gray-200 dark:border-[#404040] hover:bg-white dark:hover:bg-[#1C1C1C] transition-all duration-300 ease-in-out group relative rounded-lg transform",
+                "p-4 border-b border-gray-200 dark:border-[#404040] hover:bg-white dark:hover:bg-[#171717] transition-all duration-300 ease-in-out group relative rounded-lg transform",
                                   selectedNote?.id === note.id 
-                    ? "bg-gray-50 dark:bg-[#1C1C1C] shadow-md" 
-                    : "bg-white dark:bg-[#171717] hover:shadow-sm",
+                    ? "bg-gray-50 dark:bg-[#171717] shadow-md" 
+                    : "bg-white dark:bg-[#0f0f0f] hover:shadow-sm",
                 draggedNote === index && "opacity-60 scale-95 rotate-1 shadow-xl z-50",
                 draggedOverNote === index && draggedNote !== index && "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 scale-105 shadow-lg"
               )}
@@ -297,7 +297,7 @@ export function NotebookMiddlePanel({
               {/* Color picker dropdown */}
               {showColorPicker === note.id && (
                 <div 
-                  className="absolute top-full right-8 mt-2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#404040] rounded-lg shadow-2xl p-4 color-picker-container"
+                  className="absolute top-full right-8 mt-2 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] rounded-lg shadow-2xl p-4 color-picker-container"
                   style={{ zIndex: 10000, position: 'absolute' }}
                 >
                   <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-medium">Choose note color</div>

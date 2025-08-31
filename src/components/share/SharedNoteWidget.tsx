@@ -60,7 +60,7 @@ export default function SharedNoteWidget({ note }: { note: SharedNoteInput }) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] relative h-full max-h-full w-full rounded-xl overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-[#0f0f0f] relative h-full max-h-full w-full rounded-xl overflow-hidden flex flex-col">
       {/* Shared by tag */}
       {note.sharedBy && (
         <div className="absolute top-4 right-4 flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">

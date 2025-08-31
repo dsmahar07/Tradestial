@@ -137,7 +137,7 @@ export function MonthlyCalendar({ className, onDateSelect, tradingDays = [] }: M
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   return (
-    <div className={cn("bg-white dark:bg-[#171717] rounded-xl p-8 min-h-[750px] w-full", className)}>
+    <div className={cn("bg-white dark:bg-[#0f0f0f] rounded-xl p-8 min-h-[750px] w-full", className)}>
       {/* Main Title */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -188,7 +188,7 @@ export function MonthlyCalendar({ className, onDateSelect, tradingDays = [] }: M
             variant="outline"
             size="sm"
             onClick={handleTodayClick}
-            className="text-xs font-medium"
+            className="text-xs font-medium bg-white dark:bg-[#0f0f0f] border-gray-300 dark:border-[#2a2a2a] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2a2a2a]"
           >
             TODAY
           </Button>
@@ -233,15 +233,15 @@ export function MonthlyCalendar({ className, onDateSelect, tradingDays = [] }: M
             className={cn(
               "relative h-20 w-full flex items-center justify-center text-base transition-colors rounded-xl",
               "hover:bg-gray-100 dark:hover:bg-gray-700",
-              "border border-gray-200 dark:border-gray-700",
+              "border border-gray-200 dark:border-[#2a2a2a]",
               day.isCurrentMonth 
                 ? "text-gray-900 dark:text-white" 
                 : "text-gray-400 dark:text-gray-600",
               day.isSelected && "bg-blue-600 text-white hover:bg-blue-700 border-blue-600",
               day.hasTrades && !day.isSelected && !day.isToday && "bg-gray-50 dark:bg-gray-800/50",
-              day.hasTrades && day.pnl && day.pnl > 0 && !day.isSelected && !day.isToday && "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800",
-              day.hasTrades && day.pnl && day.pnl < 0 && !day.isSelected && !day.isToday && "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
-              !day.isCurrentMonth && "cursor-default bg-gray-50/50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800"
+              day.hasTrades && day.pnl && day.pnl > 0 && !day.isSelected && !day.isToday && "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-[#2a2a2a]",
+              day.hasTrades && day.pnl && day.pnl < 0 && !day.isSelected && !day.isToday && "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-[#2a2a2a]",
+              !day.isCurrentMonth && "cursor-default bg-gray-50/50 dark:bg-gray-900/50 border-gray-100 dark:border-[#2a2a2a]"
             )}
             disabled={!day.isCurrentMonth}
           >

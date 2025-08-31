@@ -391,7 +391,7 @@ export function EmojiPicker({ isOpen, onClose, onEmojiSelect, className, anchorE
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
           className={cn(
-            `${anchorEl ? 'fixed' : 'absolute'} z-[99999] bg-white dark:bg-[#1C1C1C] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col`,
+            `${anchorEl ? 'fixed' : 'absolute'} z-[99999] bg-white dark:bg-[#171717] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col`,
             "w-80 h-96",
             className
           )}

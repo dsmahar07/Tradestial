@@ -77,7 +77,7 @@ export function AnalyticsTabNavigation({
   }, [])
 
   return (
-    <div className="border-b border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717]">
+    <div className="border-b border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f]">
       <nav className="flex space-x-1 px-4" aria-label="Analytics Navigation">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id || (tab.id === 'reports' && pathname.startsWith('/analytics/reports/'))
@@ -113,7 +113,7 @@ export function AnalyticsTabNavigation({
               {/* Dropdown Menu */}
               {tab.hasDropdown && tab.dropdownItems && (
                 <div className={cn(
-                  "absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-50 transition-opacity",
+                  "absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-50 transition-opacity",
                   isDropdownOpen ? "opacity-100" : "opacity-0 pointer-events-none"
                 )}>
                   <div className="py-1">

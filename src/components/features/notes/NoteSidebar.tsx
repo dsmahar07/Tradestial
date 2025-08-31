@@ -62,7 +62,7 @@ export function NoteSidebar({ selectedFolder, onFolderSelect }: NoteSidebarProps
     <motion.div 
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-64 bg-white dark:bg-[#1C1C1C] border-r border-gray-200 dark:border-gray-700 flex flex-col"
+      className="w-64 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-gray-700 flex flex-col"
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -101,7 +101,7 @@ export function NoteSidebar({ selectedFolder, onFolderSelect }: NoteSidebarProps
                 <folder.icon className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1 truncate">{folder.label}</span>
                 {folder.count && (
-                  <span className="text-xs bg-gray-200 dark:bg-[#1C1C1C] text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded">
+                  <span className="text-xs bg-gray-200 dark:bg-[#171717] text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded">
                     {folder.count}
                   </span>
                 )}

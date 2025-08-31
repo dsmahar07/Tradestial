@@ -127,7 +127,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
     // Show empty state when no trades
     if (!trades.length) {
         return (
-            <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#171717]", className)}>
+            <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
                 <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
     }
 
     return (
-        <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#171717]", className)}>
+        <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
             <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 className={cn(
                                     "text-xs px-3 py-1 h-7",
                                     selectedTab === 'winRate'
-                                        ? "bg-white dark:bg-[#171717] shadow-sm text-gray-900 dark:text-white"
+                                        ? "bg-white dark:bg-[#0f0f0f] shadow-sm text-gray-900 dark:text-white"
                                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                                 )}
                             >
@@ -180,7 +180,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 className={cn(
                                     "text-xs px-3 py-1 h-7",
                                     selectedTab === 'pnl'
-                                        ? "bg-white dark:bg-[#171717] shadow-sm text-gray-900 dark:text-white"
+                                        ? "bg-white dark:bg-[#0f0f0f] shadow-sm text-gray-900 dark:text-white"
                                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                                 )}
                             >
@@ -193,7 +193,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                                 className={cn(
                                     "text-xs px-3 py-1 h-7",
                                     selectedTab === 'trades'
-                                        ? "bg-white dark:bg-[#171717] shadow-sm text-gray-900 dark:text-white"
+                                        ? "bg-white dark:bg-[#0f0f0f] shadow-sm text-gray-900 dark:text-white"
                                         : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                                 )}
                             >

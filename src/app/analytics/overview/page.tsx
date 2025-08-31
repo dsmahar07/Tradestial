@@ -321,7 +321,7 @@ export default function OverviewPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -331,7 +331,7 @@ export default function OverviewPage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#0f0f0f]">
           <div className="w-full space-y-6">
             {/* Toolbar: Timeframe and P&L metric */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -379,7 +379,7 @@ export default function OverviewPage() {
               <div className="relative" ref={timeframeMenuRef}>
                 <button
                   onClick={() => setTimeframeMenuOpen(o => !o)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[100px] justify-between"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[100px] justify-between"
                   aria-label="Select timeframe"
                   aria-expanded={timeframeMenuOpen}
                   aria-haspopup="true"
@@ -388,7 +388,7 @@ export default function OverviewPage() {
                   <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", timeframeMenuOpen && "rotate-180")} />
                 </button>
                 {timeframeMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
                     {[
                       { value: 'all', label: 'All Time' },
                       { value: '1M', label: 'Last Month' },
@@ -412,7 +412,7 @@ export default function OverviewPage() {
               <div className="relative" ref={metricMenuRef}>
                 <button
                   onClick={() => setMetricMenuOpen(o => !o)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                   aria-label="Select P&L metric"
                   aria-expanded={metricMenuOpen}
                   aria-haspopup="true"
@@ -421,7 +421,7 @@ export default function OverviewPage() {
                   <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", metricMenuOpen && "rotate-180")} />
                 </button>
                 {metricMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
                     <button 
                       onClick={() => { setPnlMetric('NET P&L'); setMetricMenuOpen(false) }} 
                       className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
@@ -527,7 +527,7 @@ export default function OverviewPage() {
             {!loading && !error && (
               <>
                 {/* Your Stats */}
-                <section className="bg-white dark:bg-[#171717] rounded-xl p-6">
+                <section className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
                   <div className="mb-6">
                     <div className="flex items-center space-x-2 mb-1">
                       <h2 className="text-lg font-bold text-zinc-900 dark:text-white">YOUR STATS</h2>
@@ -734,7 +734,7 @@ export default function OverviewPage() {
                 {/* Charts Section */}
                 <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Daily Cumulative P&L */}
-                  <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+                  <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
                     <div className="flex items-center space-x-2 mb-6">
                       <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">DAILY {pnlMetric.split(' ')[0]} CUMULATIVE P&L</h3>
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>
@@ -778,7 +778,7 @@ export default function OverviewPage() {
                   </div>
 
                   {/* Daily P&L Bars */}
-                  <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+                  <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
                     <div className="flex items-center space-x-2 mb-6">
                       <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{pnlMetric.split(' ')[0]} DAILY P&L</h3>
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>

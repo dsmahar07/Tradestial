@@ -145,26 +145,20 @@ export function ProgressTrackerHeatmap({
       transition={{ duration: 0.3, delay: 0 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Progress tracker
             </h3>
             <Info className="w-4 h-4 text-gray-400" />
           </div>
-          <Button
-            variant="ghost" 
-            size="sm"
-            className="text-[#3559E9] hover:text-[#2947d1] px-0 text-sm font-medium"
-          >
-            View more
-          </Button>
         </div>
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         
         {/* Fixed Height Content Area */}
-        <div className="h-72 flex flex-col px-1 overflow-visible">
+        <div className="h-[300px] flex flex-col px-1 overflow-visible">
           {/* Month Headers - Optimized Layout */}
           <div className="flex mb-3">
             <div className="w-10"></div> {/* Space for day labels */}

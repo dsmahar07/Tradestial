@@ -188,7 +188,7 @@ export default function ComparePage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -198,7 +198,7 @@ export default function ComparePage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="max-w-7xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Compare</h1>
@@ -207,7 +207,7 @@ export default function ComparePage() {
               </p>
             </div>
 
-            <div className="bg-white dark:bg-[#171717] rounded-lg p-6">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6">
               {loading ? (
                 <div className="text-sm text-zinc-500">Loading trades...</div>
               ) : error ? (

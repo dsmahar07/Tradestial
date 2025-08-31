@@ -112,7 +112,7 @@ export function NoteList({ selectedFolder, selectedNote, onNoteSelect }: NoteLis
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ delay: 0.1 }}
-      className="w-80 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-gray-700 flex flex-col"
+      className="w-80 bg-white dark:bg-[#0f0f0f] border-r border-gray-200 dark:border-gray-700 flex flex-col"
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -131,7 +131,7 @@ export function NoteList({ selectedFolder, selectedNote, onNoteSelect }: NoteLis
             placeholder="julie"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#404040] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-10 py-2 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
             <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -184,7 +184,7 @@ export function NoteList({ selectedFolder, selectedNote, onNoteSelect }: NoteLis
                 {note.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-2 py-0.5 bg-gray-100 dark:bg-[#1C1C1C] text-gray-600 dark:text-gray-400 text-xs rounded-full"
+                    className="px-2 py-0.5 bg-gray-100 dark:bg-[#171717] text-gray-600 dark:text-gray-400 text-xs rounded-full"
                   >
                     {tag}
                   </span>

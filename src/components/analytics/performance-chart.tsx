@@ -478,7 +478,7 @@ export function PerformanceChart({
       
       return (
         <div 
-          className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm"
+          className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm"
           role="tooltip"
           aria-label={`Chart data for ${periodLabel}`}
         >
@@ -712,7 +712,7 @@ export function PerformanceChart({
   }, [metricsCategories, debouncedSearchQuery])
 
   return (
-    <Card className={cn("border-0 shadow-none bg-white dark:bg-[#171717]", className)}>
+    <Card className={cn("border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
       <CardContent className="p-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
@@ -735,7 +735,7 @@ export function PerformanceChart({
 
               {/* Customization Dropdown */}
               {dropdownStates.customization && (
-                <div className="absolute left-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl w-[280px] max-h-[400px] overflow-y-auto z-50">
+                <div className="absolute left-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl w-[280px] max-h-[400px] overflow-y-auto z-50">
                   <div className="p-4 space-y-4">
                     {allMetrics.map((metric, index) => (
                       <div key={metric} className="space-y-3">
@@ -777,7 +777,7 @@ export function PerformanceChart({
                             id={`chart-type-${index}`}
                             value={getChartType(metric)}
                             onChange={(e) => handleChartTypeChange(metric, e.target.value as ChartType)}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="Area">Area</option>
                             <option value="Line">Line</option>
@@ -812,7 +812,7 @@ export function PerformanceChart({
                       metric: !prev.metric || activeMetricIndex !== index 
                     }))
                   }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] max-w-[180px] lg:max-w-[220px] justify-between"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] max-w-[180px] lg:max-w-[220px] justify-between"
                   style={{
                     borderLeftWidth: '3px',
                     borderLeftColor: getChartColor(metric, index)
@@ -840,7 +840,7 @@ export function PerformanceChart({
                 
                 {/* Dropdown shows for active metric */}
                 {activeMetricIndex === index && dropdownStates.metric && (
-                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl w-[280px] sm:w-[320px] max-h-[450px] overflow-hidden z-50">
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl w-[280px] sm:w-[320px] max-h-[450px] overflow-hidden z-50">
                     {/* Search Bar */}
                     <div className="p-3 border-b border-gray-100 dark:border-gray-700">
                       <div className="relative">
@@ -929,7 +929,7 @@ export function PerformanceChart({
 
                 {/* Add Metric Dropdown */}
                 {dropdownStates.addMetric && (
-                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl w-[280px] sm:w-[320px] max-h-[450px] overflow-hidden z-50">
+                  <div className="absolute left-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl w-[280px] sm:w-[320px] max-h-[450px] overflow-hidden z-50">
                     {/* Search Bar */}
                     <div className="p-3 border-b border-gray-100 dark:border-gray-700">
                       <div className="relative">
@@ -1014,7 +1014,7 @@ export function PerformanceChart({
             <div className="relative" ref={timeframeDropdownRef}>
               <button
                 onClick={() => toggleDropdown('timeframe')}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[80px] justify-between"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[80px] justify-between"
                 aria-label="Select timeframe"
                 aria-expanded={dropdownStates.timeframe}
                 aria-haspopup="true"
@@ -1024,7 +1024,7 @@ export function PerformanceChart({
               </button>
               
               {dropdownStates.timeframe && (
-                <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[120px] overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[120px] overflow-hidden z-50">
                   {(['Day', 'Week', 'Month'] as const).map((tf) => (
                     <button
                       key={tf}

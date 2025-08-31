@@ -324,6 +324,49 @@
   display: none;  /* Safari and Chrome */
 }
 
+/* Global scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark theme scrollbars */
+.dark * {
+  scrollbar-color: #2a2a2a transparent;
+}
+
+.dark *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
 /* Animation delay utilities for loading animations */
 @layer utilities {
   .animation-delay-75 {

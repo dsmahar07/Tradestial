@@ -26,14 +26,14 @@ export default function AnalyticsPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig}
             onTabChange={handleTabChange}
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <PerformancePage />
         </main>
       </div>

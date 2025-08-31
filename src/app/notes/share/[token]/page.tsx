@@ -26,7 +26,7 @@ export default function ShareNotePage({ params }: { params: { token: string } })
   const td = note.tradingData
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[#F5F5F5] dark:bg-[#1C1C1C] font-inter">
+    <div className="h-screen flex flex-col overflow-hidden bg-[#F5F5F5] dark:bg-[#171717] font-inter">
       {/* Header with branding */}
       <header className="bg-transparent dark:bg-transparent px-0 py-4">
         <div className="w-full max-w-none mx-auto flex items-center justify-between px-4 sm:px-6 md:px-10">

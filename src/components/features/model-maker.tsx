@@ -231,7 +231,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       <Dialog.Root open={isOpen} onOpenChange={onClose}>
         <Dialog.Portal>
           <Dialog.Overlay className="bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50" />
-          <Dialog.Content className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-white dark:bg-[#171717] rounded-xl shadow-lg border border-gray-200 dark:border-[#2a2a2a] duration-200 max-h-[90vh] overflow-y-auto scrollbar-hide z-50">
+          <Dialog.Content className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-white dark:bg-[#0f0f0f] rounded-xl shadow-lg border border-gray-200 dark:border-[#2a2a2a] duration-200 max-h-[90vh] overflow-y-auto scrollbar-hide z-50">
           
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#2a2a2a]">
@@ -337,7 +337,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter your model name (e.g., ICT 2024 Strategy)"
-                className="w-full h-11 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-4 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
+                className="w-full h-11 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white px-4 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
                 required
               />
             </div>
@@ -350,7 +350,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe your trading model and methodology (optional)"
                 rows={3}
-                className="w-full rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-4 py-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0 resize-none"
+                className="w-full rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white px-4 py-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0 resize-none"
               />
             </div>
 
@@ -363,7 +363,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                   onClick={addRuleGroup}
                   size="sm"
                   variant="outline"
-                  className="h-8 px-3 text-xs bg-white dark:bg-[#171717] border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1f1f1f]"
+                  className="h-8 px-3 text-xs bg-white dark:bg-[#0f0f0f] border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#171717]"
                 >
                   <Plus className="w-3 h-3 mr-1" />
                   Add Rule Group
@@ -377,13 +377,13 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
               ) : (
                 <div className="space-y-4">
                   {formData.ruleGroups.map((group) => (
-                    <div key={group.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 bg-gray-50 dark:bg-[#171717]">
+                    <div key={group.id} className="border border-gray-200 dark:border-[#2a2a2a] rounded-lg p-4 bg-gray-50 dark:bg-[#0f0f0f]">
                       <div className="flex items-center gap-2 mb-3">
                         <input
                           value={group.title}
                           onChange={(e) => updateGroupTitle(group.id, e.target.value)}
                           placeholder="Rule group name (e.g., Entry Conditions)"
-                          className="flex-1 h-9 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
+                          className="flex-1 h-9 rounded-md bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
                         />
                         <Button
                           type="button"
@@ -403,7 +403,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                               value={rule}
                               onChange={(e) => updateRule(group.id, ruleIndex, e.target.value)}
                               placeholder="Enter trading rule (e.g., Price above VWAP)"
-                              className="flex-1 h-9 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
+                              className="flex-1 h-9 rounded-md bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white px-3 border border-gray-300 dark:border-[#2a2a2a] outline-none focus:ring-0"
                             />
                             <Button
                               type="button"
@@ -422,7 +422,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
                           onClick={() => addRule(group.id)}
                           size="sm"
                           variant="ghost"
-                          className="h-8 px-3 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-[#1f1f1f] bg-white dark:bg-[#171717] border border-gray-300 dark:border-[#2a2a2a] rounded-md"
+                          className="h-8 px-3 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-[#171717] bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-md"
                         >
                           <Plus className="w-3 h-3 mr-1" />
                           Add Rule
@@ -437,11 +437,11 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
           </form>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#171717] rounded-b-xl">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#2a2a2a] bg-gray-50 dark:bg-[#0f0f0f] rounded-b-xl">
             <Button 
               onClick={onClose} 
               variant="outline" 
-              className="px-6 py-2 text-sm border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 bg-white dark:bg-[#171717] rounded-lg hover:bg-gray-100 dark:hover:bg-[#1f1f1f]"
+              className="px-6 py-2 text-sm border-gray-300 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] rounded-lg hover:bg-gray-100 dark:hover:bg-[#171717]"
             >
               Cancel
             </Button>

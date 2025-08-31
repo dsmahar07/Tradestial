@@ -130,7 +130,7 @@ export function NotebookSidebar({
 
   return (
     <div className={cn(
-      "bg-white dark:bg-[#171717] flex flex-col rounded-bl-xl transition-all duration-300",
+      "bg-white dark:bg-[#0f0f0f] flex flex-col rounded-bl-xl transition-all duration-300",
       isCollapsed ? "w-20" : "w-64"
     )}>
       {/* Header with collapse toggle */}

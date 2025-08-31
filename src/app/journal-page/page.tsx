@@ -239,20 +239,20 @@ function JournalPageContent() {
   }, [selectedYMD, setDataTick])
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-[var(--color-bg-dark,#1C1C1C)]">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)]">
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#1C1C1C)] p-6">
+        <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-6">
           <div className="flex gap-6 h-full">
             {/* Main Notepad - Left Side */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl overflow-hidden shadow-lg"
+              className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg"
             >
               <NotebookEditor 
                 note={currentNote} 
@@ -281,7 +281,7 @@ function JournalPageContent() {
                 selectedDate={selectedYMD}
               />
 
-              <div className="bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl overflow-hidden shadow-lg p-3">
+              <div className="bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg p-3">
                 <TradingViewWidget />
               </div>
             </motion.div>
@@ -295,13 +295,13 @@ function JournalPageContent() {
 export default function JournalPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen bg-gray-50 dark:bg-[var(--color-bg-dark,#1C1C1C)]">
+      <div className="flex min-h-screen bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)]">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader />
-          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#1C1C1C)] p-6">
+          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-6">
             <div className="flex gap-6 h-full">
-              <div className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl overflow-hidden shadow-lg">
+              <div className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg">
                 <PageLoading text="Loading Journal..." />
               </div>
             </div>

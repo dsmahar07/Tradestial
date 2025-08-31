@@ -251,7 +251,7 @@ export function TradeDistributionChart() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.5 }}
-      className="bg-white dark:bg-[#171717] rounded-xl p-6 border border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 border border-gray-200 dark:border-gray-700"
     >
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -268,7 +268,7 @@ export function TradeDistributionChart() {
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-gray-700"
             >
               {charts.find(c => c.id === selectedChart)?.label}
               <ChevronDown className="ml-2 h-4 w-4" />

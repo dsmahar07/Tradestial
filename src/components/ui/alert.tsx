@@ -69,7 +69,7 @@ const filledByStatus: Record<AlignStatus, string> = {
   default: 'bg-gray-800 text-white',
 }
 
-const softContainer = 'bg-white text-gray-900 ring-1 ring-inset ring-gray-200 dark:bg-[#171717] dark:text-gray-100 dark:ring-[#2a2a2a]'
+const softContainer = 'bg-white text-gray-900 ring-1 ring-inset ring-gray-200 dark:bg-[#0f0f0f] dark:text-gray-100 dark:ring-[#2a2a2a]'
 
 const baseContainer = 'relative w-full rounded-lg p-4 flex items-start gap-3'
 

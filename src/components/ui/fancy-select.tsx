@@ -28,9 +28,9 @@ const SelectTrigger = React.forwardRef<
       // text
       "text-sm text-[#2a2a2a] dark:text-gray-200",
       // background
-      "shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-[#171717]",
+      "shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:bg-[#0f0f0f]",
       // hover
-      "transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-[#1f1f1f]",
+      "transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-[#171717]",
       // focus (only show on keyboard nav)
       "focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#0f172a] dark:focus-visible:ring-gray-300 data-[state=open]:ring-transparent",
       // disabled
@@ -92,7 +92,7 @@ const SelectContent = React.forwardRef<
       className={cn(
         // surface
         "relative z-50 min-w-[8rem] overflow-hidden rounded-2xl border bg-white text-[#2a2a2a] shadow-[0_8px_24px_rgba(0,0,0,0.12)] font-sans will-change-[transform,opacity]",
-        "dark:bg-[#171717] dark:text-gray-200 dark:border-[#2a2a2a]",
+        "dark:bg-[#0f0f0f] dark:text-gray-200 dark:border-[#2a2a2a]",
         // animation
         "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:animate-none",
         "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 motion-reduce:animate-none",

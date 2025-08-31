@@ -107,11 +107,15 @@ export function PnlOverviewChart() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-white dark:bg-[#171717] rounded-xl p-6 h-96"
+        className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 h-96"
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">P&L Overview</h3>
         </div>
+        
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+        
         <div className="flex items-center justify-center h-64">
           <div className="text-center text-gray-500 dark:text-gray-400">
             <div>No P&L data available</div>
@@ -128,13 +132,16 @@ export function PnlOverviewChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.4 }}
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--tooltip-bg:white] dark:[--tooltip-bg:#171717] [--tooltip-border:#e5e7eb] dark:[--tooltip-border:#2a2a2a] [--tooltip-text:#374151] dark:[--tooltip-text:white]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--tooltip-bg:white] dark:[--tooltip-bg:#0f0f0f] [--tooltip-border:#e5e7eb] dark:[--tooltip-border:#2a2a2a] [--tooltip-text:#374151] dark:[--tooltip-text:white]" style={{ height: '385px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <PNLOverviewIcon size={20} />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">PNL Overview</h3>
           </div>
+          
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           
           <div className="flex items-center space-x-4">
             {/* Legend */}
@@ -158,7 +165,7 @@ export function PnlOverviewChart() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
                 >
                   <span>{selectedPeriod}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -166,22 +173,22 @@ export function PnlOverviewChart() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
+                className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
               >
                 <DropdownMenuItem 
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer"
                   onClick={() => setSelectedPeriod('Last Year')}
                 >
                   Last Year
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer"
                   onClick={() => setSelectedPeriod('This Year')}
                 >
                   This Year
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
+                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer"
                   onClick={() => setSelectedPeriod('Last Month')}
                 >
                   Last Month

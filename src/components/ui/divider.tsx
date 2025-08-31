@@ -3,26 +3,23 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
+const DIVIDER_ROOT_NAME = 'DividerRoot';
+
 interface DividerRootProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'line' | 'line-spacing' | 'dashed'
-  orientation?: 'horizontal' | 'vertical'
+  variant?: 'line' | 'line-spacing'
 }
 
 const Root = React.forwardRef<HTMLDivElement, DividerRootProps>(
-  ({ className, variant = 'line', orientation = 'horizontal', ...props }, ref) => {
+  ({ className, variant = 'line', ...props }, ref) => {
     return (
       <div
         ref={ref}
+        role='separator'
         className={cn(
+          'w-full',
           {
-            // Horizontal orientation
-            "h-px w-full bg-gray-200 dark:bg-gray-800": orientation === 'horizontal' && variant === 'line',
-            "my-2 h-px w-full bg-gray-200 dark:bg-gray-800": orientation === 'horizontal' && variant === 'line-spacing',
-            "h-px w-full border-t border-dashed border-gray-200 dark:border-gray-800": orientation === 'horizontal' && variant === 'dashed',
-            
-            // Vertical orientation
-            "w-px h-full bg-gray-200 dark:bg-gray-800": orientation === 'vertical' && variant === 'line',
-            "mx-2 w-px h-full bg-gray-200 dark:bg-gray-800": orientation === 'vertical' && variant === 'line-spacing',
+            'h-px bg-gray-200 dark:bg-gray-700': variant === 'line',
+            'h-1 relative before:absolute before:left-0 before:top-1/2 before:h-px before:w-full before:-translate-y-1/2 before:bg-gray-200 dark:before:bg-gray-700': variant === 'line-spacing',
           },
           className
         )}
@@ -31,6 +28,6 @@ const Root = React.forwardRef<HTMLDivElement, DividerRootProps>(
     )
   }
 )
-Root.displayName = 'Divider'
+Root.displayName = DIVIDER_ROOT_NAME;
 
 export { Root }

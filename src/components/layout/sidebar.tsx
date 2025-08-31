@@ -63,13 +63,13 @@ export function Sidebar() {
   return (
     <Tooltip.Provider delayDuration={400} skipDelayDuration={100}>
       <div 
-        className="bg-white dark:bg-[#1C1C1C] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent w-20"
+        className="bg-white dark:bg-[#171717] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent w-20"
       >
       {/* Logo */}
       <div className="py-4 flex items-center justify-center px-5">
         <div className="w-8 h-8 relative">
           <Image
-            src="/new-tradtrace-logo.png"
+            src="/new-tradestial-logo.png"
             alt="Tradestial Logo"
             width={32}
             height={32}
@@ -121,7 +121,7 @@ export function Sidebar() {
                           "w-full flex items-center rounded-lg text-left transition-all duration-200 text-sm relative group px-3.5 py-3 justify-center",
                           isActive 
                             ? "bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/20 dark:to-transparent text-blue-600 dark:text-blue-400 shadow-sm" 
-                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1f1f1f]"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#171717]"
                         )}
                       >
                         <item.icon className="w-6 h-6 flex-shrink-0" />
@@ -173,10 +173,10 @@ export function Sidebar() {
             side="top" 
             align="start"
             sideOffset={8}
-            className="w-64 p-0 bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800"
+            className="w-64 p-0 bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a]"
           >
             {/* User Info */}
-            <div className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-[#2a2a2a]">
               <Avatar.Root size="40">
                 <Avatar.Image src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" />
                 <Avatar.Indicator position="top">
@@ -196,7 +196,7 @@ export function Sidebar() {
 
             {/* Theme Toggle */}
             <div className="p-1">
-              <div className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-colors">
                 <Moon className="mr-3 h-4 w-4" />
                 Dark Mode
                 <div className="flex-1" />
@@ -256,7 +256,7 @@ export function Sidebar() {
               Logout
             </DropdownMenuItem>
 
-            <div className="p-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800">
+            <div className="p-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-[#2a2a2a]">
               v.1.5.69 · Terms & Conditions
             </div>
           </DropdownMenuContent>

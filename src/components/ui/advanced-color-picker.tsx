@@ -197,7 +197,7 @@ function AdvancedColorPickerComponent({
   const [space, setSpace] = React.useState<ColorSpace | 'hex'>('hsl');
 
   return (
-    <div className={cn('flex w-[320px] flex-col gap-3 rounded-xl bg-white dark:bg-[#171717] p-4 shadow-2xl border border-zinc-200 dark:border-zinc-700', className)}>
+    <div className={cn('flex w-[320px] flex-col gap-3 rounded-xl bg-white dark:bg-[#0f0f0f] p-4 shadow-2xl border border-zinc-200 dark:border-zinc-700', className)}>
       <ColorPicker value={value} onChange={onChange}>
         <ColorArea
           colorSpace='hsl'

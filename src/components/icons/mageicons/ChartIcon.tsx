@@ -7,7 +7,7 @@ interface ChartIconProps {
 
 export const ChartIcon: React.FC<ChartIconProps> = ({ className }) => {
   return (
-    <div className="w-8 h-8 rounded border border-zinc-300 dark:border-zinc-600 flex items-center justify-center bg-white dark:bg-[#171717]" style={{ width: '32px', height: '32px' }}>
+    <div className="w-8 h-8 rounded border border-zinc-300 dark:border-zinc-600 flex items-center justify-center bg-white dark:bg-[#0f0f0f]" style={{ width: '32px', height: '32px' }}>
       <svg 
         className={className} 
         width={24} 

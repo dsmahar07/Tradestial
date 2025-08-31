@@ -97,15 +97,15 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
         </div>
       ) : null}
       <Dialog open={isOpen} onClose={() => setOpen(false)}>
-              <DialogContent className="w-full max-w-6xl h-[85vh] overflow-hidden p-0 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-700">
-        <DialogHeader className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717]">
+              <DialogContent className="w-full max-w-6xl h-[85vh] overflow-hidden p-0 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-700">
+        <DialogHeader className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f0f0f]">
           <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Choose a Template</DialogTitle>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Click <span className="text-blue-600 dark:text-blue-400 font-medium">⚡ Quick Apply</span> for instant templates, or use the settings icon to configure first
           </p>
         </DialogHeader>
         
-        <div className="flex flex-col h-full p-6 pt-4 bg-white dark:bg-[#171717]">
+        <div className="flex flex-col h-full p-6 pt-4 bg-white dark:bg-[#0f0f0f]">
           {/* Search and Filter Bar */}
           <div className="flex items-center space-x-4 mb-6">
             <div className="relative flex-1">
@@ -115,7 +115,7 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
                 placeholder="Search templates..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
             </div>
             
@@ -126,7 +126,7 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 min-w-[140px] justify-between"
+                    className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 min-w-[140px] justify-between"
                   >
                     <span>
                       {selectedCategory === 'all' ? 'All Categories' :
@@ -139,7 +139,7 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40 bg-white dark:bg-[#1f1f1f] border border-gray-200 dark:border-gray-600">
+                <DropdownMenuContent align="end" className="w-40 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600">
                   <DropdownMenuItem
                     onClick={() => setSelectedCategory('all')}
                     className={`hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 ${selectedCategory === 'all' ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
@@ -182,11 +182,11 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
           </div>
 
           {/* Templates Grid */}
-          <div className="flex-1 overflow-y-auto pr-2 bg-white dark:bg-[#171717]">
+          <div className="flex-1 overflow-y-auto pr-2 bg-white dark:bg-[#0f0f0f]">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-4">
               {/* Blank Note Option */}
               <div
-                className="h-64 p-4 bg-white dark:bg-[#1f1f1f] rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer flex flex-col hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                className="h-64 p-4 bg-white dark:bg-[#171717] rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 cursor-pointer flex flex-col hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
                 onClick={handleBlankNote}
               >
                 <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-lg mb-3">
@@ -203,7 +203,7 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
               {filteredTemplates.map((template) => (
                 <div
                   key={template.id}
-                  className="relative h-64 p-4 bg-white dark:bg-[#1f1f1f] rounded-lg border border-gray-200 dark:border-gray-600 flex flex-col hover:shadow-lg dark:hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-200"
+                  className="relative h-64 p-4 bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-gray-600 flex flex-col hover:shadow-lg dark:hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-200"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div 
@@ -286,7 +286,7 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
             </div>
 
             {filteredTemplates.length === 0 && (
-              <div className="text-center py-12 bg-white dark:bg-[#171717]">
+              <div className="text-center py-12 bg-white dark:bg-[#0f0f0f]">
                 <div className="text-gray-400 dark:text-gray-500 mb-4">
                   <Search className="w-16 h-16 mx-auto mb-2" />
                 </div>

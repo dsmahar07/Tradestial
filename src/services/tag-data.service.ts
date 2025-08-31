@@ -22,7 +22,7 @@ class TagDataService {
       { id: 'reviewed', name: 'Review Status', color: '#22c55e' }
     ],
     tags: {
-      mistakes: ['entered too early'],
+      mistakes: [],
       custom: [],
       reviewed: ['Reviewed', 'Not Reviewed']
     }

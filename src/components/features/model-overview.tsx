@@ -41,7 +41,7 @@ const OverviewStatsCard = ({
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-lg p-4 min-h-32">
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4 min-h-32">
       <div className="flex items-start justify-between mb-3">
         <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center`}>
           <Icon className="w-4 h-4 text-white" />
@@ -194,13 +194,13 @@ export function ModelOverview() {
       {/* Tabs */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between">
-          <Tabs.List className="flex items-center space-x-1 bg-gray-100 dark:bg-[#1f1f1f] p-1 rounded-lg">
+          <Tabs.List className="flex items-center space-x-1 bg-gray-100 dark:bg-[#171717] p-1 rounded-lg">
             <Tabs.Trigger
               value="models"
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                 activeTab === 'models' 
-                  ? "bg-white dark:bg-[#171717] text-gray-900 dark:text-white shadow-sm" 
+                  ? "bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white shadow-sm" 
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
             >
@@ -211,7 +211,7 @@ export function ModelOverview() {
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                 activeTab === 'shared'
-                  ? "bg-white dark:bg-[#171717] text-gray-900 dark:text-white shadow-sm"
+                  ? "bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               )}
             >
@@ -276,7 +276,7 @@ export function ModelOverview() {
         </Tabs.Content>
 
         <Tabs.Content value="shared" className="mt-4">
-          <div className="bg-white dark:bg-[#171717] rounded-xl p-12 border border-gray-200 dark:border-[#2a2a2a] text-center">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-12 border border-gray-200 dark:border-[#2a2a2a] text-center">
             <div className="text-gray-400 dark:text-gray-600 mb-2">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

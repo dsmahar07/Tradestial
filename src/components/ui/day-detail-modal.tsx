@@ -20,7 +20,7 @@ type DayDetailModalProps = {
   trades?: Trade[]
 }
 
-type ChartPoint = { time: string; value: number }
+type ChartPoint = { time: string; value: number; positiveValue?: number | null; negativeValue?: number | null }
 
 function formatLocalTime(iso?: string | null): string {
   if (!iso) return '—'
@@ -49,7 +49,12 @@ function buildChartDataFromTrades(trades: Trade[] | undefined, fallbackPnl?: num
     const positive = [0, 200, 350, 500, 650, 800]
     const negative = [0, -300, -600, -1000, -800, -600]
     const src = typeof fallbackPnl === 'number' ? (fallbackPnl >= 0 ? positive : negative) : baseline
-    return src.map((v, idx) => ({ time: `${9 + idx}:00`, value: v }))
+    return src.map((v, idx) => ({ 
+      time: `${9 + idx}:00`, 
+      value: v,
+      positiveValue: v > 0 ? v : null,
+      negativeValue: v < 0 ? v : null
+    }))
   }
 
   // Sort trades by closeTime/exitTime/closeDate, fallback to openDate
@@ -61,14 +66,40 @@ function buildChartDataFromTrades(trades: Trade[] | undefined, fallbackPnl?: num
 
   let cumulative = 0
   const points: ChartPoint[] = []
+  let prevValue: number | null = null
+  
   sorted.forEach((t, idx) => {
     cumulative += t.netPnl || 0
+    const roundedCumulative = Math.round(cumulative * 100) / 100 // Precise rounding
+    
     // Build a readable time label
     const tLabel = t.closeTime || t.exitTime || t.openTime || new Date(t.closeDate || t.openDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || `T${idx + 1}`
-    points.push({ time: tLabel, value: Math.round(cumulative) })
+    
+    // Insert zero crossing point if needed for proper gradient separation
+    if (prevValue !== null && 
+        Math.abs(prevValue) > 0.01 && 
+        Math.abs(roundedCumulative) > 0.01 && 
+        ((prevValue > 0 && roundedCumulative < 0) || (prevValue < 0 && roundedCumulative > 0))) {
+      points.push({
+        time: `${tLabel}-cross`,
+        value: 0,
+        positiveValue: 0,
+        negativeValue: 0
+      })
+    }
+    
+    points.push({ 
+      time: tLabel, 
+      value: roundedCumulative,
+      positiveValue: roundedCumulative > 0 ? roundedCumulative : null,
+      negativeValue: roundedCumulative < 0 ? roundedCumulative : null
+    })
+    
+    prevValue = roundedCumulative
   })
+  
   // Ensure we at least have a starting zero point for nicer area start
-  points.unshift({ time: 'Start', value: 0 })
+  points.unshift({ time: 'Start', value: 0, positiveValue: 0, negativeValue: 0 })
   return points
 }
 
@@ -78,6 +109,60 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
   const { theme } = useTheme()
   // Determine dark mode via document class when available, otherwise fallback to explicit theme value
   const isDarkTheme = typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : theme === 'dark'
+  
+  // Generate unique gradient IDs to prevent conflicts with other charts
+  const gradientId = useMemo(() => `dayDetail-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, [])
+
+  // Compute dynamic Y-axis ticks (matching cumulative PnL chart)
+  const yTicks = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [0]
+    const values: number[] = []
+    for (const d of chartData) {
+      if (typeof d.value === 'number' && isFinite(d.value)) values.push(d.value)
+    }
+    if (values.length === 0) return [0]
+
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+
+    // Guard single-value or flat series
+    if (min === max) {
+      const pad = Math.max(1, Math.abs(min) * 0.1)
+      return [min - 2 * pad, min - pad, min, min + pad, min + 2 * pad]
+    }
+
+    // Nice step calculation for ~6 segments
+    const range = max - min
+    const rawStep = range / 6
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))))
+    const niceStep = Math.ceil(rawStep / magnitude) * magnitude
+
+    // Expand to nice bounds
+    const niceMin = Math.floor(min / niceStep) * niceStep
+    const niceMax = Math.ceil(max / niceStep) * niceStep
+
+    const ticks: number[] = []
+    for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
+      // Round to avoid floating point precision issues
+      const roundedTick = Math.round(Number(v.toFixed(10)))
+      // Avoid duplicate ticks
+      if (!ticks.includes(roundedTick)) {
+        ticks.push(roundedTick)
+      }
+    }
+    return ticks
+  }, [chartData])
+
+  // Smart currency formatter matching cumulative PnL chart
+  const formatCurrency = (value: number): string => {
+    if (!isFinite(value) || isNaN(value)) return '$0'
+    const absValue = Math.abs(value)
+    if (absValue >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`
+    if (absValue >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+    if (absValue >= 1_000) return `$${(value / 1_000).toFixed(1)}k`
+    if (absValue < 1 && absValue > 0) return `$${value.toFixed(2)}`
+    return `$${Math.round(value).toLocaleString()}`
+  }
 
   // Note editor state
   const [isNoteMode, setIsNoteMode] = useState<boolean>(false)
@@ -257,7 +342,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-7xl w-full p-0 overflow-hidden bg-white dark:bg-[#121212]">
+      <DialogContent className="max-w-7xl w-full p-0 overflow-hidden bg-white dark:bg-[#0f0f0f]">
         <DialogHeader className="px-6 pt-5 pb-2">
           <DialogTitle className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3 text-lg">
@@ -289,7 +374,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-8 pb-8 bg-white dark:bg-[#121212]">
+        <div className="px-8 pb-8 bg-white dark:bg-[#0f0f0f] [--grid:#e5e7eb] dark:[--grid:#262626]">
           <AnimatePresence initial={false}>
           {isNoteMode && (
             <motion.div
@@ -302,7 +387,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
               layout
             >
               {/* Toolbar */}
-              <div className="rounded-md bg-white dark:bg-[#121212] px-2 py-1.5 [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_*:focus]:ring-0 [&_*:focus-visible]:ring-0 border border-transparent">
+              <div className="rounded-md bg-white dark:bg-[#0f0f0f] px-2 py-1.5 [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_*:focus]:ring-0 [&_*:focus-visible]:ring-0 border border-transparent">
                 <div className="flex flex-wrap items-center gap-1">
                   {/* Undo/Redo */}
                   <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('undo')}><Undo className="w-4 h-4" /></Button>
@@ -312,14 +397,19 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Font family */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#131313] text-xs text-gray-700 dark:text-gray-300">
+                      <button className="h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
                         <Type className="w-4 h-4 text-gray-500" /> {fontFamily}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
-                      {['Arial','Inter','Times New Roman','Courier New'].map(f => (
-                        <DropdownMenuItem key={f} onClick={() => applyFontFamily(f)} className="cursor-pointer">
-                          {f}
+                    <DropdownMenuContent className="bg-white dark:bg-[#0f0f0f] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
+                      {[
+                        { label: 'Arial', value: 'Arial' },
+                        { label: 'Inter', value: 'Inter' },
+                        { label: 'Times New Roman', value: 'Times New Roman' },
+                        { label: 'Courier New', value: 'Courier New' },
+                      ].map(({ label, value }) => (
+                        <DropdownMenuItem key={value} onClick={() => applyFontFamily(value)} className="cursor-pointer">
+                          {label}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
@@ -328,11 +418,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Font size stepper */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#131313] text-xs text-gray-700 dark:text-gray-300">
+                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
                         {FONT_SIZES[fontSizeIndex]}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
+                    <DropdownMenuContent className="bg-white dark:bg-[#0f0f0f] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {FONT_SIZES.map((s, idx) => (
                         <DropdownMenuItem key={s} onClick={() => applyFontSize(idx)} className="cursor-pointer">
                           {s}
@@ -353,11 +443,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Text color */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#131313] text-xs text-gray-700 dark:text-gray-300">
+                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
                         <Palette className="w-4 h-4 text-gray-500" /> Text
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a]">
+                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a]">
                       {['#000000','#1F2937','#4B5563','#6B7280','#9CA3AF','#111827','#10b981','#ef4444','#f59e0b','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#22c55e','#eab308'].map(c => (
                         <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => exec('foreColor', c)} />
                       ))}
@@ -367,11 +457,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Highlight color */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#131313] text-xs text-gray-700 dark:text-gray-300">
+                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
                         <Palette className="w-4 h-4 text-yellow-500" /> Highlight
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a]">
+                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a]">
                       {['#fff59d','#fde68a','#fef08a','#fde047','#facc15','#fde68a80','#fff176','#ffd54f','#ffecb3','#fff9c4','#fff3e0','#ffe0b2','#fecaca','#dcfce7','#dbeafe','#f5d0fe'].map(c => (
                         <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} />
                       ))}
@@ -416,9 +506,9 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Heading */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center rounded-md bg-white dark:bg-[#131313] text-xs text-gray-700 dark:text-gray-300">Paragraph</button>
+                      <button className="ml-1 h-8 px-2 inline-flex items-center rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">Paragraph</button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
+                    <DropdownMenuContent className="bg-white dark:bg-[#0f0f0f] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {[
                         { label: 'Paragraph', value: 'p' },
                         { label: 'H1', value: 'h1' },
@@ -439,7 +529,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                 ref={editorRef}
                 contentEditable
                 onInput={onEditorInput}
-                className="mt-3 min-h-[520px] max-h-[70vh] overflow-y-auto rounded-lg bg-white dark:bg-[#121212] p-4 text-gray-900 dark:text-gray-100 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border border-transparent"
+                className="mt-3 min-h-[520px] max-h-[70vh] overflow-y-auto rounded-lg bg-white dark:bg-[#0f0f0f] p-4 text-gray-900 dark:text-gray-100 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border border-transparent smooth-scrollbar"
                 style={{ fontFamily }}
               />
             </motion.div>
@@ -450,42 +540,117 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
             <div className="md:col-span-7">
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <AreaChart data={chartData} margin={{ top: 20, right: 5, left: -10, bottom: 20 }}>
                     <defs>
-                      <linearGradient id="dayDetailGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={isPositive ? '#10b981' : '#ef4444'} stopOpacity={0.7} />
-                        <stop offset="95%" stopColor={isPositive ? '#10b981' : '#ef4444'} stopOpacity={0.1} />
+                      {/* Green gradient for positive areas */}
+                      <linearGradient id={`${gradientId}-positive`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.4}/>
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
+                      </linearGradient>
+                      {/* Red gradient for negative areas */}
+                      <linearGradient id={`${gradientId}-negative`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.05}/>
+                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: isDarkTheme ? '#9ca3af' : '#6b7280' }} />
+                    
+                    {/* Disable default grid entirely */}
+                    <CartesianGrid stroke="none" vertical={false} horizontal={false} />
+                    
+                    <XAxis 
+                      dataKey="time" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }} 
+                      className="dark:fill-gray-400"
+                    />
                     <YAxis 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fontSize: 11, fill: isDarkTheme ? '#9ca3af' : '#6b7280' }} 
-                      tickFormatter={(v: number) => `${v < 0 ? '-' : ''}$${Math.abs(v).toLocaleString()}`}
-                      domain={[ 
-                        (dataMin: number) => Math.min(0, Math.floor(dataMin * 1.15)), 
-                        (dataMax: number) => Math.max(0, Math.ceil(dataMax * 1.15)) 
-                      ]}
+                      tick={{ fontSize: 11, fill: '#9ca3af' }} 
+                      className="dark:fill-gray-400"
+                      tickFormatter={(value: number) => {
+                        if (value === 0) return '$0';
+                        return formatCurrency(value);
+                      }}
+                      domain={[Math.min(...yTicks), Math.max(...yTicks)]}
+                      ticks={yTicks}
+                      scale="linear"
+                      allowDecimals={false}
                     />
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? '#374151' : '#e5e7eb'} vertical={false} />
-                    <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="2 2" />
+                    
+                    {/* Draw horizontal grid lines explicitly for each labeled Y tick (including $0) */}
+                    {yTicks.map((t) => (
+                      <ReferenceLine
+                        key={`grid-${t}`}
+                        y={t}
+                        stroke="var(--grid)"
+                        strokeDasharray="3 3"
+                        strokeWidth={1}
+                        ifOverflow="visible"
+                      />
+                    ))}
+                    
                     <Tooltip content={({ active, payload }) => {
                       if (!active || !payload || !payload.length) return null
                       const p = payload[0].payload as ChartPoint
                       return (
-                        <div className="bg-white dark:bg-[#171717] border rounded-md px-2 py-1 text-xs shadow">
+                        <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
                           <div className="font-medium mb-0.5">{p.time}</div>
-                          <div className={cn(p.value >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>{`${p.value >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(p.value))}`}</div>
+                          <div className={cn('font-semibold', p.value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                            {formatCurrency(p.value)}
+                          </div>
                         </div>
                       )
-                    }} />
-                    <Area type="monotone" dataKey="value" stroke="#6F52ED" strokeWidth={2} fill="url(#dayDetailGradient)" dot={false} />
+                    }} cursor={false} />
+                    
+                    {/* Positive area - clip to line using split series */}
+                    <Area
+                      type="linear"
+                      dataKey="positiveValue"
+                      stroke="none"
+                      fill={`url(#${gradientId}-positive)`}
+                      fillOpacity={1}
+                      connectNulls={false}
+                      isAnimationActive={false}
+                      baseValue={0}
+                    />
+                    
+                    {/* Negative area - clip to line using split series */}
+                    <Area
+                      type="linear"
+                      dataKey="negativeValue"
+                      stroke="none"
+                      fill={`url(#${gradientId}-negative)`}
+                      fillOpacity={1}
+                      connectNulls={false}
+                      isAnimationActive={false}
+                      baseValue={0}
+                    />
+                    
+                    {/* Main line stroke - enhanced styling */}
+                    <Area
+                      type="linear"
+                      dataKey="value"
+                      stroke="#5B2CC9"
+                      strokeWidth={1.5}
+                      fill="none"
+                      connectNulls={true}
+                      isAnimationActive={false}
+                      dot={false}
+                      activeDot={{
+                        r: 5,
+                        fill: "#5B2CC9",
+                        stroke: "#fff",
+                        strokeWidth: 3,
+                        filter: "drop-shadow(0 2px 4px rgba(91, 44, 201, 0.3))"
+                      }}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
-            <div className="md:col-span-5 md:pl-10 md:border-l md:border-gray-200 dark:md:border-gray-700 flex items-center">
+            <div className="md:col-span-5 md:pl-10 md:border-l md:border-gray-200 dark:md:border-[#2a2a2a] flex items-center">
               <div className="w-full grid grid-cols-4 gap-x-6 pr-2 text-gray-900 dark:text-gray-100">
                 {/* Column 1 */}
                 <div>
@@ -545,45 +710,147 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
             </div>
           </div>
 
-          {/* Trades table (real data) */}
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-[#2a2a2a] text-gray-600 dark:text-gray-400">
-                  {['Symbol','Average entry','Best exit P&L','Best exit (%)','Best exit Price','Best exit Time','Close time','Custom tags','Average exit','Net P&L'].map((h) => (
-                    <th key={h} className="text-left py-2 px-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedTrades.map((t) => {
-                  const avgEntry = t.averageEntry ?? t.entryPrice
-                  const avgExit = t.averageExit ?? t.exitPrice
-                  const bestExitPnl = t.bestExitPnl ?? null
-                  const bestExitPercent = t.bestExitPercent ?? null
-                  const bestExitPrice = t.bestExitPrice ?? null
-                  const bestExitTime = t.bestExitTime ?? null
-                  const closeTime = t.closeTime || t.exitTime || ''
-                  const tags = (t.customTags && t.customTags.length > 0) ? t.customTags.join(', ') : (t.tags && t.tags.length > 0 ? t.tags.join(', ') : '—')
-                  return (
-                    <tr key={t.id} className="border-b border-gray-100 dark:border-[#2a2a2a]">
-                      <td className="py-2 px-3">{t.symbol}</td>
-                      <td className="py-2 px-3">{typeof avgEntry === 'number' ? formatCurrencyValue(avgEntry) : '—'}</td>
-                      <td className="py-2 px-3">{typeof bestExitPnl === 'number' ? formatCurrencyValue(bestExitPnl) : '—'}</td>
-                      <td className="py-2 px-3">{bestExitPercent ?? '—'}</td>
-                      <td className="py-2 px-3">{typeof bestExitPrice === 'number' ? formatCurrencyValue(bestExitPrice) : '—'}</td>
-                      <td className="py-2 px-3">{formatLocalTime(bestExitTime)}</td>
-                      <td className="py-2 px-3">{closeTime || '—'}</td>
-                      <td className="py-2 px-3">{tags}</td>
-                      <td className="py-2 px-3">{typeof avgExit === 'number' ? formatCurrencyValue(avgExit) : '—'}</td>
-                      <td className={cn('py-2 px-3 font-medium', (t.netPnl ?? 0) >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
-                        {(t.netPnl ?? 0) >= 0 ? '+' : '-'}{formatCurrencyValue(Math.abs(t.netPnl || 0))}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          {/* Trades table (matching trades page styling) */}
+          <div className="mt-6">
+            <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <div className="max-h-[180px] overflow-y-auto">
+                  <table className="w-full" style={{ minWidth: '1200px' }}>
+                    <thead className="bg-white dark:bg-[#0f0f0f] border-b-2 border-gray-300 dark:border-[#2a2a2a] sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
+                          Symbol
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[100px] whitespace-nowrap">
+                          Open Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[90px] whitespace-nowrap">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[100px] whitespace-nowrap">
+                          Close Date
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[100px] whitespace-nowrap">
+                          Entry Price
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[100px] whitespace-nowrap">
+                          Exit Price
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[120px] whitespace-nowrap">
+                          Net P&L
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[80px] whitespace-nowrap">
+                          Net ROI
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[100px] whitespace-nowrap">
+                          Scale
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-[#0f0f0f] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
+                      {(trades || []).map((trade) => {
+                        const avgEntry = trade.averageEntry ?? trade.entryPrice
+                        const avgExit = trade.averageExit ?? trade.exitPrice
+                        const netRoi = trade.netRoi || 0
+                        
+                        return (
+                          <tr key={trade.id} className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                            <td className="px-4 py-4 min-w-[120px]">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium ${
+                                  trade.symbol === 'ES' ? 'bg-blue-500' :
+                                  trade.symbol === 'NQ' ? 'bg-purple-500' :
+                                  trade.symbol === 'YM' ? 'bg-green-500' :
+                                  trade.symbol === 'RTY' ? 'bg-orange-500' :
+                                  'bg-gray-500'
+                                }`}>
+                                  {trade.symbol?.slice(0, 2) || 'TR'}
+                                </div>
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{trade.symbol}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
+                              {new Date(trade.openDate).toLocaleDateString('en-US', { 
+                                day: '2-digit', 
+                                month: 'short'
+                              })}
+                            </td>
+                            <td className="px-4 py-4 min-w-[90px]">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${
+                                  trade.status === 'WIN' ? 'bg-green-500' : 'bg-red-500'
+                                }`}></div>
+                                <span className="text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                  {trade.status === 'WIN' ? 'Win' : trade.status === 'LOSS' ? 'Loss' : trade.status}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
+                              {new Date(trade.closeDate).toLocaleDateString('en-US', { 
+                                day: '2-digit', 
+                                month: 'short'
+                              })}
+                            </td>
+                            <td className="px-4 py-4 text-right text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
+                              {formatCurrency(avgEntry || 0)}
+                            </td>
+                            <td className="px-4 py-4 text-right text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
+                              {formatCurrency(avgExit || 0)}
+                            </td>
+                            <td className="px-4 py-4 text-right text-sm font-medium min-w-[120px] whitespace-nowrap">
+                              <span className={`${trade.netPnl >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'} font-semibold`}>
+                                {formatCurrency(trade.netPnl)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-right text-sm min-w-[80px] whitespace-nowrap">
+                              <span className={`${netRoi >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'} font-semibold`}>
+                                {(netRoi * 100).toFixed(2)}%
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
+                              <div className="flex justify-center">
+                                <div className="relative h-2 w-16 bg-gray-200 dark:bg-neutral-800 rounded-full">
+                                  <div 
+                                    className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
+                                    style={{ width: `${(() => {
+                                      // Calculate dynamic scale based on trade performance
+                                      const roi = netRoi || 0
+                                      
+                                      // Base scale on ROI performance
+                                      if (roi >= 0.15) return 100 // Excellent (5/5)
+                                      if (roi >= 0.10) return 80  // Very Good (4/5)
+                                      if (roi >= 0.05) return 60  // Good (3/5)
+                                      if (roi >= 0) return 40     // Fair (2/5)
+                                      if (roi >= -0.05) return 20 // Poor (1/5)
+                                      return 10                   // Very Poor (0.5/5)
+                                    })()}%` }}
+                                  ></div>
+                                  <span
+                                    className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                                    style={{ 
+                                      left: `${(() => {
+                                        const roi = netRoi || 0
+                                        if (roi >= 0.15) return 100
+                                        if (roi >= 0.10) return 80
+                                        if (roi >= 0.05) return 60
+                                        if (roi >= 0) return 40
+                                        if (roi >= -0.05) return 20
+                                        return 10
+                                      })()}%`,
+                                      borderColor: '#693EE0'
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="mt-4 flex items-center justify-between">

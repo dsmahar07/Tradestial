@@ -19,7 +19,7 @@ export function TradeNotes({ trade }: TradeNotesProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Notes Header */}
-      <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717] p-4">
+      <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f0f0f] p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex space-x-4">
             <button
@@ -88,7 +88,7 @@ export function TradeNotes({ trade }: TradeNotesProps) {
       </div>
 
       {/* Notes Editor */}
-      <div className="flex-1 p-4 bg-white dark:bg-[#171717]">
+      <div className="flex-1 p-4 bg-white dark:bg-[#0f0f0f]">
         <textarea
           placeholder="Write something or press '?' for commands"
           className="w-full h-full resize-none border-none outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400"

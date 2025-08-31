@@ -64,20 +64,41 @@ export default function TradesPage() {
   })
 
   const [modelForm, setModelForm] = useState({
-    selectedModel: 'ICT 2022 Model'
+    selectedModel: ''
   })
 
-  // Available models
-  const models = [
-    'ICT 2022 Model',
-    'Smart Money Concepts',
-    'Supply & Demand',
-    'Fibonacci Retracements', 
-    'Break & Retest',
-    'Liquidity Sweep',
-    'Order Block Trading',
-    'Fair Value Gap'
-  ]
+  // Available models - fetch from localStorage
+  const [models, setModels] = useState<string[]>([])
+  
+  // Load models from localStorage
+  useEffect(() => {
+    const loadModels = () => {
+      try {
+        const strategiesRaw = localStorage.getItem('tradestial:strategies')
+        if (strategiesRaw) {
+          const strategies = JSON.parse(strategiesRaw)
+          const modelNames = strategies.map((strategy: any) => strategy.name)
+          setModels(modelNames)
+        } else {
+          setModels([])
+        }
+      } catch (error) {
+        console.error('Failed to load models:', error)
+        setModels([])
+      }
+    }
+
+    // Load initially
+    loadModels()
+
+    // Listen for model updates
+    const handleModelsUpdate = () => loadModels()
+    window.addEventListener('tradestial:strategies-updated', handleModelsUpdate)
+    
+    return () => {
+      window.removeEventListener('tradestial:strategies-updated', handleModelsUpdate)
+    }
+  }, [])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -249,17 +270,12 @@ export default function TradesPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="max-w-[1400px] mx-auto">
             
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <ArrowPathIcon className="w-5 h-5 text-gray-400" />
-                <div>
-                  <h1 className="text-lg font-medium text-gray-900 dark:text-white">Trades</h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Manage and track your trades</p>
-                </div>
               </div>
               
               <div className="flex items-center gap-3">
@@ -277,45 +293,178 @@ export default function TradesPage() {
 
             {/* Stats */}
             <div className="flex items-center gap-6 mb-8">
-              <div className="bg-gray-50 dark:bg-[#1C1C1C] p-6 rounded-xl flex-1">
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Trades</div>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+              <div className="bg-white dark:bg-[#0f0f0f] p-6 rounded-xl flex-1 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(79, 125, 255, 0.12)' }}>
+                      <svg className="w-6 h-6" style={{ color: '#4F7DFF' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/>
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Trades</span>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
                   {trades.length.toLocaleString()}
                 </div>
-                <div className="text-xs text-green-600 mt-1">+{((trades.length / 100) * 5).toFixed(0)} vs this week</div>
+                <div className="absolute top-2 right-2">
+                  <div className="w-16 h-8">
+                    <div className="flex items-end space-x-1 h-full">
+                      {[40, 65, 45, 80, 55, 90].map((height, i) => (
+                        <div 
+                          key={i}
+                          className="flex-1 rounded-t-sm"
+                          style={{ 
+                            height: `${height}%`,
+                            backgroundColor: '#4F7DFF',
+                            opacity: 0.4 + (i * 0.1)
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-xs">
+                  <div className="flex items-center space-x-1 text-green-400">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M7 14l5-5 5 5z"/>
+                    </svg>
+                    <span>{((trades.length / 100) * 5).toFixed(0)}%</span>
+                  </div>
+                  <span className="text-gray-600 dark:text-gray-500">vs this week</span>
+                </div>
               </div>
               
               <div className="w-px h-16 bg-gray-200 dark:bg-[#2a2a2a]"></div>
               
-              <div className="bg-gray-50 dark:bg-[#1C1C1C] p-6 rounded-xl flex-1">
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Total P&L</div>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+              <div className="bg-white dark:bg-[#0f0f0f] p-6 rounded-xl flex-1 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.12)' }}>
+                      <svg className="w-6 h-6" style={{ color: '#8B5CF6' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total P&L</span>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold mb-3" style={{ color: (metrics?.netCumulativePnl || 0) >= 0 ? '#10b981' : '#ef4444' }}>
                   {formatCurrency(metrics?.netCumulativePnl || 0)}
                 </div>
-                <div className="text-xs text-green-600 mt-1">+8% vs last week</div>
+                <div className="absolute top-2 right-2">
+                  <div className="w-16 h-8">
+                    <div className="flex items-end space-x-1 h-full">
+                      {[65, 45, 80, 55, 90, 70].map((height, i) => (
+                        <div 
+                          key={i}
+                          className="flex-1 rounded-t-sm"
+                          style={{ 
+                            height: `${height}%`,
+                            backgroundColor: (metrics?.netCumulativePnl || 0) >= 0 ? '#10b981' : '#ef4444',
+                            opacity: 0.6 + (i * 0.1)
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-xs">
+                  <div className="flex items-center space-x-1 text-green-400">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M7 14l5-5 5 5z"/>
+                    </svg>
+                    <span>8%</span>
+                  </div>
+                  <span className="text-gray-600 dark:text-gray-500">vs last week</span>
+                </div>
               </div>
               
               <div className="w-px h-16 bg-gray-200 dark:bg-[#2a2a2a]"></div>
               
-              <div className="bg-gray-50 dark:bg-[#1C1C1C] p-6 rounded-xl flex-1">
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Average Trade Value</div>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+              <div className="bg-white dark:bg-[#0f0f0f] p-6 rounded-xl flex-1 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(246, 181, 30, 0.12)' }}>
+                      <svg className="w-6 h-6" style={{ color: '#F6B51E' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Trade</span>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
                   {formatCurrency((metrics?.netCumulativePnl || 0) / (metrics?.totalTrades || 1))}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">-2% this week</div>
+                <div className="absolute top-2 right-2">
+                  <div className="w-16 h-8 flex items-center justify-center">
+                    <div className="w-12 h-12 relative">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="#e5e7eb"
+                          strokeWidth="3"
+                        />
+                        <path
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="#F6B51E"
+                          strokeWidth="3"
+                          strokeDasharray="70, 100"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-xs">
+                  <div className="flex items-center space-x-1 text-red-400">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M7 10l5 5 5-5z"/>
+                    </svg>
+                    <span>2%</span>
+                  </div>
+                  <span className="text-gray-600 dark:text-gray-500">this week</span>
+                </div>
               </div>
               
               <div className="w-px h-16 bg-gray-200 dark:bg-[#2a2a2a]"></div>
               
-              <div className="bg-gray-50 dark:bg-[#1C1C1C] p-6 rounded-xl flex-1">
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Win Rate</div>
-                <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+              <div className="bg-white dark:bg-[#0f0f0f] p-6 rounded-xl flex-1 relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
+                      <svg className="w-6 h-6" style={{ color: '#10b981' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Win Rate</span>
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
                   {metrics?.winRate.toFixed(1) || 0}%
                 </div>
-                <div className="text-xs text-orange-600 mt-1">Requires attention</div>
+                <div className="absolute top-2 right-2">
+                  <div className="w-16 h-8">
+                    <div className="relative h-full">
+                      <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                      <div 
+                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#4F7DFF] to-[#10b981] rounded-full"
+                        style={{ width: `${metrics?.winRate || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-xs">
+                  <div className="flex items-center space-x-1 text-green-400">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M7 14l5-5 5 5z"/>
+                    </svg>
+                    <span>2%</span>
+                  </div>
+                  <span className="text-gray-600 dark:text-gray-500">this month</span>
+                </div>
               </div>
             </div>
-
 
             {/* Search and Filters Bar */}
             <div className="flex items-center justify-between mb-6">
@@ -327,7 +476,7 @@ export default function TradesPage() {
                     placeholder="Search trades..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#171717] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 w-64"
+                    className="pl-10 pr-4 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 w-64"
                   />
                 </div>
                 
@@ -339,7 +488,7 @@ export default function TradesPage() {
                     </button>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal>
-                    <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                    <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                       <DropdownMenu.Item 
                         className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100"
                         onClick={() => setDateRange('Last 7 days')}
@@ -370,7 +519,7 @@ export default function TradesPage() {
                     </button>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal>
-                    <DropdownMenu.Content className="min-w-[120px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                    <DropdownMenu.Content className="min-w-[120px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                       <DropdownMenu.Item 
                         className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100"
                         onClick={() => setStatusFilter('All Status')}
@@ -412,7 +561,7 @@ export default function TradesPage() {
                       </button>
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
-                      <DropdownMenu.Content className="min-w-[160px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                      <DropdownMenu.Content className="min-w-[160px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                         <DropdownMenu.Item 
                           className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100"
                           onClick={() => handleBulkAction('mark-reviewed')}
@@ -452,10 +601,10 @@ export default function TradesPage() {
             </div>
 
             {/* Table */}
-            <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full" style={{ minWidth: '1200px' }}>
-                <thead className="bg-white dark:bg-[#171717] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
+                <thead className="bg-white dark:bg-[#0f0f0f] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
                   <tr>
                     <th className="w-12 px-4 py-3 text-left">
                       <Checkbox.Root
@@ -527,7 +676,7 @@ export default function TradesPage() {
                     <th className="w-12 px-4 py-3"></th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-[#171717] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
+                <tbody className="bg-white dark:bg-[#0f0f0f] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
                   {currentTrades.map((trade) => (
                     <tr 
                       key={trade.id} 
@@ -601,7 +750,7 @@ export default function TradesPage() {
                       )}
                       {visibleColumns['net-pnl'] && (
                         <td className="px-4 py-4 text-right text-sm font-medium min-w-[120px] whitespace-nowrap">
-                          <span className={`${trade.netPnl >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]'} font-semibold`}>
+                          <span className={`${trade.netPnl >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'} font-semibold`}>
                             {formatCurrency(trade.netPnl)}
                           </span>
                         </td>
@@ -609,7 +758,7 @@ export default function TradesPage() {
 
                       {visibleColumns['net-roi'] && (
                         <td className="px-4 py-4 text-right text-sm min-w-[80px] whitespace-nowrap">
-                          <span className={`${trade.netRoi >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]'} font-semibold`}>
+                          <span className={`${trade.netRoi >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'} font-semibold`}>
                             {(trade.netRoi * 100).toFixed(2)}%
                           </span>
                         </td>
@@ -617,18 +766,59 @@ export default function TradesPage() {
 
                       {visibleColumns['scale'] && (
                         <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
-                          {trade.zellaScale !== undefined ? (
+                          {trade.zellaScale !== undefined && trade.zellaScale !== null ? (
                             <div className="flex justify-center">
-                              {[...Array(5)].map((_, i) => (
+                              <div className="relative h-2 w-16 bg-gray-200 dark:bg-neutral-800 rounded-full">
+                                <div 
+                                  className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
+                                  style={{ width: `${Math.max(0, Math.min(100, (trade.zellaScale / 5) * 100))}%` }}
+                                ></div>
                                 <span
-                                  key={i}
-                                  className={`text-sm ${i < (trade.zellaScale ?? 0) ? 'text-blue-400' : 'text-gray-300'}`}
-                                >
-                                  ●
-                                </span>
-                              ))}
+                                  className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                                  style={{ 
+                                    left: `${Math.max(1, Math.min(99, (trade.zellaScale / 5) * 100))}%`,
+                                    borderColor: '#693EE0'
+                                  }}
+                                />
+                              </div>
                             </div>
-                          ) : '--'}
+                          ) : (
+                            <div className="flex justify-center">
+                              <div className="relative h-2 w-16 bg-gray-200 dark:bg-neutral-800 rounded-full">
+                                <div 
+                                  className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
+                                  style={{ width: `${(() => {
+                                    // Calculate dynamic scale based on trade performance
+                                    const netPnl = trade.netPnl || 0
+                                    const netRoi = trade.netRoi || 0
+                                    
+                                    // Base scale on ROI performance
+                                    if (netRoi >= 0.15) return 100 // Excellent (5/5)
+                                    if (netRoi >= 0.10) return 80  // Very Good (4/5)
+                                    if (netRoi >= 0.05) return 60  // Good (3/5)
+                                    if (netRoi >= 0) return 40     // Fair (2/5)
+                                    if (netRoi >= -0.05) return 20 // Poor (1/5)
+                                    return 10                      // Very Poor (0.5/5)
+                                  })()}%` }}
+                                ></div>
+                                <span
+                                  className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                                  style={{ 
+                                    left: `${(() => {
+                                      const netRoi = trade.netRoi || 0
+                                      if (netRoi >= 0.15) return 100
+                                      if (netRoi >= 0.10) return 80
+                                      if (netRoi >= 0.05) return 60
+                                      if (netRoi >= 0) return 40
+                                      if (netRoi >= -0.05) return 20
+                                      return 10
+                                    })()}%`,
+                                    borderColor: '#693EE0'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </td>
                       )}
                       {visibleColumns['reviewed'] && (
@@ -669,7 +859,7 @@ export default function TradesPage() {
                             </button>
                           </DropdownMenu.Trigger>
                           <DropdownMenu.Portal>
-                            <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                            <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                               <DropdownMenu.Item 
                                 className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100"
                                 onClick={() => router.push(`/trades/tracker/${trade.id}`)}
@@ -756,7 +946,7 @@ export default function TradesPage() {
       <Dialog.Root open={showTagModal} onOpenChange={setShowTagModal}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] rounded-xl shadow-xl w-full max-w-md z-50">
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl shadow-xl w-full max-w-md z-50">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Dialog.Title className="text-lg font-semibold text-gray-900">Add Tags</Dialog.Title>
@@ -775,7 +965,7 @@ export default function TradesPage() {
                     value={tagForm.name}
                     onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
                     placeholder="Enter tag name"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#171717] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 
@@ -789,7 +979,7 @@ export default function TradesPage() {
                       </button>
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
-                      <DropdownMenu.Content className="min-w-[200px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                      <DropdownMenu.Content className="min-w-[200px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                         {categories.map((category) => (
                           <DropdownMenu.Item 
                             key={category.id}
@@ -843,7 +1033,7 @@ export default function TradesPage() {
       <Dialog.Root open={showNewCategoryModal} onOpenChange={setShowNewCategoryModal}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] rounded-xl shadow-xl w-full max-w-md z-50">
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl shadow-xl w-full max-w-md z-50">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Dialog.Title className="text-lg font-semibold text-gray-900">Create New Category</Dialog.Title>
@@ -862,7 +1052,7 @@ export default function TradesPage() {
                     value={newCategoryForm.name}
                     onChange={(e) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
                     placeholder="Enter category name"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#171717] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 
@@ -900,10 +1090,10 @@ export default function TradesPage() {
       <Dialog.Root open={showModelModal} onOpenChange={setShowModelModal}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] rounded-xl shadow-xl w-full max-w-md z-50">
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl shadow-xl w-full max-w-md z-50">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <Dialog.Title className="text-lg font-semibold text-gray-900">Assign Model</Dialog.Title>
+                <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">Assign Model</Dialog.Title>
                 <Dialog.Close asChild>
                   <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                     <XMarkIcon className="w-5 h-5" />
@@ -918,26 +1108,34 @@ export default function TradesPage() {
                   </label>
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
-                      <button className="w-full inline-flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                        {modelForm.selectedModel}
-                        <ChevronDownIcon className="w-4 h-4" />
+                      <button className="w-full inline-flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {modelForm.selectedModel || 'Select a model...'}
+                        </span>
+                        <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                       </button>
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
-                      <DropdownMenu.Content className="min-w-[300px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
-                        {models.map((model) => (
-                          <DropdownMenu.Item 
-                            key={model}
-                            className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 flex items-center gap-2"
-                            onClick={() => setModelForm({ selectedModel: model })}
-                          >
-                            <div className="w-3 h-3 rounded-full bg-blue-500" />
-                            {model}
-                            {modelForm.selectedModel === model && (
-                              <CheckCircleIcon className="w-4 h-4 text-blue-500 ml-auto" />
-                            )}
-                          </DropdownMenu.Item>
-                        ))}
+                      <DropdownMenu.Content className="min-w-[300px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                        {models.length > 0 ? (
+                          models.map((model) => (
+                            <DropdownMenu.Item 
+                              key={model}
+                              className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 flex items-center gap-2"
+                              onClick={() => setModelForm({ selectedModel: model })}
+                            >
+                              <div className="w-3 h-3 rounded-full bg-blue-500" />
+                              {model}
+                              {modelForm.selectedModel === model && (
+                                <CheckCircleIcon className="w-4 h-4 text-blue-500 ml-auto" />
+                              )}
+                            </DropdownMenu.Item>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            No models available. Create models in the Model page first.
+                          </div>
+                        )}
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
                   </DropdownMenu.Root>
@@ -966,7 +1164,7 @@ export default function TradesPage() {
       <Dialog.Root open={showColumnSelector} onOpenChange={setShowColumnSelector}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] rounded-xl shadow-xl w-full max-w-4xl z-50">
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl shadow-xl w-full max-w-4xl z-50">
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <Dialog.Title className="text-lg font-semibold text-gray-900">Select Columns</Dialog.Title>

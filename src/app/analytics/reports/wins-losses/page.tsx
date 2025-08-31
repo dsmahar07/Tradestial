@@ -203,7 +203,7 @@ export default function WinsLossesPage() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -213,7 +213,7 @@ export default function WinsLossesPage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="w-full space-y-6">
             {/* Toolbar: only P&L metric dropdown (right-aligned) */}
             <div className="flex items-center justify-end gap-2 flex-wrap">
@@ -221,7 +221,7 @@ export default function WinsLossesPage() {
               <div className="relative" ref={metricMenuRef}>
                 <button
                   onClick={() => setMetricMenuOpen(o => !o)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                   aria-label="Select P&L metric"
                   aria-expanded={metricMenuOpen}
                   aria-haspopup="true"
@@ -230,7 +230,7 @@ export default function WinsLossesPage() {
                   <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", metricMenuOpen && "rotate-180")} />
                 </button>
                 {metricMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
                     <button 
                       onClick={() => { setPnlMetric('NET P&L'); setMetricMenuOpen(false) }} 
                       className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
@@ -266,7 +266,7 @@ export default function WinsLossesPage() {
                 {/* Charts Container */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Wins Chart */}
-                  <section className="bg-white dark:bg-[#171717] rounded-lg p-6">
+                  <section className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6">
                     <div className="flex items-center space-x-2 mb-4">
                       <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
                         {pnlMetric === 'GROSS P&L' ? 'DAILY GROSS CUMULATIVE P&L (WINS)' : 'DAILY NET CUMULATIVE P&L (WINS)'}
@@ -343,7 +343,7 @@ export default function WinsLossesPage() {
                   </section>
 
                   {/* Losses Chart */}
-                  <section className="bg-white dark:bg-[#171717] rounded-lg p-6">
+                  <section className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6">
                     <div className="flex items-center space-x-2 mb-4">
                       <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
                         {pnlMetric === 'GROSS P&L' ? 'DAILY GROSS CUMULATIVE P&L (LOSSES)' : 'DAILY NET CUMULATIVE P&L (LOSSES)'}
@@ -423,7 +423,7 @@ export default function WinsLossesPage() {
                 {/* Stats Container */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Wins Stats */}
-                  <section className="bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
+                  <section className="bg-white dark:bg-[#0f0f0f] rounded-lg overflow-hidden">
                     <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between">
                         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Wins ({stats.meta?.winsCount || 0} Trades Matched)</h2>
@@ -443,7 +443,7 @@ export default function WinsLossesPage() {
                   </section>
 
                   {/* Losses Stats */}
-                  <section className="bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
+                  <section className="bg-white dark:bg-[#0f0f0f] rounded-lg overflow-hidden">
                     <header className="px-6 pt-5 pb-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                       <div className="flex items-center justify-between">
                         <h2 className="text-base font-semibold text-gray-900 dark:text-white">Losses ({stats.meta?.lossesCount || 0} Trades Matched)</h2>

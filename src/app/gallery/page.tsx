@@ -262,7 +262,7 @@ export default function GalleryPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#171717]">
           {/* Hero */}
           <section className="relative">
             <div className="border-b border-black/5 dark:border-white/10">

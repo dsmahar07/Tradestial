@@ -1,14 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
-import { Button } from './button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
 import { 
   BarChart, 
   Bar, 
@@ -94,8 +86,8 @@ const timeRanges = ['Today', 'This Week', 'This Month', 'All Time']
 const metrics = ['P&L', 'Trade Count', 'Win Rate', 'Avg Trade']
 
 export function SymbolPerformanceChart() {
-  const [selectedTimeRange, setSelectedTimeRange] = useState('This Month')
-  const [selectedMetric, setSelectedMetric] = useState('P&L')
+  const selectedTimeRange = 'All Time'
+  const selectedMetric = 'P&L'
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -126,18 +118,8 @@ export function SymbolPerformanceChart() {
     const now = new Date()
     const startDate = new Date()
     
-    switch (selectedTimeRange) {
-      case 'Today':
-        startDate.setHours(0, 0, 0, 0)
-        break
-      case 'This Week':
-        startDate.setDate(now.getDate() - 7)
-        break  
-      case 'This Month':
-        startDate.setMonth(now.getMonth() - 1)
-        break
-      case 'All Time':
-        return trades
+    if (selectedTimeRange === 'All Time') {
+      return trades
     }
     
     return trades.filter(trade => {
@@ -153,7 +135,7 @@ export function SymbolPerformanceChart() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 h-96 flex items-center justify-center">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-96 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500 dark:text-gray-400">Loading symbol data...</p>
@@ -170,17 +152,19 @@ export function SymbolPerformanceChart() {
         transition={{ duration: 0.5, delay: 1.2 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
           {/* Header (title visible, dropdowns hidden) */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Symbol Performance
               </h3>
             </div>
           </div>
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           {/* Empty state */}
-          <div className="h-72 flex items-center justify-center">
+          <div className="h-[300px] flex items-center justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No symbol data available</div>
               <div className="text-sm mt-1">Import your CSV to see symbol performance</div>
@@ -191,40 +175,14 @@ export function SymbolPerformanceChart() {
     )
   }
 
-  // Get data based on selected metric
+  // Get data based on selected metric (fixed to P&L only)
   const getChartData = () => {
-    switch (selectedMetric) {
-      case 'P&L':
-        return symbolsData.map(item => ({ 
-          symbol: item.symbol, 
-          name: item.name,
-          value: item.pnl,
-          color: item.pnl >= 0 ? '#10b981' : '#ef4444'
-        }))
-      case 'Trade Count':
-        return symbolsData.map(item => ({ 
-          symbol: item.symbol, 
-          name: item.name,
-          value: item.trades,
-          color: '#3b82f6'
-        }))
-      case 'Win Rate':
-        return symbolsData.map(item => ({ 
-          symbol: item.symbol, 
-          name: item.name,
-          value: item.winRate,
-          color: item.winRate >= 50 ? '#10b981' : '#f59e0b'
-        }))
-      case 'Avg Trade':
-        return symbolsData.map(item => ({ 
-          symbol: item.symbol, 
-          name: item.name,
-          value: item.avgTrade,
-          color: item.avgTrade >= 0 ? '#10b981' : '#ef4444'
-        }))
-      default:
-        return []
-    }
+    return symbolsData.map(item => ({ 
+      symbol: item.symbol, 
+      name: item.name,
+      value: item.pnl,
+      color: item.pnl >= 0 ? '#10b981' : '#ef4444'
+    }))
   }
 
   const chartData = getChartData()
@@ -234,7 +192,7 @@ export function SymbolPerformanceChart() {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-[#171717] p-3 rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a]">
+        <div className="bg-white dark:bg-[#0f0f0f] p-3 rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a]">
           <p className="font-medium text-gray-900 dark:text-white mb-1">
             {data.symbol} - {data.name}
           </p>
@@ -276,65 +234,19 @@ export function SymbolPerformanceChart() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Symbol Performance
             </h3>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
-                >
-                  <span>{selectedMetric}</span>
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
-                {metrics.map((metric) => (
-                  <DropdownMenuItem
-                    key={metric}
-                    onClick={() => setSelectedMetric(metric)}
-                    className={selectedMetric === metric ? 'bg-gray-100 dark:bg-gray-800' : ''}
-                  >
-                    {metric}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
-                >
-                  <span>{selectedTimeRange}</span>
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
-                {timeRanges.map((range) => (
-                  <DropdownMenuItem
-                    key={range}
-                    onClick={() => setSelectedTimeRange(range)}
-                    className={selectedTimeRange === range ? 'bg-gray-100 dark:bg-gray-800' : ''}
-                  >
-                    {range}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </div>
+        
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
         {/* Bar Chart */}
         <div className="h-72">

@@ -17,7 +17,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 
   if (value === undefined || value === null) {
     return (
-      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
         <div className="font-semibold text-gray-500">No data</div>
       </div>
     )
@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   const formattedValue = value >= 0 ? `$${Number(value).toLocaleString()}` : `-$${Math.abs(Number(value)).toLocaleString()}`
 
   return (
-    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
       <div className={`font-semibold ${value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formattedValue}</div>
     </div>
   )
@@ -147,7 +147,7 @@ export const ModelChart = React.memo(function ModelChart({
 
   if (!chartData.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-6 h-full" style={{ height }}>
+      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-6 h-full" style={{ height }}>
         <div className="flex items-center mb-4">
           <h3 className="text-base font-semibold text-gray-500/80 dark:text-gray-400/70">{title}</h3>
         </div>
@@ -160,7 +160,7 @@ export const ModelChart = React.memo(function ModelChart({
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-6 h-full" style={{ height }}>
+    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-6 h-full" style={{ height }}>
       <div className="flex items-center mb-4">
         <h3 className="text-base font-semibold text-gray-500/80 dark:text-gray-400/70">{title}</h3>
       </div>

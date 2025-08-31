@@ -247,10 +247,7 @@ export function StatsWidget({
       {/* Net P&L with dynamic color left border */}
       <div className="mb-6 relative">
         <div 
-          className="absolute left-0 top-0 bottom-0 w-1 rounded-r"
-          style={{
-            backgroundColor: trade && trade.netPnl >= 0 ? '#10b981' : '#ef4444'
-          }}
+          className="absolute left-0 top-0 bottom-0 w-1 rounded-r bg-gradient-to-b from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
         ></div>
         <div className="pl-4 text-center">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Net P&L</div>
@@ -488,9 +485,9 @@ export function StatsWidget({
         {/* Zella Scale */}
         <div className="flex justify-between items-center py-1 group relative">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Scale</span>
-          <div className="relative h-1.5 w-24 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer">
+          <div className="relative h-2 w-24 bg-gray-200 dark:bg-neutral-800 rounded-full cursor-pointer">
             <div 
-              className="absolute left-0 top-0 h-full bg-teal-500 rounded-full"
+              className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
               style={{ 
                 width: `${(() => {
                   if (!trade || !profitTarget || !stopLoss) return '50%'
@@ -507,10 +504,35 @@ export function StatsWidget({
                   
                   if (totalRange === 0) return '50%'
                   const position = (maxLoss + realizedPnl) / totalRange
-                  return `${Math.max(5, Math.min(95, position * 100))}%`
+                  const markerPos = Math.max(1, Math.min(99, position * 100))
+                  return `${markerPos}%`
                 })()}`
               }}
             ></div>
+            {/* Marker */}
+            <span
+              className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+              style={{ 
+                left: `${(() => {
+                  if (!trade || !profitTarget || !stopLoss) return '50%'
+                  const entryPrice = parseCurrency(trade.entryPrice || 0)
+                  const targetPrice = parseFloat(profitTarget)
+                  const stopPrice = parseFloat(stopLoss)
+                  const realizedPnl = parseCurrency(trade.netPnl || 0)
+                  
+                  if (isNaN(entryPrice) || isNaN(targetPrice) || isNaN(stopPrice)) return '50%'
+                  
+                  const maxProfit = Math.abs(targetPrice - entryPrice)
+                  const maxLoss = Math.abs(entryPrice - stopPrice)
+                  const totalRange = maxLoss + maxProfit
+                  
+                  if (totalRange === 0) return '50%'
+                  const position = (maxLoss + realizedPnl) / totalRange
+                  return `${Math.max(1, Math.min(99, position * 100))}%`
+                })()}`,
+                borderColor: '#693EE0'
+              }}
+            />
           </div>
           
           {/* Hover Tooltip */}

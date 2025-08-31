@@ -18,7 +18,7 @@ import { Trade } from '@/services/trade-data.service'
 const CustomTooltip = ({ active, payload, label, formatter }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] border border-zinc-200 dark:border-zinc-600 rounded-md shadow-lg px-2 py-1.5 text-xs">
+      <div className="bg-white dark:bg-[#0f0f0f] border border-zinc-200 dark:border-zinc-600 rounded-md shadow-lg px-2 py-1.5 text-xs">
         <p className="text-zinc-600 dark:text-zinc-300 font-medium mb-1">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-zinc-900 dark:text-white">
@@ -29,6 +29,7 @@ const CustomTooltip = ({ active, payload, label, formatter }: any) => {
       </div>
     )
   }
+
   return null
 }
 
@@ -92,7 +93,7 @@ export function AnalyticsOverviewSection() {
   if (!trades.length) {
     return (
       <div className="space-y-6">
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
           <div className="text-center py-8">
             <p className="text-gray-500 dark:text-gray-400">No trade data available. Import your CSV to see analytics.</p>
           </div>
@@ -109,7 +110,7 @@ export function AnalyticsOverviewSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
           {/* P&L Toggle */}
           <div className="flex items-center space-x-4 mb-6">
             <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">P&L SHOWING</span>
@@ -118,7 +119,7 @@ export function AnalyticsOverviewSection() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-zinc-200 dark:border-zinc-700 text-gray-900 dark:text-gray-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 shadow-sm text-xs h-8"
+                  className="bg-white dark:bg-[#0f0f0f] border-zinc-200 dark:border-zinc-700 text-gray-900 dark:text-gray-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 shadow-sm text-xs h-8"
                 >
                   <span>GROSS P&L</span>
                   <ChevronDown className="ml-2 h-3 w-3" />
@@ -126,7 +127,7 @@ export function AnalyticsOverviewSection() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="start" 
-                className="bg-white dark:bg-[#171717] shadow-lg min-w-[120px] border-0"
+                className="bg-white dark:bg-[#0f0f0f] shadow-lg min-w-[120px] border-0"
               >
                 <DropdownMenuItem className="text-zinc-900 dark:text-white hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer text-xs">
                   Gross P&L
@@ -176,7 +177,7 @@ export function AnalyticsOverviewSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-4">
             {/* Left Column */}
             <div className="space-y-4">
@@ -400,7 +401,7 @@ export function AnalyticsOverviewSection() {
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Daily Gross Cumulative P&L Chart */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
             <div className="flex items-center space-x-2 mb-6">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">DAILY GROSS CUMULATIVE P&L</h3>
               <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>
@@ -444,7 +445,7 @@ export function AnalyticsOverviewSection() {
           </div>
 
           {/* Gross Daily P&L Bar Chart */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl p-6">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
             <div className="flex items-center space-x-2 mb-6">
               <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">GROSS DAILY P&L</h3>
               <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>

@@ -805,8 +805,8 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
   if (!note) {
     return (
-      <div className="flex-1 bg-white flex items-center justify-center">
-        <div className="text-center text-gray-500">
+      <div className="flex-1 bg-white dark:bg-[#0f0f0f] flex items-center justify-center">
+        <div className="text-center text-gray-500 dark:text-gray-400">
           <Edit3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>Select a note to start editing</p>
         </div>
@@ -827,9 +827,9 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   }
 
   return (
-    <div className="flex-1 min-h-0 min-w-0 bg-white dark:bg-[#171717] flex flex-col">
+    <div className="flex-1 min-h-0 min-w-0 bg-white dark:bg-[#0f0f0f] flex flex-col">
       {/* Trading Journal Header */}
-      <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#171717]">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]">
         {/* Top Header with Date and Actions */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4 relative">
@@ -1021,7 +1021,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+              <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
                 {templates && templates.length > 0 && (
                   <DropdownMenuItem onClick={() => setShowTemplatePicker(true)}>
                     <FileText className="w-4 h-4 mr-2" />
@@ -1170,7 +1170,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             <input
               type="text"
               placeholder="Enter tag name..."
-              className="px-3 py-1 text-sm border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 max-w-xs"
+              className="px-3 py-1 text-sm border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 max-w-xs"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -1252,7 +1252,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             {/* Chart Section */}
             <div className="flex-shrink-0 w-64">
               {/* P&L Chart with Dashboard Styling */}
-              <div className="h-40 bg-white dark:bg-[#171717] rounded-lg overflow-hidden">
+              <div className="h-40 bg-white dark:bg-[#0f0f0f] rounded-lg overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={(note as any)?.tradingData ? (note as any).tradingData.chartData : [
@@ -1420,7 +1420,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       </div>
 
       {/* Simple Toolbar */}
-      <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#171717]">
+      <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]">
         <div className="flex items-center space-x-4">
           {/* Simple Undo/Redo */}
           <Button
@@ -1452,14 +1452,14 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#171717] dark:text-white min-w-[100px] justify-between"
+                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[100px] justify-between"
                 disabled={!note}
               >
                 {fontFamily}
                 <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               {[
                 'Inter',
                 'SF Pro',
@@ -1511,14 +1511,14 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#171717] dark:text-white min-w-[70px] justify-between ml-2"
+                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[70px] justify-between ml-2"
                 disabled={!note}
               >
                 {fontSize}
                 <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               {['10px', '12px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px'].map((size) => (
                 <DropdownMenuItem
                   key={size}
@@ -1717,7 +1717,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-white dark:bg-[#171717] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-white dark:bg-[#0f0f0f]">
         {!note ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-500 dark:text-gray-400">
@@ -1795,7 +1795,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       {/* Template Editor Dialog */}
       {selectedTemplate && (
         <Dialog open={showTemplateEditor} onClose={handleTemplateEditorCancel}>
-          <DialogContent className="max-w-2xl p-0 bg-white dark:bg-[#171717]">
+          <DialogContent className="max-w-2xl p-0 bg-white dark:bg-[#0f0f0f]">
             <SimpleTemplateEditor
               template={selectedTemplate}
               onCancel={handleTemplateEditorCancel}
@@ -1807,7 +1807,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
       {/* Share Dialog */}
       <Dialog open={showShareModal} onClose={() => setShowShareModal(false)}>
-        <DialogContent className="max-w-lg bg-white dark:bg-[#171717]">
+        <DialogContent className="max-w-lg bg-white dark:bg-[#0f0f0f]">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Share note</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">Anyone with this link can view this note. Editing is disabled.</p>

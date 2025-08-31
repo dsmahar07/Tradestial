@@ -91,7 +91,7 @@ export function ConfirmationModal({ isOpen, options, onClose }: ConfirmationModa
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", duration: 0.5 }}
             className={cn(
-               "relative bg-white dark:bg-[#1C1C1C] rounded-xl shadow-2xl border-2 p-6 max-w-md w-full mx-4 pointer-events-auto cursor-default",
+               "relative bg-white dark:bg-[#171717] rounded-xl shadow-2xl border-2 p-6 max-w-md w-full mx-4 pointer-events-auto cursor-default",
                config.borderColor
              )}
             onClick={(e) => e.stopPropagation()}

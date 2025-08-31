@@ -2,14 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, Info } from 'lucide-react'
-import { Button } from './button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
+import { Info } from 'lucide-react'
 import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
@@ -72,7 +65,7 @@ const DrawdownTooltip = ({ active, payload, label }: any) => {
     const drawdown = data.drawdown
     
     return (
-      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
         <div className="text-gray-600 dark:text-gray-300 font-medium mb-1">{data.formattedDate}</div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[#2547D0]" />
@@ -162,8 +155,8 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
         transition={{ duration: 0.5, delay: 1.6 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Drawdown
@@ -171,6 +164,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             </div>
           </div>
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           <div className="h-[300px] flex items-center justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No drawdown data available</div>
@@ -189,41 +183,16 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
       transition={{ duration: 0.5, delay: 1.6 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Drawdown
             </h3>
             <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
-              >
-                <span>All time</span>
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
-            >
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
-                All time
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
-                Last month
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
-                Last week
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
-        
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         <div className="h-[300px] w-full outline-none focus:outline-none">
           <ResponsiveContainer width="100%" height="100%" className="focus:outline-none [&>*]:focus:outline-none">
             <ComposedChart

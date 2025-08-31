@@ -193,12 +193,12 @@ export default function StrategyDetailPage() {
 
   if (!strategy) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-[#1C1C1C]">
+      <div className="flex min-h-screen bg-gray-50 dark:bg-[#171717]">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader />
-          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[#1C1C1C] p-6">
-            <div className="bg-white dark:bg-[#171717] rounded-xl p-6 border border-gray-200 dark:border-[#2a2a2a] text-sm text-gray-500 dark:text-gray-400">
+          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[#171717] p-6">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 border border-gray-200 dark:border-[#2a2a2a] text-sm text-gray-500 dark:text-gray-400">
               Strategy not found. <Link href="/model" className="text-[#3559E9]">Back to list</Link>
             </div>
           </main>
@@ -212,10 +212,10 @@ export default function StrategyDetailPage() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1C] p-6">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#171717] p-6">
           <div className="w-full max-w-none mx-auto space-y-4">
           {/* Header card */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl p-8 min-h-64 shadow-sm">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-8 min-h-64 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="h-40 w-72 rounded-lg overflow-hidden flex items-center justify-center">
                 {strategy.image ? (
@@ -269,7 +269,7 @@ export default function StrategyDetailPage() {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#2a2a2a]">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a]">
             <div className="px-4 pt-3 border-b border-gray-100 dark:border-[#2a2a2a]">
               <div className="flex gap-4 text-sm">
                 {(['stats','rules','trades','backtesting','notes'] as const).map(t => (
@@ -570,7 +570,7 @@ function StrategyNotes({ strategyId }: { strategyId: string }) {
   const selected = notes.find(n => n.id === selectedId) || null
 
   return (
-    <div className="flex h-[72vh] bg-white dark:bg-[#171717] rounded-xl border border-gray-200 dark:border-[#2a2a2a] overflow-hidden">
+    <div className="flex h-[72vh] bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] overflow-hidden">
       {/* Sidebar */}
       <div className="w-60 border-r border-gray-200 dark:border-[#2a2a2a] p-3 flex flex-col">
         <div className="flex items-center justify-between mb-2">
@@ -579,7 +579,7 @@ function StrategyNotes({ strategyId }: { strategyId: string }) {
         </div>
         <div className="flex-1 overflow-auto space-y-1 pr-1">
           {notes.map(n => (
-            <button key={n.id} onClick={() => setSelectedId(n.id)} className={`w-full text-left px-2 py-2 rounded-md text-sm truncate ${selectedId===n.id? 'bg-[#eef2ff] dark:bg-[#1f243a] text-gray-900 dark:text-white':'hover:bg-gray-100 dark:hover:bg-[#1f1f1f] text-gray-700 dark:text-gray-300'}`}>
+            <button key={n.id} onClick={() => setSelectedId(n.id)} className={`w-full text-left px-2 py-2 rounded-md text-sm truncate ${selectedId===n.id? 'bg-[#eef2ff] dark:bg-[#1f243a] text-gray-900 dark:text-white':'hover:bg-gray-100 dark:hover:bg-[#171717] text-gray-700 dark:text-gray-300'}`}>
               {n.title || 'Untitled'}
             </button>
           ))}
@@ -841,7 +841,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
             </Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[200]" />
-              <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-xl z-[201] w-[500px] max-h-[80vh] overflow-auto">
+              <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-xl z-[201] w-[500px] max-h-[80vh] overflow-auto">
                 <div className="p-6">
                   <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                     Auto Rules Configuration
@@ -955,7 +955,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                                       </Select.Icon>
                                     </Select.Trigger>
                                     <Select.Portal>
-                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
                                         <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
                                         <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
                                           {Array.from({length: 24}, (_, i) => {
@@ -985,7 +985,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                                       </Select.Icon>
                                     </Select.Trigger>
                                     <Select.Portal>
-                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
                                         <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
                                         <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
                                           {['00', '15', '30', '45'].map((minute) => (
@@ -1023,7 +1023,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                                       </Select.Icon>
                                     </Select.Trigger>
                                     <Select.Portal>
-                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
                                         <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
                                         <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
                                           {Array.from({length: 24}, (_, i) => {
@@ -1053,7 +1053,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                                       </Select.Icon>
                                     </Select.Trigger>
                                     <Select.Portal>
-                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
                                         <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
                                         <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
                                           {['00', '15', '30', '45'].map((minute) => (
@@ -1087,7 +1087,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                               </Select.Icon>
                             </Select.Trigger>
                             <Select.Portal>
-                              <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[220px]">
+                              <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[220px]">
                                 <Select.Viewport className="p-1">
                                   <Select.Item value="local" className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
                                     <Select.ItemText>Local timezone</Select.ItemText>
@@ -1126,7 +1126,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                                   </Select.Icon>
                                 </Select.Trigger>
                                 <Select.Portal>
-                                  <Select.Content className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] min-w-[250px] max-h-[300px] overflow-auto">
+                                  <Select.Content className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] min-w-[250px] max-h-[300px] overflow-auto">
                                     <Select.Viewport className="p-1">
                                       {Object.entries(TIMEZONE_REGIONS).map(([regionName, timezones]) => (
                                         <Select.Group key={regionName}>
@@ -1224,11 +1224,11 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
       {/* Auto rules summary - only show enabled rules */}
       {(autoRules.maxLossPerTrade?.enabled || autoRules.maxTradesPerDay?.enabled || autoRules.maxDailyLoss?.enabled || autoRules.session?.enabled || autoRules.allowedWeekdays?.enabled) && (
         <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
-          {autoRules.maxLossPerTrade?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Max loss OK: {autoSummary.withinMaxLoss}%</span>}
-          {autoRules.session?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Session OK: {autoSummary.withinSession}%</span>}
-          {autoRules.allowedWeekdays?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Weekdays OK: {autoSummary.onAllowedDays}%</span>}
-          {autoRules.maxTradesPerDay?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Days within max trades: {autoSummary.daysWithinMaxTrades}%</span>}
-          {autoRules.maxDailyLoss?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Days within max daily loss: {autoSummary.daysWithinMaxDailyLoss}%</span>}
+          {autoRules.maxLossPerTrade?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#171717] text-gray-700 dark:text-gray-300">Max loss OK: {autoSummary.withinMaxLoss}%</span>}
+          {autoRules.session?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#171717] text-gray-700 dark:text-gray-300">Session OK: {autoSummary.withinSession}%</span>}
+          {autoRules.allowedWeekdays?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#171717] text-gray-700 dark:text-gray-300">Weekdays OK: {autoSummary.onAllowedDays}%</span>}
+          {autoRules.maxTradesPerDay?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#171717] text-gray-700 dark:text-gray-300">Days within max trades: {autoSummary.daysWithinMaxTrades}%</span>}
+          {autoRules.maxDailyLoss?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#171717] text-gray-700 dark:text-gray-300">Days within max daily loss: {autoSummary.daysWithinMaxDailyLoss}%</span>}
         </div>
       )}
       {groups.length === 0 && (
@@ -1266,7 +1266,7 @@ function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: Strateg
                         {group.rules.map((rule, ruleIndex) => (
                           <SortableRule key={rule.id} id={rule.id}>
                             {({ setNodeRef: setRuleRef, style: ruleStyle, attributes: ruleAttrs, listeners: ruleListeners }) => (
-                            <div ref={setRuleRef} style={ruleStyle} {...ruleAttrs} className="flex items-center justify-between px-1 py-2 hover:bg-gray-50 dark:hover:bg-[#1f1f1f]">
+                            <div ref={setRuleRef} style={ruleStyle} {...ruleAttrs} className="flex items-center justify-between px-1 py-2 hover:bg-gray-50 dark:hover:bg-[#171717]">
                               {/* Left: drag + rule text + delete */}
                               <div className="flex items-center gap-2 flex-1 pr-4 min-w-0">
                                 <span {...ruleListeners} className="flex items-center justify-center text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing">

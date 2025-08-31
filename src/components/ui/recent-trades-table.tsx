@@ -237,7 +237,7 @@ export function RecentTradesTable() {
       transition={{ duration: 0.5, delay: 1.0 }}
       className="focus:outline-none h-full"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none h-[870px] flex flex-col min-h-0">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none h-[870px] flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -255,7 +255,7 @@ export function RecentTradesTable() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
                 >
                   <span>{selectedTimeRange}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />

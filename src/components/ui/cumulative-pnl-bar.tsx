@@ -193,12 +193,14 @@ export function CumulativePnlBar() {
         transition={{ duration: 0.5, delay: 1.2 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Cumulative P&L
             </h3>
           </div>
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           <div className="h-72 flex items-center justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No P&L data available</div>
@@ -215,7 +217,7 @@ export function CumulativePnlBar() {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-[#171717] p-3 rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a]">
+        <div className="bg-white dark:bg-[#0f0f0f] p-3 rounded-lg shadow-lg border border-gray-200 dark:border-[#2a2a2a]">
           <p className="font-medium text-gray-900 dark:text-white mb-1">
             {data.period} - {data.name}
           </p>
@@ -258,22 +260,21 @@ export function CumulativePnlBar() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Cumulative P&L
             </h3>
           </div>
-          
           <div className="flex items-center space-x-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
+                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
                 >
                   <span className="text-xs">{selectedMetric.split(' ')[0]}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />
@@ -297,7 +298,7 @@ export function CumulativePnlBar() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
+                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
                 >
                   <span className="text-xs">{selectedTimeRange.replace('Last ', '').replace(' Days', 'D').replace('This ', '').replace('All ', '')}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />
@@ -317,6 +318,9 @@ export function CumulativePnlBar() {
             </DropdownMenu>
           </div>
         </div>
+
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
         {/* Bar Chart */}
         <div className="h-72">

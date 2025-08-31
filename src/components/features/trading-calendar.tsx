@@ -210,7 +210,7 @@ const MonthCalendar = ({ year, month, data, stats }: MonthCalendarProps) => {
   }
   
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-4">
       {/* Month Header */}
       <div className="mb-4">
         <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
@@ -357,7 +357,7 @@ export const TradingCalendar = () => {
     <Tooltip.Provider>
       <div className="space-y-6">
         {/* Year Overview */}
-        <div className="bg-white dark:bg-[#171717] rounded-lg p-6 shadow-sm">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <TradingCalendarIcon />

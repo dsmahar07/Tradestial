@@ -41,8 +41,8 @@ export function CustomSelect({
               id={id}
               className={cn(
                 'w-56 inline-flex items-center justify-between gap-2 rounded-md border text-sm px-3 py-2',
-                'bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100',
-                'transition-colors hover:bg-gray-50/70 dark:hover:bg-[#1f1f1f]',
+                'bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-100',
+                'transition-colors hover:bg-gray-50/70 dark:hover:bg-[#171717]',
                 // Remove default outlines on focus as requested
                 'focus:outline-none focus:ring-0 focus:ring-offset-0',
                 buttonClassName,
@@ -66,7 +66,7 @@ export function CustomSelect({
               <Listbox.Options
                 className={cn(
                   'absolute z-50 mt-2 w-56 max-h-60 overflow-auto rounded-md border shadow-lg',
-                  'bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a]',
+                  'bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a]',
                   'focus:outline-none',
                   menuClassName,
                 )}
@@ -79,7 +79,7 @@ export function CustomSelect({
                       cn(
                         'relative cursor-pointer select-none px-3 py-2 text-sm flex items-center justify-between',
                         'text-gray-900 dark:text-gray-100',
-                        active && 'bg-gray-50 dark:bg-[#1f1f1f]',
+                        active && 'bg-gray-50 dark:bg-[#171717]',
                         selected && 'font-medium',
                         itemClassName,
                       )

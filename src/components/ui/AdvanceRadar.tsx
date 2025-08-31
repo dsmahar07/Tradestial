@@ -141,7 +141,7 @@ const AdvanceRadar: React.FC = () => {
         trigger: 'item',
         triggerOn: 'mousemove|click',
         confine: true,
-        backgroundColor: isDarkMode ? '#171717' : '#ffffff',
+        backgroundColor: isDarkMode ? '#0f0f0f' : '#ffffff',
         borderColor: isDarkMode ? '#2a2a2a' : '#e5e7eb',
         textStyle: {
           color: isDarkMode ? '#ffffff' : '#374151'
@@ -274,7 +274,7 @@ const AdvanceRadar: React.FC = () => {
           z: 3,
           tooltip: {
             show: true,
-            backgroundColor: isDarkMode ? '#171717' : '#ffffff',
+            backgroundColor: isDarkMode ? '#0f0f0f' : '#ffffff',
             borderColor: isDarkMode ? '#2a2a2a' : '#e5e7eb',
             textStyle: { color: isDarkMode ? '#ffffff' : '#374151' },
             formatter: (p: any) => {
@@ -348,7 +348,7 @@ const AdvanceRadar: React.FC = () => {
       transition={{ duration: 0.5, delay: 0.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '385px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -357,6 +357,9 @@ const AdvanceRadar: React.FC = () => {
             </h3>
           </div>
         </div>
+        
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
       {hasData ? (
         <div className="h-80 flex flex-col">
@@ -374,10 +377,13 @@ const AdvanceRadar: React.FC = () => {
               return (
                 <div className="flex items-center gap-4">
                   {/* Left: label + value */}
-                  <div className="min-w-[140px]">
+                  <div className="min-w-[140px] overflow-hidden">
                     <div className="text-xs text-gray-600 dark:text-gray-400">Score</div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{overall}</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white leading-none">{overall}</div>
                   </div>
+
+                  {/* Vertical separator */}
+                  <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 flex-shrink-0"></div>
 
                   {/* Right: gradient progress with marker and ticks */}
                   <div className="relative flex-1">

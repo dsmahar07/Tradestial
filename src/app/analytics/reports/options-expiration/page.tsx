@@ -67,7 +67,7 @@ export default function OptionsExpirationPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -77,7 +77,7 @@ export default function OptionsExpirationPage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="w-full space-y-6">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Options: Days till expiration</h1>
@@ -88,7 +88,7 @@ export default function OptionsExpirationPage() {
             {/* Charts - side by side on large screens */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> 
             {/* Distribution by DTE */}
-            <section className="bg-white dark:bg-[#171717] rounded-xl p-6">
+            <section className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
               <div className="flex items-center space-x-2 mb-6">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">TRADE DISTRIBUTION BY DTE</h3>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>
@@ -112,7 +112,7 @@ export default function OptionsExpirationPage() {
             </section>
 
             {/* Performance by DTE */}
-            <section className="bg-white dark:bg-[#171717] rounded-xl p-6">
+            <section className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
               <div className="flex items-center space-x-2 mb-6">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">PERFORMANCE BY DTE</h3>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>

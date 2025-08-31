@@ -356,7 +356,7 @@ export default function SymbolsPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -366,7 +366,7 @@ export default function SymbolsPage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="w-full">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Symbols Report</h1>
@@ -397,7 +397,7 @@ export default function SymbolsPage() {
                       'px-3 py-1.5 text-sm rounded-md border',
                       subTab === k
                         ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-[#171717] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800/60'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-[#0f0f0f] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800/60'
                     )}
                   >
                     {k}
@@ -408,7 +408,7 @@ export default function SymbolsPage() {
                 <div className="relative" ref={topMenuRef}>
                   <button
                     onClick={() => setOpenMenu(openMenu === 'top' ? null : 'top')}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[110px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[110px] justify-between"
                     aria-expanded={openMenu === 'top'}
                     aria-haspopup="true"
                   >
@@ -416,7 +416,7 @@ export default function SymbolsPage() {
                     <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", openMenu === 'top' && "rotate-180")} />
                   </button>
                   {openMenu === 'top' && (
-                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
+                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
                       {[5,10,20,50].map(n => (
                         <button
                           key={n}
@@ -435,7 +435,7 @@ export default function SymbolsPage() {
                 <div className="relative" ref={pnlMenuRef}>
                   <button
                     onClick={() => setOpenMenu(openMenu === 'pnl' ? null : 'pnl')}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                     aria-expanded={openMenu === 'pnl'}
                     aria-haspopup="true"
                   >
@@ -443,7 +443,7 @@ export default function SymbolsPage() {
                     <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", openMenu === 'pnl' && "rotate-180")} />
                   </button>
                   {openMenu === 'pnl' && (
-                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
+                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
                       {(['NET P&L','GROSS P&L'] as const).map(val => (
                         <button
                           key={val}
@@ -463,7 +463,7 @@ export default function SymbolsPage() {
 
             {/* Top metric cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Best performing {labels.singular}</div>
@@ -474,7 +474,7 @@ export default function SymbolsPage() {
                 <div className="mt-2 text-xs text-gray-500">{bestPerforming?.trades || 0} trades</div>
                 <div className="mt-1 text-[#10B981] dark:text-[#10B981] text-sm font-semibold">{formatCurrency(bestPerforming?.netPnL || 0)}</div>
               </div>
-              <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Least performing {labels.singular}</div>
@@ -485,7 +485,7 @@ export default function SymbolsPage() {
                 <div className="mt-2 text-xs text-gray-500">{leastPerforming?.trades || 0} trades</div>
                 <div className="mt-1 text-rose-600 dark:text-rose-400 text-sm font-semibold">{formatCurrency(leastPerforming?.netPnL || 0)}</div>
               </div>
-              <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Most active {labels.singular}</div>
@@ -496,7 +496,7 @@ export default function SymbolsPage() {
                 <div className="mt-2 text-xs text-gray-500">{mostActive?.trades || 0} trades</div>
                 <div className="mt-1 text-gray-700 dark:text-gray-300 text-sm font-semibold">Avg daily vol {mostActive?.avgDailyVolume || 0}</div>
               </div>
-              <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-4">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs text-gray-500">Best win rate</div>
@@ -558,7 +558,7 @@ export default function SymbolsPage() {
             </div>
 
             {/* Summary */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Summary</div>
                 <div className="text-xs text-gray-500">Settings</div>
@@ -578,7 +578,7 @@ export default function SymbolsPage() {
                   </thead>
                   <tbody>
                     {symbolStats.map((s, i) => (
-                      <tr key={s.item} className={cn(i % 2 === 0 ? 'bg-white dark:bg-[#171717]' : 'bg-gray-50 dark:bg-[#191919]')}>
+                      <tr key={s.item} className={cn(i % 2 === 0 ? 'bg-white dark:bg-[#0f0f0f]' : 'bg-gray-50 dark:bg-[#191919]')}>
                         <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">{s.item}</td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{s.winRate}%</td>
                         <td className={cn('px-4 py-3 font-semibold', s.netPnL >= 0 ? 'text-[#10B981] dark:text-[#10B981]' : 'text-rose-600 dark:text-rose-400')}>{formatCurrency(s.netPnL)}</td>
@@ -594,7 +594,7 @@ export default function SymbolsPage() {
             </div>
 
             {/* Cross analysis */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm mt-6">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm mt-6">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">Cross analysis</div>
                 <div className="flex items-center gap-2">
@@ -607,7 +607,7 @@ export default function SymbolsPage() {
                         'px-2.5 py-1 text-xs rounded border',
                         matrixMetric === m
                           ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-[#171717] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800/60'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-[#0f0f0f] dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-800/60'
                       )}
                     >
                       {m}
@@ -627,7 +627,7 @@ export default function SymbolsPage() {
                   </thead>
                   <tbody>
                     {Object.entries(crossValues).map(([sym, vals], rowIndex) => (
-                      <tr key={sym} className={cn(rowIndex % 2 === 0 ? 'bg-white dark:bg-[#171717]' : 'bg-gray-50 dark:bg-[#191919]')}>
+                      <tr key={sym} className={cn(rowIndex % 2 === 0 ? 'bg-white dark:bg-[#0f0f0f]' : 'bg-gray-50 dark:bg-[#191919]')}>
                         <td className="px-4 py-3 font-semibold text-gray-900 dark:text-gray-100">{sym}</td>
                         {vals.map((v, i) => (
                           <td key={`${sym}-${i}`} className="px-4 py-3 text-gray-700 dark:text-gray-300">

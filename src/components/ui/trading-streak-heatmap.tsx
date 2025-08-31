@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate, getMonth, getYear, getDayOfWeek } from '@/utils/date-utils'
+import { Tooltip } from './tooltip'
 
 interface DayData {
   date: number
@@ -112,7 +113,7 @@ export function TradingStreakHeatmap() {
         transition={{ duration: 0.5, delay: 1.4 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '385px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '385px' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Heatmap</h3>
@@ -137,7 +138,7 @@ export function TradingStreakHeatmap() {
       transition={{ duration: 0.5, delay: 1.4 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-5 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '385px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -145,35 +146,36 @@ export function TradingStreakHeatmap() {
             <Info className="h-4 w-4 text-gray-400" />
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={goPrevMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
+            <button onClick={goPrevMonth} className="p-1 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="min-w-[120px] text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
               {monthLabel}
             </div>
-            <button onClick={goNextMonth} className="p-1.5 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
+            <button onClick={goNextMonth} className="p-1 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
-
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         {/* Body */}
         <div className="flex-1 relative flex flex-col">
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-2 mb-2">
             {weekdays.map((d) => (
-              <div key={d} className="text-xs text-gray-600 dark:text-gray-300 text-center py-1 rounded-md border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717]">
+              <div key={d} className="text-xs text-gray-600 dark:text-gray-300 text-center py-1 rounded-md border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f]">
                 {d}
               </div>
             ))}
           </div>
 
-          {/* Calendar grid */}
+          {/* Chart Container */}
           <div className="grid grid-cols-7 grid-rows-6 gap-2 flex-1">
             {monthData.map((day, idx) => {
               if (day.isEmpty) {
                 return (
-                  <div key={idx} className="h-full w-full rounded-md border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717]" />
+                  <div key={idx} className="h-full w-full rounded-md border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f]" />
                 )
               }
 
@@ -184,11 +186,27 @@ export function TradingStreakHeatmap() {
                 ? positive
                   ? 'shadow-[inset_0_0_20px_-8px_rgba(31,193,107,0.8)] text-gray-900 dark:text-white'
                   : 'shadow-[inset_0_0_20px_-8px_rgba(255,77,59,0.7)] text-gray-900 dark:text-white'
-                : 'bg-white text-gray-700 dark:bg-[#171717] dark:text-gray-300'
+                : 'bg-white text-gray-700 dark:bg-[#0f0f0f] dark:text-gray-300'
 
               return (
-                <div key={idx} className={`${baseCell} ${colorCell}`}>
+                <div 
+                  key={idx} 
+                  className={`${baseCell} ${colorCell} cursor-pointer hover:scale-105 transition-transform duration-200 relative group`}
+                >
                   <span className={`text-xs ${day.isToday ? "font-normal" : "font-medium"}`}>{day.date}</span>
+                  
+                  {/* Inline tooltip positioned relative to cell */}
+                  <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] whitespace-nowrap border border-gray-200 dark:border-gray-600">
+                    {viewDate.toLocaleDateString('en-US', { month: 'short' })} {day.date}
+                    {day.trades > 0 ? (
+                      <><br/>{day.trades} trade{day.trades > 1 ? 's' : ''}<br/>
+                      <span className={day.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                        {day.pnl >= 0 ? '+' : ''}${day.pnl.toLocaleString()}
+                      </span></>
+                    ) : (
+                      <><br/>No trades</>
+                    )}
+                  </div>
                 </div>
               )
             })}

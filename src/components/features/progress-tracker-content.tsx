@@ -546,7 +546,7 @@ export function ProgressTrackerContent() {
 
   
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#171717]">
       <div className="space-y-6">
         
         {/* Top Section */}
@@ -556,7 +556,7 @@ export function ProgressTrackerContent() {
           <div className="lg:col-span-1 space-y-4">
             
             {/* Current Streak */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg p-4">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Current streak</span>
                 <Info className="w-4 h-4 text-gray-400" />
@@ -570,7 +570,7 @@ export function ProgressTrackerContent() {
             </div>
             
             {/* Current Period Score */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg p-4">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Current period score</span>
                 <Info className="w-4 h-4 text-gray-400" />
@@ -607,7 +607,7 @@ export function ProgressTrackerContent() {
             </div>
             
             {/* Today's Progress */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg p-4">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Today's progress</span>
                 <Info className="w-4 h-4 text-gray-400" />
@@ -643,7 +643,7 @@ export function ProgressTrackerContent() {
         
         {/* Daily Check List Section */}
         {isTradingDay && progressMetrics.hasActiveRules && (
-          <div className="bg-white dark:bg-[#171717] rounded-lg">
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Check List</h2>
@@ -674,7 +674,7 @@ export function ProgressTrackerContent() {
         )}
         
         {/* Current Rules Table */}
-        <div className="bg-white dark:bg-[#171717] rounded-lg">
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Current rules</h2>
             <Button 

@@ -351,9 +351,9 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
   }, [insertContent])
 
   return (
-    <div className="flex-1 bg-white dark:bg-[#171717] flex flex-col">
+    <div className="flex-1 bg-white dark:bg-[#0f0f0f] flex flex-col">
       {/* Toolbar */}
-      <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#171717]">
+      <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]">
         <div className="flex items-center space-x-4">
           {/* Undo/Redo */}
           <Button
@@ -383,13 +383,13 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#171717] dark:text-white min-w-[100px] justify-between"
+                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[100px] justify-between"
               >
                 {fontFamily}
                 <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               {[
                 'Inter',
                 'SF Pro',
@@ -440,13 +440,13 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#171717] dark:text-white min-w-[70px] justify-between ml-2"
+                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[70px] justify-between ml-2"
               >
                 {fontSize}
                 <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               {['10px', '12px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px'].map((size) => (
                 <DropdownMenuItem
                   key={size}
@@ -630,7 +630,7 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 p-4 overflow-y-auto bg-white dark:bg-[#171717] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex-1 p-4 overflow-y-auto bg-white dark:bg-[#0f0f0f]">
         <div className="relative">
           <div
             ref={editorRef}

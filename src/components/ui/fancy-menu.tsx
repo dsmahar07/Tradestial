@@ -21,7 +21,7 @@ const MenuContent = React.forwardRef<
       className={cn(
         // surface to match Fancy Select
         "z-50 min-w-[12rem] rounded-2xl border bg-white font-sans text-[#2a2a2a] shadow-[0_8px_24px_rgba(0,0,0,0.12)]",
-        "dark:bg-[#171717] dark:text-gray-200 dark:border-[#2a2a2a]",
+        "dark:bg-[#0f0f0f] dark:text-gray-200 dark:border-[#2a2a2a]",
         // padding and animation
         "p-2 will-change-[transform,opacity]",
         // suppress outlines/rings

@@ -63,7 +63,7 @@ export function TradeStats({ trade }: TradeStatsProps) {
   return (
     <div className="flex">
       {/* Left Sidebar */}
-      <div className="w-80 bg-white dark:bg-[#171717] border-r border-gray-200 dark:border-gray-700 p-6">
+      <div className="w-80 bg-white dark:bg-[#0f0f0f] border-r border-gray-200 dark:border-gray-700 p-6">
         {/* Net P&L */}
         <div className="mb-6">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Net P&L</div>

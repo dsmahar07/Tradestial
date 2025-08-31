@@ -23,7 +23,7 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...rest}
       className={cn(
-        'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3559E9] focus:border-transparent text-sm',
+        'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3559E9] focus:border-transparent text-sm',
         className
       )}
     />
@@ -36,7 +36,7 @@ function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
     <textarea
       {...rest}
       className={cn(
-        'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3559E9] focus:border-transparent text-sm',
+        'w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#3559E9] focus:border-transparent text-sm',
         className
       )}
     />
@@ -44,7 +44,7 @@ function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 }
 
 function Button({ variant = 'primary', className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'outline' | 'danger' }) {
-  const base = 'inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-[#1C1C1C] focus:ring-[#3559E9] disabled:opacity-50 disabled:pointer-events-none'
+  const base = 'inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-[#171717] focus:ring-[#3559E9] disabled:opacity-50 disabled:pointer-events-none'
   const variants = {
     primary: 'bg-[#3559E9] text-white hover:bg-[#2947d1]',
     outline: 'border border-gray-300 dark:border-[#2a2a2a] bg-transparent hover:bg-gray-100 dark:hover:bg-[#2a2a2a]',
@@ -94,7 +94,7 @@ function AdvancedDropdownMenu({ onEdit, onDelete, onCsvUpload, onBalanceAdjust }
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg z-50">
           <div className="py-1">
             {menuItems.map((item, index) => (
               <button
@@ -118,7 +118,7 @@ function AdvancedDropdownMenu({ onEdit, onDelete, onCsvUpload, onBalanceAdjust }
 
 function StatCard({ title, value, icon: Icon }: { title: string; value: string; icon: React.ElementType }) {
   return (
-    <div className="bg-white dark:bg-[#171717] p-4 rounded-lg shadow-sm">
+    <div className="bg-white dark:bg-[#0f0f0f] p-4 rounded-lg shadow-sm">
       <div className="flex items-center">
         <div className="w-10 h-10 flex items-center justify-center mr-4">
           <Icon className="w-8 h-8" />
@@ -146,7 +146,7 @@ function TradeHistoryWidget({ trades }: { trades: Trade[] }) {
 
   if (trades.length === 0) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-6 text-center">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-6 text-center">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trade History</h3>
         <p className="text-gray-500 dark:text-gray-400 mt-2">No trades found for this account.</p>
       </div>
@@ -154,7 +154,7 @@ function TradeHistoryWidget({ trades }: { trades: Trade[] }) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm mt-6">
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm mt-6">
       <div className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trade History</h3>
       </div>
@@ -370,7 +370,7 @@ export default function AccountDetailsPage() {
 
   if (!account) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-[#1C1C1C]">
+      <div className="flex min-h-screen bg-gray-50 dark:bg-[#171717]">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader />
@@ -383,7 +383,7 @@ export default function AccountDetailsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-[#1C1C1C]">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-[#171717]">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
@@ -394,7 +394,7 @@ export default function AccountDetailsPage() {
             </div>
 
             {editingAccount ? (
-              <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-6">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-6">
                 <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Edit Account</h2>
                 <div className="space-y-4">
                   <div>
@@ -420,7 +420,7 @@ export default function AccountDetailsPage() {
               </div>
             ) : (
               <>
-                <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-6">
+                <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <h2 className="text-xl font-bold text-gray-900 dark:text-white">{account.name}</h2>
@@ -457,7 +457,7 @@ export default function AccountDetailsPage() {
             {/* CSV Upload Modal */}
             {showCsvUpload && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white dark:bg-[#171717] rounded-lg p-6 w-full max-w-lg mx-4 font-sans">
+                <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6 w-full max-w-lg mx-4 font-sans">
                   <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Upload CSV File</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                     Upload a CSV file with trade data. Expected columns: Date, Symbol, Side, Entry Price, Exit Price, Net P&L
@@ -491,7 +491,7 @@ export default function AccountDetailsPage() {
             {/* Balance Adjustment Modal */}
             {showBalanceAdjust && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white dark:bg-[#171717] rounded-lg p-6 w-full max-w-md mx-4">
+                <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6 w-full max-w-md mx-4">
                   <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Adjust Starting Balance</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                     Current starting balance: ${account?.balance.starting.toFixed(2)}

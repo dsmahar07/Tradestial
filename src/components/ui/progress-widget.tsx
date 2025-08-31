@@ -18,10 +18,10 @@ export function ProgressWidget({
   const progressPercentage = total > 0 ? (completed / total) * 100 : 0
 
   return (
-    <div className={`bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl p-6 shadow-sm ${className}`}>
-      <div className="flex items-center justify-between mb-4">
+    <div className={`bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl pt-4 px-6 pb-6 shadow-sm ${className}`}>
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
-          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
           <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
             <svg className="w-2 h-2 text-gray-500" fill="currentColor" viewBox="0 0 8 8">
               <circle cx="4" cy="4" r="2" />

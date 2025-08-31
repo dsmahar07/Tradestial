@@ -23,7 +23,7 @@ export function CalendarWidget({
   onEventClick
 }: CalendarWidgetProps) {
   return (
-    <div className={`bg-white dark:bg-[var(--color-surface-dark,#171717)] rounded-xl p-6 shadow-sm ${className}`}>
+    <div className={`bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl p-6 shadow-sm ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
         <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">

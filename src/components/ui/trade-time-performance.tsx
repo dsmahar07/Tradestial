@@ -146,15 +146,16 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
         transition={{ duration: 0.5, delay: 1.8 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Trade time performance
-              </h3>
-              <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            </div>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Trade time performance
+            </h3>
           </div>
+          
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+          
           <div className="h-[320px] flex items-center justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No time performance data</div>
@@ -218,31 +219,16 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
       transition={{ duration: 0.5, delay: 1.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Trade time performance
-            </h3>
-            <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 px-2 py-1 h-7"
-            >
-              <Settings className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 px-2 py-1 h-7"
-            >
-              <Info className="w-3 h-3" />
-            </Button>
-          </div>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Trade time performance
+          </h3>
         </div>
+        
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+        
         
         <div className="h-[320px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -322,7 +308,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                   // Safety check for trade object
                   if (!trade || typeof trade !== 'object') {
                     return (
-                      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
+                      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                         <div className="font-medium text-gray-900 dark:text-white mb-1">
                           Trade Data
                         </div>
@@ -341,7 +327,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                     : 'Unknown Date'
                   
                   return (
-                    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
+                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                       <div className="font-medium text-gray-900 dark:text-white mb-1">
                         {trade.symbol || 'Unknown Symbol'}
                       </div>
@@ -362,7 +348,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                 } catch (error) {
                   console.error('Error rendering Trade Time Performance tooltip:', error)
                   return (
-                    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
+                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                       <div className="text-gray-600 dark:text-gray-400">
                         Unable to load trade details
                       </div>

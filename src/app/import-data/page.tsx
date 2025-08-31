@@ -568,6 +568,12 @@ export default function ImportDataPage() {
   const processFile = async (file: File) => {
     console.log('🚀 Processing file with AI:', file.name, file.type, file.size)
 
+    // Re-entrancy guard: avoid duplicate processing if already in-flight
+    if (isImportingRef.current) {
+      console.warn('⚠️ Duplicate import trigger ignored (import already in progress):', file.name)
+      return
+    }
+
     // Check file type
     if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
       addToast('warning', 'Invalid file type', 'Please select a CSV file (.csv extension required).')
@@ -579,11 +585,7 @@ export default function ImportDataPage() {
       addToast('warning', 'File too large', 'Please select a file smaller than 10MB.')
       return
     }
-    // Re-entrancy guard: avoid duplicate processing if already in-flight
-    if (isImportingRef.current) {
-      console.warn('⚠️ Duplicate import trigger ignored (import already in progress):', file.name)
-      return
-    }
+
     isImportingRef.current = true
     setIsProcessing(true)
     
@@ -594,6 +596,8 @@ export default function ImportDataPage() {
         const ok = await validateTradovatePerformanceHeaders(file)
         if (!ok) {
           addToast('warning', 'Invalid Tradovate CSV', 'Only Tradovate Performance.csv with the exact columns is accepted on this form.')
+          setIsProcessing(false)
+          isImportingRef.current = false
           return
         }
       }

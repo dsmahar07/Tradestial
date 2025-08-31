@@ -45,7 +45,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico?v=4" />
         <link rel="shortcut icon" href="/favicon.ico?v=4" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-slight-radius.png?v=4" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/tradtrace-logo.png?v=4" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/tradestial-logo.png?v=4" />
         <link rel="manifest" href="/site.webmanifest" />
         <meta name="msapplication-TileColor" content="#6b21a8" />
         <meta name="theme-color" content="#6b21a8" />

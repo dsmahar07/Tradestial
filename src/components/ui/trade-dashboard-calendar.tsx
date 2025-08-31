@@ -248,7 +248,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   }
 
   return (
-    <div className={cn('bg-white dark:bg-[#171717] rounded-xl p-4 sm:p-6 h-full flex flex-col', className)}>
+    <div className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 h-full flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -261,7 +261,13 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
           <button onClick={handleNextMonth} className="p-2 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">
             <ChevronRight className="h-4 w-4" />
           </button>
-          <Button variant="outline" size="sm" onClick={handleToday}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToday}
+            className="bg-white text-gray-900 border-gray-200 hover:bg-gray-50
+                       dark:bg-[#0f0f0f] dark:text-white dark:border-[#2a2a2a] dark:hover:bg-[#171717]"
+          >
             This month
           </Button>
         </div>
@@ -291,7 +297,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               <DropdownMenu.Content
                 sideOffset={8}
                 align="end"
-                className="z-50 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] shadow-lg p-2 w-56
+                className="z-50 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] shadow-lg p-2 w-56
                 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95
                 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95
                 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2"

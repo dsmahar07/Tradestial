@@ -47,13 +47,13 @@ export const themeColors: ThemeColors = {
   // Background colors
   background: {
     light: '#f9fafb',      // Light gray background
-    dark: '#1C1C1C'        // Dark background
+    dark: '#171717'        // Dark background
   },
   
   // Surface colors (cards, panels, modals)
   surface: {
     light: '#ffffff',      // White surface
-    dark: '#171717'        // Dark surface
+    dark: '#0f0f0f'        // Dark surface
   },
   
   // Chart colors palette
@@ -110,8 +110,8 @@ export const themeCssVars = {
  * Helper function to get theme-aware background classes
  */
 export const getBackgroundClasses = () => ({
-  page: 'bg-gray-50 dark:bg-[var(--color-bg-dark,#1C1C1C)]',
-  surface: 'bg-white dark:bg-[var(--color-surface-dark,#171717)]'
+  page: 'bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)]',
+  surface: 'bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)]'
 })
 
 /**

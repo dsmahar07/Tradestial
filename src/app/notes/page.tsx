@@ -708,12 +708,12 @@ export default function NotesPage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="h-full min-h-0 flex flex-col bg-white dark:bg-[#171717] rounded-xl overflow-hidden shadow-lg"
+            className="h-full min-h-0 flex flex-col bg-white dark:bg-[#0f0f0f] rounded-xl overflow-hidden shadow-lg"
           >
             {/* Top Search Bar */}
             <NotebookTopSearch />

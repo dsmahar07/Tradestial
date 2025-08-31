@@ -27,6 +27,8 @@ import { useReviewStatus } from '@/hooks/use-review-status'
 interface TradeData {
   time: string
   value: number
+  positiveValue?: number | null
+  negativeValue?: number | null
 }
 
 interface TradeCard {
@@ -96,12 +98,12 @@ const sampleTradeCards: TradeCard[] = [
       profitFactor: 4.65
     },
     chartData: [
-      { time: '09:30', value: 0 },
-      { time: '10:00', value: -20 },
-      { time: '10:30', value: -35 },
-      { time: '11:00', value: -15 },
-      { time: '11:30', value: 30 },
-      { time: '12:00', value: 91.25 }
+      { time: '09:30', value: 0, positiveValue: 0, negativeValue: 0 },
+      { time: '10:00', value: -20, positiveValue: null, negativeValue: -20 },
+      { time: '10:30', value: -35, positiveValue: null, negativeValue: -35 },
+      { time: '11:00', value: -15, positiveValue: null, negativeValue: -15 },
+      { time: '11:30', value: 30, positiveValue: 30, negativeValue: null },
+      { time: '12:00', value: 91.25, positiveValue: 91.25, negativeValue: null }
     ],
     trades: [
       {
@@ -186,14 +188,14 @@ const sampleTradeCards: TradeCard[] = [
       profitFactor: 0.67
     },
     chartData: [
-      { time: '09:30', value: 0 },
-      { time: '10:00', value: 50 },
-      { time: '10:30', value: 25 },
-      { time: '11:00', value: -30 },
-      { time: '11:30', value: -80 },
-      { time: '12:00', value: -150 },
-      { time: '12:30', value: -200 },
-      { time: '13:00', value: -245.50 }
+      { time: '09:30', value: 0, positiveValue: 0, negativeValue: 0 },
+      { time: '10:00', value: 50, positiveValue: 50, negativeValue: null },
+      { time: '10:30', value: 25, positiveValue: 25, negativeValue: null },
+      { time: '11:00', value: -30, positiveValue: null, negativeValue: -30 },
+      { time: '11:30', value: -80, positiveValue: null, negativeValue: -80 },
+      { time: '12:00', value: -150, positiveValue: null, negativeValue: -150 },
+      { time: '12:30', value: -200, positiveValue: null, negativeValue: -200 },
+      { time: '13:00', value: -245.50, positiveValue: null, negativeValue: -245.50 }
     ],
     trades: [
       {
@@ -310,11 +312,11 @@ const sampleTradeCards: TradeCard[] = [
       profitFactor: 7.85
     },
     chartData: [
-      { time: '09:30', value: 0 },
-      { time: '10:00', value: 125 },
-      { time: '10:30', value: 280 },
-      { time: '11:00', value: 350 },
-      { time: '11:30', value: 458.75 }
+      { time: '09:30', value: 0, positiveValue: 0, negativeValue: 0 },
+      { time: '10:00', value: 125, positiveValue: 125, negativeValue: null },
+      { time: '10:30', value: 280, positiveValue: 280, negativeValue: null },
+      { time: '11:00', value: 350, positiveValue: 350, negativeValue: null },
+      { time: '11:30', value: 458.75, positiveValue: 458.75, negativeValue: null }
     ],
     trades: [
       {
@@ -389,61 +391,22 @@ const sampleTradeCards: TradeCard[] = [
 const processChartData = (data: TradeData[]) => {
   // Safety check for undefined or null data
   if (!data || !Array.isArray(data) || data.length === 0) {
-    return [{ time: '09:30', value: 0 }, { time: '16:00', value: 0 }]
+    return [
+      { time: '09:30', value: 0, positiveValue: 0, negativeValue: 0 },
+      { time: '16:00', value: 0, positiveValue: 0, negativeValue: 0 }
+    ]
   }
-  
-  const processed = []
-  
-  for (let i = 0; i < data.length; i++) {
-    const current = data[i]
-    const next = data[i + 1]
-    
-    processed.push(current)
-    
-    if (next) {
-      // Check for zero crossing
-      const currentValue = current.value || 0
-      const nextValue = next.value || 0
-      
-      const crossesZero = (currentValue > 0 && nextValue < 0) || (currentValue < 0 && nextValue > 0)
-      const involvesZero = currentValue === 0 || nextValue === 0
-      
-      if (crossesZero && !involvesZero) {
-        // Calculate zero crossing point
-        const ratio = Math.abs(currentValue) / (Math.abs(currentValue) + Math.abs(nextValue))
-        
-        // Calculate crossing time
-        let crossingTime = current.time
-        try {
-          const currentTimeParts = current.time.split(':')
-          const nextTimeParts = next.time.split(':')
-          
-          if (currentTimeParts.length >= 2 && nextTimeParts.length >= 2) {
-            const currentMinutes = parseInt(currentTimeParts[0]) * 60 + parseInt(currentTimeParts[1])
-            const nextMinutes = parseInt(nextTimeParts[0]) * 60 + parseInt(nextTimeParts[1])
-            
-            let minutesDiff = nextMinutes - currentMinutes
-            if (minutesDiff < 0) minutesDiff += 24 * 60
-            
-            const crossingMinutes = currentMinutes + (minutesDiff * ratio)
-            const crossingHour = Math.floor(crossingMinutes / 60) % 24
-            const crossingMinute = Math.floor(crossingMinutes % 60)
-            
-            crossingTime = `${crossingHour.toString().padStart(2, '0')}:${crossingMinute.toString().padStart(2, '0')}`
-          }
-        } catch (e) {
-          crossingTime = current.time
-        }
-        
-        processed.push({
-          time: crossingTime,
-          value: 0
-        })
-      }
+
+  // Map data to chart format with positive/negative split
+  return data.map(item => {
+    const value = item.value || 0
+    return {
+      time: item.time,
+      value,
+      positiveValue: value > 0 ? value : 0,
+      negativeValue: value < 0 ? Math.abs(value) : 0
     }
-  }
-  
-  return processed
+  })
 }
 
 // Column configuration mapping
@@ -580,7 +543,7 @@ export function DailyJournalContent() {
       winners: number
       losers: number
       winRate: string
-      chartData: Array<{ time: string; value: number }>
+      chartData: Array<{ time: string; value: number; positiveValue: number | null; negativeValue: number | null }>
       stats: {
         totalTrades: number
         winners: number
@@ -614,8 +577,8 @@ export function DailyJournalContent() {
         losers: losers,
         winRate: `${winRate}%`,
         chartData: [
-          { time: '09:30', value: 0 },
-          { time: '16:00', value: Math.round(totalPnL) }
+          { time: '09:30', value: 0, positiveValue: 0, negativeValue: 0 },
+          { time: '16:00', value: Math.round(totalPnL), positiveValue: totalPnL > 0 ? Math.round(totalPnL) : null, negativeValue: totalPnL < 0 ? Math.round(totalPnL) : null }
         ],
         stats: {
           totalTrades: dayTrades.length,
@@ -676,7 +639,7 @@ export function DailyJournalContent() {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#1C1C1C]">
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#171717]">
       
       <div className="flex gap-8 max-w-none">
         {/* Left side - Trading cards */}
@@ -685,7 +648,7 @@ export function DailyJournalContent() {
             const isTableExpanded = expandedTables.has(card.id)
             
             return (
-            <div key={card.id} className="bg-white dark:bg-[#171717] rounded-xl shadow-sm w-full">
+            <div key={card.id} className="bg-white dark:bg-[#0f0f0f] rounded-xl shadow-sm w-full">
               {/* Card Header */}
               <div className="px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -717,7 +680,7 @@ export function DailyJournalContent() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      className="text-gray-600 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] border-gray-300 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#2a2a2a]"
                       onClick={() => handleAddNote(card as TradeCard)}
                     >
                       <Edit3 className="w-4 h-4 mr-2" />
@@ -726,7 +689,7 @@ export function DailyJournalContent() {
                     <div className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                       <div className="w-6 h-6 relative">
                         <Image
-                          src="/new-tradtrace-logo.png"
+                          src="/new-tradestial-logo.png"
                           alt="Tradestial Logo"
                           width={24}
                           height={24}
@@ -744,9 +707,26 @@ export function DailyJournalContent() {
                   <div className="flex flex-row gap-8">
                     {/* Chart */}
                     <div className="flex-shrink-0">
-                      <div className="w-full sm:w-[380px] h-[150px]">
+                      <div className="w-full sm:w-[380px] h-[150px] [--grid:#e5e7eb] dark:[--grid:#262626]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={processChartData(card.chartData)} margin={{ top: 5, right: 5, left: 40, bottom: 5 }}>
+                          <AreaChart
+                            data={processChartData(card.chartData)}
+                            margin={{ top: 20, right: 5, left: -10, bottom: 20 }}
+                          >
+                            {/* Disable default grid entirely */}
+                            <CartesianGrid stroke="none" vertical={false} horizontal={false} />
+                            
+                            <defs>
+                              <linearGradient id="positiveGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4}/>
+                                <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
+                              </linearGradient>
+                              <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.05}/>
+                                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
+                              </linearGradient>
+                            </defs>
+                            
                             <XAxis 
                               dataKey="time" 
                               axisLine={false}
@@ -756,90 +736,147 @@ export function DailyJournalContent() {
                             <YAxis 
                               axisLine={false}
                               tickLine={false}
-                              tick={{ fill: '#6b7280', fontSize: 12 }}
-                              tickFormatter={(value) => `$${value}`}
-                              domain={[0, 'dataMax + 10']}
-                              width={35}
+                              tick={{ 
+                                fontSize: 11, 
+                                fill: '#9ca3af'
+                              }}
+                              className="dark:fill-gray-400"
+                              tickFormatter={(value) => {
+                                if (value === 0) return '$0';
+                                const absValue = Math.abs(value);
+                                if (absValue >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+                                if (absValue >= 1_000) return `$${(value / 1_000).toFixed(1)}k`;
+                                return `$${Math.round(value).toLocaleString()}`;
+                              }}
+                              domain={(() => {
+                                const processedData = processChartData(card.chartData);
+                                const values = processedData?.map(d => d.value).filter(v => typeof v === 'number' && isFinite(v)) || [];
+                                if (values.length === 0) return [0, 100];
+                                const min = Math.min(...values);
+                                const max = Math.max(...values);
+                                if (min === max) {
+                                  const pad = Math.max(1, Math.abs(min) * 0.1);
+                                  return [min - 2 * pad, min + 2 * pad];
+                                }
+                                const range = max - min;
+                                const rawStep = range / 6;
+                                const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))));
+                                const niceStep = Math.ceil(rawStep / magnitude) * magnitude;
+                                const niceMin = Math.floor(min / niceStep) * niceStep;
+                                const niceMax = Math.ceil(max / niceStep) * niceStep;
+                                return [niceMin, niceMax];
+                              })()}
+                              width={45}
                             />
-                            <CartesianGrid 
-                              strokeDasharray="3 3" 
-                              stroke="#e5e7eb" 
-                              horizontal={true}
-                              vertical={false}
-                            />
-                            <Tooltip 
+                            
+                            {/* Draw horizontal grid lines explicitly */}
+                            {(() => {
+                              const processedData = processChartData(card.chartData);
+                              const values = processedData?.map(d => d.value).filter(v => typeof v === 'number' && isFinite(v)) || [];
+                              if (values.length === 0) return [];
+                              const min = Math.min(...values);
+                              const max = Math.max(...values);
+                              if (min === max) return [min];
+                              const range = max - min;
+                              const rawStep = range / 6;
+                              const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))));
+                              const niceStep = Math.ceil(rawStep / magnitude) * magnitude;
+                              const niceMin = Math.floor(min / niceStep) * niceStep;
+                              const niceMax = Math.ceil(max / niceStep) * niceStep;
+                              const ticks: number[] = [];
+                              for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
+                                const roundedTick = Math.round(Number(v.toFixed(10)));
+                                if (!ticks.includes(roundedTick)) {
+                                  ticks.push(roundedTick);
+                                }
+                              }
+                              return ticks;
+                            })().map((t) => (
+                              <ReferenceLine
+                                key={`grid-${t}`}
+                                y={t}
+                                stroke="var(--grid)"
+                                strokeDasharray="3 3"
+                                strokeWidth={1}
+                                ifOverflow="visible"
+                              />
+                            ))}
+                            
+                            <Tooltip
                               content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
-                                  const data = payload[0].payload;
+                                  const value = payload[0].value || payload[0].payload?.value;
+                                  if (value === undefined || value === null) {
+                                    return (
+                                      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                                        <div className="font-semibold text-gray-500">No data</div>
+                                      </div>
+                                    );
+                                  }
+                                  const formatCurrency = (val: number) => {
+                                    if (!isFinite(val) || isNaN(val)) return '$0';
+                                    const absValue = Math.abs(val);
+                                    if (absValue >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+                                    if (absValue >= 1_000) return `$${(val / 1_000).toFixed(1)}k`;
+                                    return `$${Math.round(val).toLocaleString()}`;
+                                  };
                                   return (
-                                    <div className="bg-background border rounded-lg p-2">
-                                      <p className="text-xs font-medium">{data.time}</p>
-                                      <p 
-                                        className="text-xs font-medium"
-                                        style={{
-                                          color: data.value >= 0 ? "#10b981" : "#ef4444"
-                                        }}
-                                      >
-                                        ${data.value}
-                                      </p>
+                                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                                      <div className={`font-semibold ${value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        {formatCurrency(value)}
+                                      </div>
                                     </div>
                                   );
                                 }
                                 return null;
                               }}
+                              cursor={false}
                             />
-                            <defs>
-                              <linearGradient id={`greenGradient-${card.id}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="rgba(34, 197, 94, 0.8)" />
-                                <stop offset="100%" stopColor="rgba(34, 197, 94, 0.3)" />
-                              </linearGradient>
-                              <linearGradient id={`redGradient-${card.id}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="rgba(239, 68, 68, 0.8)" />
-                                <stop offset="100%" stopColor="rgba(239, 68, 68, 0.3)" />
-                              </linearGradient>
-                            </defs>
                             
-                            {/* Green area for positive parts - only above zero */}
                             <Area
-                              type="monotone"
-                              dataKey={(data) => data.value > 0 ? data.value : 0}
+                              type="linear"
+                              dataKey="positiveValue"
                               stroke="none"
-                              fill={`url(#greenGradient-${card.id})`}
-                              fillOpacity={0.7}
-                              isAnimationActive={false}
+                              fill="url(#positiveGradient)"
+                              fillOpacity={1}
+                              connectNulls={false}
+                              isAnimationActive={true}
+                              animationDuration={800}
+                              animationEasing="ease-in-out"
                               baseValue={0}
-                              connectNulls={true}
                             />
-                            
-                            {/* Red area for negative parts - only below zero */}
                             <Area
-                              type="monotone"
-                              dataKey={(data) => data.value < 0 ? data.value : 0}
+                              type="linear"
+                              dataKey="negativeValue"
                               stroke="none"
-                              fill={`url(#redGradient-${card.id})`}
-                              fillOpacity={0.7}
-                              isAnimationActive={false}
+                              fill="url(#negativeGradient)"
+                              fillOpacity={1}
+                              connectNulls={false}
+                              isAnimationActive={true}
+                              animationDuration={800}
+                              animationEasing="ease-in-out"
                               baseValue={0}
-                              connectNulls={true}
                             />
                             
-                            {/* Main stroke line */}
+                            {/* Main line stroke - enhanced styling */}
                             <Area
-                              type="monotone"
+                              type="linear"
                               dataKey="value"
-                              stroke="#3559E9"
-                              strokeWidth={2}
-                              fill="transparent"
-                              isAnimationActive={false}
+                              stroke="#5B2CC9"
+                              strokeWidth={1.5}
+                              fill="none"
+                              connectNulls={true}
+                              isAnimationActive={true}
+                              animationDuration={1200}
+                              animationEasing="ease-out"
                               dot={false}
-                            />
-                            
-                            {/* Reference line at zero */}
-                            <ReferenceLine
-                              y={0}
-                              stroke="#94a3b8"
-                              strokeDasharray="2 2"
-                              strokeWidth={1}
+                              activeDot={{
+                                r: 5,
+                                fill: "#5B2CC9",
+                                stroke: "#fff",
+                                strokeWidth: 3,
+                                filter: "drop-shadow(0 2px 4px rgba(91, 44, 201, 0.3))"
+                              }}
                             />
                           </AreaChart>
                         </ResponsiveContainer>
@@ -850,7 +887,7 @@ export function DailyJournalContent() {
                     <div className="flex-1">
                       <div className="space-y-6">
                         {/* First Row */}
-                        <div className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-gray-700">
+                        <div className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-[#2a2a2a]">
                           <div className="pr-4">
                             <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total trades</div>
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -878,7 +915,7 @@ export function DailyJournalContent() {
                         </div>
                         
                         {/* Second Row */}
-                        <div className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-gray-700">
+                        <div className="grid grid-cols-4 divide-x divide-gray-200 dark:divide-[#2a2a2a]">
                           <div className="pr-4">
                             <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Winrate</div>
                             <div className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -912,10 +949,10 @@ export function DailyJournalContent() {
               {/* Trades Table - Same as Trades Page */}
               {isTableExpanded && (
                 <div className="px-6 pb-6">
-                  <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
+                  <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full table-auto" style={{ minWidth: '1200px' }}>
-                        <thead className="bg-white dark:bg-[#171717] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
+                        <thead className="bg-white dark:bg-[#0f0f0f] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
                           <tr>
                             <th className="w-12 px-4 py-3 text-center">
                               <div className="flex justify-center">
@@ -1015,7 +1052,7 @@ export function DailyJournalContent() {
                             <th className="w-12 px-4 py-3 text-center"></th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white dark:bg-[#171717] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
+                        <tbody className="bg-white dark:bg-[#0f0f0f] divide-y divide-gray-100 dark:divide-[#2a2a2a]">
                           {(card as any).trades.map((trade: any) => (
                             <tr 
                               key={trade.id} 
@@ -1113,16 +1150,57 @@ export function DailyJournalContent() {
                               )}
                               {visibleColumns['scale'] && (
                                 <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[100px]">
-                                  {trade.zellaScale !== undefined ? (
+                                  {trade.zellaScale !== undefined && trade.zellaScale !== null ? (
                                     <div className="flex justify-center">
-                                      {[...Array(5)].map((_, i) => (
-                                        <span key={i} className={`text-sm ${
-                                          i < trade.zellaScale! ? 'text-blue-400' : 'text-gray-300'
-                                        }`}>●</span>
-                                      ))}
+                                      <div className="relative h-2 w-16 bg-gray-200 dark:bg-neutral-800 rounded-full">
+                                        <div 
+                                          className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
+                                          style={{ width: `${Math.max(0, Math.min(100, (trade.zellaScale / 5) * 100))}%` }}
+                                        ></div>
+                                        <span
+                                          className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                                          style={{ 
+                                            left: `${Math.max(1, Math.min(99, (trade.zellaScale / 5) * 100))}%`,
+                                            borderColor: '#693EE0'
+                                          }}
+                                        />
+                                      </div>
                                     </div>
                                   ) : (
-                                    <span className="text-gray-400">--</span>
+                                    <div className="flex justify-center">
+                                      <div className="relative h-2 w-16 bg-gray-200 dark:bg-neutral-800 rounded-full">
+                                        <div 
+                                          className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
+                                          style={{ width: `${(() => {
+                                            // Calculate dynamic scale based on trade performance
+                                            const netRoi = trade.netRoi || 0
+                                            
+                                            // Base scale on ROI performance
+                                            if (netRoi >= 0.15) return 100 // Excellent (5/5)
+                                            if (netRoi >= 0.10) return 80  // Very Good (4/5)
+                                            if (netRoi >= 0.05) return 60  // Good (3/5)
+                                            if (netRoi >= 0) return 40     // Fair (2/5)
+                                            if (netRoi >= -0.05) return 20 // Poor (1/5)
+                                            return 10                      // Very Poor (0.5/5)
+                                          })()}%` }}
+                                        ></div>
+                                        <span
+                                          className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                                          style={{ 
+                                            left: `${(() => {
+                                              const netRoi = trade.netRoi || 0
+                                              if (netRoi >= 0.15) return 100
+                                              if (netRoi >= 0.10) return 80
+                                              if (netRoi >= 0.05) return 60
+                                              if (netRoi >= 0) return 40
+                                              if (netRoi >= -0.05) return 20
+                                              return 10
+                                            })()}%`,
+                                            borderColor: '#693EE0'
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
                                   )}
                                 </td>
                               )}
@@ -1167,7 +1245,7 @@ export function DailyJournalContent() {
                                       </button>
                                     </DropdownMenu.Trigger>
                                     <DropdownMenu.Portal>
-                                      <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                                      <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                                         <DropdownMenu.Item 
                                           className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100"
                                           onClick={() => router.push(`/trades/tracker/${trade.id}`)}

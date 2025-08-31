@@ -45,7 +45,7 @@ export function TradeChartWidget({
   className = "" 
 }: TradeChartWidgetProps) {
   return (
-    <div className={`bg-white dark:bg-[#171717] rounded-xl shadow-sm w-full max-w-[1059px] ${className}`}>
+    <div className={`bg-white dark:bg-[#0f0f0f] rounded-xl shadow-sm w-full max-w-[1059px] ${className}`}>
       {/* Card Header */}
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">

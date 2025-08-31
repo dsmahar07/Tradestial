@@ -119,7 +119,7 @@ export function TradeNoteEditor({ tradeId, symbol }: TradeNoteEditorProps) {
         contentEditable
         onInput={handleEditorChange}
         className={cn(
-          'flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717] p-4',
+          'flex-1 min-h-0 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f0f0f] p-4',
           'text-gray-900 dark:text-gray-100',
           'prose prose-sm dark:prose-invert max-w-none focus:outline-none',
           'prose-a:text-blue-600 dark:prose-a:text-blue-400'

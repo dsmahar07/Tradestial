@@ -1,14 +1,6 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { Button } from './button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
@@ -107,7 +99,7 @@ const generateReportData = (trades: Trade[], period: TimePeriod): ReportDataPoin
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
         <div className="text-gray-600 dark:text-gray-300 font-medium mb-1">{label}</div>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2">
@@ -128,7 +120,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export const ReportChart = React.memo(function ReportChart() {
   const [trades, setTrades] = useState<Trade[]>([])
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('Day')
+  const selectedPeriod: TimePeriod = 'Day'
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -144,8 +136,8 @@ export const ReportChart = React.memo(function ReportChart() {
 
   if (!trades.length) {
     return (
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report</h3>
             <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-[#2a2a2a] flex items-center justify-center">
@@ -153,6 +145,10 @@ export const ReportChart = React.memo(function ReportChart() {
             </div>
           </div>
         </div>
+        
+        {/* Header Divider */}
+        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+        
         <div className="h-[300px] flex items-center justify-center">
           <div className="text-gray-500 dark:text-gray-400 text-center">
             <div>No report data available</div>
@@ -164,52 +160,19 @@ export const ReportChart = React.memo(function ReportChart() {
   }
 
   return (
-    <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white" style={{ height: '385px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report</h3>
           <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-[#2a2a2a] flex items-center justify-center">
             <span className="text-xs text-gray-500 dark:text-gray-400">?</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
-              >
-                <span>{selectedPeriod}</span>
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
-            >
-              <DropdownMenuItem 
-                className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
-                onClick={() => setSelectedPeriod('Day')}
-              >
-                Day
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
-                onClick={() => setSelectedPeriod('Week')}
-              >
-                Week
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer"
-                onClick={() => setSelectedPeriod('Month')}
-              >
-                Month
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </div>
+      
+      {/* Header Divider */}
+      <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
       
       {/* Chart */}
       <div className="h-[300px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>

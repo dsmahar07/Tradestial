@@ -77,7 +77,7 @@ export const MetricsOverTimeChart = React.memo(function MetricsOverTimeChart() {
       transition={{ duration: 0.5, delay: 0.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Metrics Over Time</h3>
           <DropdownMenu>
@@ -85,7 +85,7 @@ export const MetricsOverTimeChart = React.memo(function MetricsOverTimeChart() {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
               >
                 <span>Last 12 days</span>
                 <ChevronDown className="ml-2 h-4 w-4" />
@@ -93,15 +93,15 @@ export const MetricsOverTimeChart = React.memo(function MetricsOverTimeChart() {
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="end" 
-              className="bg-white dark:bg-[#171717] border-gray-200 dark:border-gray-600 shadow-lg min-w-[120px]"
+              className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-gray-600 shadow-lg min-w-[120px]"
             >
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer">
                 Last 7 days
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer">
                 Last 12 days
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f] cursor-pointer">
+              <DropdownMenuItem className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer">
                 Last 30 days
               </DropdownMenuItem>
             </DropdownMenuContent>

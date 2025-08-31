@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@
 // Local controls (minimal, no shadcn)
 
 function Button({ variant = 'primary', className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'outline' | 'danger' }) {
-  const base = 'inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-[#1C1C1C] focus:ring-[#3559E9] disabled:opacity-50 disabled:pointer-events-none'
+  const base = 'inline-flex items-center justify-center h-9 px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-[#171717] focus:ring-[#3559E9] disabled:opacity-50 disabled:pointer-events-none'
   const variants = {
     primary: 'bg-[#3559E9] text-white hover:bg-[#2947d1]',
     outline: 'border border-gray-300 dark:border-[#2a2a2a] bg-transparent hover:bg-gray-100 dark:hover:bg-[#2a2a2a]',
@@ -31,7 +31,7 @@ function Button({ variant = 'primary', className, ...rest }: React.ButtonHTMLAtt
 
 function StatCard({ title, value, icon: Icon }: { title: string; value: string; icon: React.ElementType }) {
   return (
-    <div className="bg-white dark:bg-[#171717] p-4 rounded-lg shadow-sm">
+    <div className="bg-white dark:bg-[#0f0f0f] p-4 rounded-lg shadow-sm">
       <div className="flex items-center">
         <div className="w-10 h-10 flex items-center justify-center mr-4">
           <Icon className="w-8 h-8" />
@@ -204,14 +204,14 @@ function TradeLogModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm rounded-md bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm rounded-md bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm rounded-md bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm rounded-md bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
@@ -245,7 +245,7 @@ export default function AccountManagementPage() {
   const totalStats = useMemo(() => accountService.getCombinedStats(), [accounts]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-[#1C1C1C] font-inter">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-[#171717] font-inter">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
@@ -288,7 +288,7 @@ export default function AccountManagementPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {accounts.map(acc => (
                   <Link key={acc.id} href={`/account/${acc.id}`}>
-                    <div className="bg-white dark:bg-[#171717] rounded-lg shadow-sm p-5 flex flex-col h-full hover:ring-2 hover:ring-[#3559E9] transition-all font-inter">
+                    <div className="bg-white dark:bg-[#0f0f0f] rounded-lg shadow-sm p-5 flex flex-col h-full hover:ring-2 hover:ring-[#3559E9] transition-all font-inter">
                       <div className="flex items-center mb-4">
                         {acc.brokerLogo && acc.brokerLogo.startsWith('/') ? (
                           <Image src={acc.brokerLogo} alt={acc.broker} width={40} height={40} className="mr-4 rounded-full" />

@@ -182,7 +182,7 @@ export default function CalendarPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -192,7 +192,7 @@ export default function CalendarPage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="w-full space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -256,7 +256,7 @@ export default function CalendarPage() {
 
             {/* Year Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-[#171717] rounded-xl p-5 shadow-sm">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-5 shadow-sm">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Total P&L</div>
                 <div className={cn(
                   "text-xl font-bold",
@@ -269,7 +269,7 @@ export default function CalendarPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-[#171717] rounded-xl p-5 shadow-sm">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-5 shadow-sm">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Trading Days</div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                   {yearSummary.tradingDays}
@@ -279,7 +279,7 @@ export default function CalendarPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-[#171717] rounded-xl p-5 shadow-sm">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-5 shadow-sm">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Win Rate</div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                   {yearSummary.winRate.toFixed(1)}%
@@ -289,7 +289,7 @@ export default function CalendarPage() {
                 </div>
               </div>
               
-              <div className="bg-white dark:bg-[#171717] rounded-xl p-5 shadow-sm">
+              <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-5 shadow-sm">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Avg Daily P&L</div>
                 <div className={cn(
                   "text-xl font-bold",
@@ -310,7 +310,7 @@ export default function CalendarPage() {
                 const monthSummary = getMonthSummary(selectedYear, monthIndex)
                 
                 return (
-                  <div key={monthIndex} className="bg-white dark:bg-[#171717] rounded-lg p-3 shadow-sm">
+                  <div key={monthIndex} className="bg-white dark:bg-[#0f0f0f] rounded-lg p-3 shadow-sm">
                     {/* Month Header */}
                     <div className="mb-2">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-white text-center">
@@ -333,7 +333,7 @@ export default function CalendarPage() {
                         <div
                           key={index}
                           className={cn(
-                            "aspect-square flex items-center justify-center text-xs font-medium rounded relative group cursor-pointer transition-all duration-150 bg-white dark:bg-[#171717]",
+                            "aspect-square flex items-center justify-center text-xs font-medium rounded relative group cursor-pointer transition-all duration-150 bg-white dark:bg-[#0f0f0f]",
                             dayData
                               ? `${getBorderColor(dayData.pnl, dayData.hasData)} ${getTextColor(dayData.pnl, dayData.hasData)} hover:opacity-80`
                               : "border border-gray-100 dark:border-[#2a2a2a]"
@@ -380,38 +380,38 @@ export default function CalendarPage() {
             </div>
 
             {/* Legend */}
-            <div className="bg-white dark:bg-[#171717] rounded-xl p-5 shadow-sm">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Performance Legend</h3>
               <div className="space-y-3">
                 <div>
                   <span className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">Daily P&L Border Colors</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-rose-500"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-rose-500"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">${PNL_THRESHOLDS.highLoss}+</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-rose-400"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-rose-400"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">${PNL_THRESHOLDS.mediumLoss}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-rose-200"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-rose-200"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">${PNL_THRESHOLDS.lowLoss}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-gray-300 dark:border-[#2a2a2a]"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-gray-300 dark:border-[#2a2a2a]"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">${PNL_THRESHOLDS.breakeven}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-emerald-200"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-emerald-200"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">+${PNL_THRESHOLDS.lowProfit}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-emerald-400"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-emerald-400"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">+${PNL_THRESHOLDS.mediumProfit}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-emerald-500"></div>
+                      <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-emerald-500"></div>
                       <span className="text-xs text-gray-600 dark:text-gray-400">+${PNL_THRESHOLDS.highProfit}+</span>
                     </div>
                   </div>
@@ -422,7 +422,7 @@ export default function CalendarPage() {
                     <span className="text-xs text-gray-600 dark:text-gray-400">Trading activity</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-white dark:bg-[#171717] rounded border border-gray-200 dark:border-[#2a2a2a]"></div>
+                    <div className="w-3 h-3 bg-white dark:bg-[#0f0f0f] rounded border border-gray-200 dark:border-[#2a2a2a]"></div>
                     <span className="text-xs text-gray-600 dark:text-gray-400">No trades</span>
                   </div>
                 </div>

@@ -9,7 +9,7 @@ export function NotebookTopSearch() {
   const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <div className="px-6 py-4 border-b border-gray-200 dark:border-[#404040] bg-white dark:bg-[#171717] flex-shrink-0 rounded-t-xl">
+    <div className="px-6 py-4 border-b border-gray-200 dark:border-[#404040] bg-white dark:bg-[#0f0f0f] flex-shrink-0 rounded-t-xl">
       <div className="flex items-center justify-between">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-[#888888]" />
@@ -18,7 +18,7 @@ export function NotebookTopSearch() {
             placeholder="Search notes"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-12 py-2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#404040] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-12 py-2 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <Button 
             variant="ghost" 
@@ -33,7 +33,7 @@ export function NotebookTopSearch() {
         <div className="flex items-center">
           <div className="w-10 h-10 relative">
             <Image
-              src="/new-tradtrace-logo.png"
+              src="/new-tradestial-logo.png"
               alt="Tradestial Logo"
               width={40}
               height={40}

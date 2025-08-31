@@ -30,7 +30,7 @@ export function PerformanceTabs({
   }
 
   return (
-    <div className={cn("flex items-center justify-between bg-white dark:bg-[#171717] rounded-lg", className)}>
+    <div className={cn("flex items-center justify-between bg-white dark:bg-[#0f0f0f] rounded-lg", className)}>
       <nav className="flex space-x-1 px-4" aria-label="Performance Navigation">
         {tabs.map((tab) => {
           const isActive = currentTab === tab.id

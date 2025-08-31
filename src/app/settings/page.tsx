@@ -69,13 +69,13 @@ export default function SettingsPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <div className="flex-1 bg-gray-50 dark:bg-[#1C1C1C] p-6 overflow-y-auto">
+        <div className="flex-1 bg-gray-50 dark:bg-[#171717] p-6 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             <Tabs.Root defaultValue="profile" className="w-full">
               <div className="flex gap-8">
                 {/* Sidebar Navigation */}
                 <div className="w-72 flex-shrink-0">
-                  <div className="bg-white dark:bg-[#171717] rounded-xl shadow-sm p-3">
+                  <div className="bg-white dark:bg-[#0f0f0f] rounded-xl shadow-sm p-3">
                     <Tabs.List className="flex flex-col gap-1 w-full">
                       <Tabs.Trigger
                         value="profile"
@@ -140,7 +140,7 @@ export default function SettingsPage() {
 
                 {/* Main Content */}
                 <div className="flex-1">
-                  <div className="bg-white dark:bg-[#171717] rounded-xl shadow-sm">
+                  <div className="bg-white dark:bg-[#0f0f0f] rounded-xl shadow-sm">
                     
                     {/* Profile Tab */}
                     <Tabs.Content value="profile" className="p-8">
@@ -179,7 +179,7 @@ export default function SettingsPage() {
                             <input
                               type="text"
                               defaultValue="Alex Chen"
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
                             />
                           </div>
                           <div>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                             <input
                               type="email"
                               defaultValue="alex@tradestial.com"
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
                             />
                           </div>
                           <div>
@@ -197,12 +197,12 @@ export default function SettingsPage() {
                               Trading Experience
                             </label>
                             <Select.Root defaultValue="intermediate">
-                              <Select.Trigger className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white flex items-center justify-between focus:outline-none focus:ring-0">
+                              <Select.Trigger className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white flex items-center justify-between focus:outline-none focus:ring-0">
                                 <Select.Value />
                                 <Select.Icon />
                               </Select.Trigger>
                               <Select.Portal>
-                                <Select.Content className="bg-white dark:bg-[#171717] border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-1 z-50">
+                                <Select.Content className="bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-1 z-50">
                                   <Select.Viewport>
                                     <Select.Item value="beginner" className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-900 dark:text-white">
                                       <Select.ItemText>Beginner (0-1 years)</Select.ItemText>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <div>
                               <h3 className="font-medium text-gray-900 dark:text-white">Email Notifications</h3>
                               <p className="text-sm text-gray-600 dark:text-gray-400">Receive notifications via email</p>
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                             </Switch.Root>
                           </div>
 
-                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <div>
                               <h3 className="font-medium text-gray-900 dark:text-white">Push Notifications</h3>
                               <p className="text-sm text-gray-600 dark:text-gray-400">Receive push notifications in your browser</p>
@@ -271,7 +271,7 @@ export default function SettingsPage() {
                             </Switch.Root>
                           </div>
 
-                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <div>
                               <h3 className="font-medium text-gray-900 dark:text-white">Trade Alerts</h3>
                               <p className="text-sm text-gray-600 dark:text-gray-400">Get notified when trades are executed or closed</p>
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                             </Switch.Root>
                           </div>
 
-                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="flex items-center justify-between p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <div>
                               <h3 className="font-medium text-gray-900 dark:text-white">Performance Reports</h3>
                               <p className="text-sm text-gray-600 dark:text-gray-400">Receive weekly and monthly performance summaries</p>
@@ -313,7 +313,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="p-6 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-6 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <div className="flex items-center justify-between mb-4">
                               <div>
                                 <h3 className="font-semibold text-gray-900 dark:text-white">Tradestial Pro</h3>
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                             </div>
                           </div>
 
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Billing Information</h3>
                             <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                               <p><span className="font-medium">Next billing date:</span> March 15, 2024</p>
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <div className="flex items-center justify-between mb-3">
                               <h3 className="font-medium text-gray-900 dark:text-white">Two-Factor Authentication</h3>
                               <Switch.Root
@@ -408,7 +408,7 @@ export default function SettingsPage() {
                             )}
                           </div>
 
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Change Password</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               Last changed 3 months ago
@@ -416,7 +416,7 @@ export default function SettingsPage() {
                             <Button variant="outline" size="sm">Update Password</Button>
                           </div>
 
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Active Sessions</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               Manage devices that are currently logged into your account
@@ -438,7 +438,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Theme</h3>
                             <div className="flex gap-3">
                               <button
@@ -482,7 +482,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Data Export</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               Download a copy of your trading data and account information
@@ -490,7 +490,7 @@ export default function SettingsPage() {
                             <Button variant="outline" size="sm">Export Data</Button>
                           </div>
 
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Data Retention</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               Your trading data is stored securely and retained according to our privacy policy
@@ -522,7 +522,7 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Documentation</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               Learn how to use Tradestial with our comprehensive guides
@@ -530,7 +530,7 @@ export default function SettingsPage() {
                             <Button variant="outline" size="sm">View Docs</Button>
                           </div>
 
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Contact Support</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                               Need help? Our support team is here to assist you
@@ -538,7 +538,7 @@ export default function SettingsPage() {
                             <Button variant="outline" size="sm">Contact Us</Button>
                           </div>
 
-                          <div className="p-4 bg-white dark:bg-[#171717] rounded-lg">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">System Information</h3>
                             <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                               <p>Version: 1.5.69</p>

@@ -31,7 +31,7 @@ export function RadixSelect({
     <Select.Root value={value} onValueChange={onValueChange} disabled={disabled}>
       <Select.Trigger
         className={cn(
-          "flex h-11 w-full items-center justify-between rounded-lg bg-white dark:bg-[#171717] px-4 py-3 text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-11 w-full items-center justify-between rounded-lg bg-white dark:bg-[#0f0f0f] px-4 py-3 text-sm text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
       >
@@ -43,7 +43,7 @@ export function RadixSelect({
 
       <Select.Portal>
         <Select.Content
-          className="relative z-50 min-w-[8rem] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717] shadow-lg"
+          className="relative z-50 min-w-[8rem] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f0f0f] shadow-lg"
           position="popper"
           sideOffset={4}
         >

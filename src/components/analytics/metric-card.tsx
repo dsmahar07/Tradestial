@@ -142,7 +142,7 @@ interface MetricGridProps {
 
 export function MetricGrid({ metrics, columns = 4, className, zellaScale }: MetricGridProps) {
   return (
-    <Card className={cn("border-0 shadow-none bg-white dark:bg-[#171717]", className)}>
+    <Card className={cn("border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
       <CardContent className="p-6">
         <div className={cn(
           zellaScale ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : "",

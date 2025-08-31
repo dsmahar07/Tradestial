@@ -55,7 +55,7 @@ export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = f
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] rounded-lg border border-gray-200 dark:border-[#2a2a2a] w-full max-w-md p-6 z-50 font-sans">
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] w-full max-w-md p-6 z-50 font-sans">
           
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -77,14 +77,14 @@ export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = f
                 Date Format
               </label>
               <Select.Root value={dateFormat} onValueChange={setDateFormat}>
-                <Select.Trigger className="w-full h-10 px-3 py-2 text-sm bg-white dark:bg-[#171717] border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between">
+                <Select.Trigger className="w-full h-10 px-3 py-2 text-sm bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between">
                   <Select.Value>{dateFormat}</Select.Value>
                   <Select.Icon>
                     <ChevronDown size={16} className="text-gray-500" />
                   </Select.Icon>
                 </Select.Trigger>
                 <Select.Portal>
-                  <Select.Content className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[100] min-w-[200px]">
+                  <Select.Content className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[100] min-w-[200px]">
                     <Select.Viewport className="p-1">
                       {dateFormats.map((format) => (
                         <Select.Item
@@ -113,7 +113,7 @@ export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = f
                 }
               </p>
               <Select.Root value={String(timezoneOffset)} onValueChange={(value) => setTimezoneOffset(parseInt(value))}>
-                <Select.Trigger className="w-full h-10 px-3 py-2 text-sm bg-white dark:bg-[#171717] border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between">
+                <Select.Trigger className="w-full h-10 px-3 py-2 text-sm bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between">
                   <Select.Value>
                     {selectedTimezone ? selectedTimezone.label : 'Select timezone'}
                   </Select.Value>
@@ -122,7 +122,7 @@ export function ImportSettingsModal({ open, onClose, onConfirm, isProcessing = f
                   </Select.Icon>
                 </Select.Trigger>
                 <Select.Portal>
-                  <Select.Content className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[100] min-w-[250px] max-h-[300px] overflow-auto">
+                  <Select.Content className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[100] min-w-[250px] max-h-[300px] overflow-auto">
                     <Select.Viewport className="p-1">
                       {Object.entries(TIMEZONE_REGIONS).map(([regionName, timezones]) => (
                         <Select.Group key={regionName}>

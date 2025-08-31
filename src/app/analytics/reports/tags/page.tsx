@@ -233,7 +233,7 @@ export default function TagsPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="bg-white dark:bg-[#171717]">
+        <div className="bg-white dark:bg-[#0f0f0f]">
           <AnalyticsTabNavigation 
             tabs={analyticsNavigationConfig.map(tab => ({
               ...tab,
@@ -243,7 +243,7 @@ export default function TagsPage() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="w-full space-y-6">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -253,7 +253,7 @@ export default function TagsPage() {
                 <div className="relative" ref={topMenuRef}>
                   <button
                     onClick={() => setTopMenuOpen(o => !o)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[120px] justify-between"
                     aria-label="Select Top N"
                     aria-expanded={topMenuOpen}
                     aria-haspopup="true"
@@ -262,7 +262,7 @@ export default function TagsPage() {
                     <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", topMenuOpen && "rotate-180")} />
                   </button>
                   {topMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
+                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[140px] overflow-hidden z-50">
                       {[5, 10, 20, 50].map((n) => (
                         <button
                           key={n}
@@ -281,7 +281,7 @@ export default function TagsPage() {
                 <div className="relative" ref={metricMenuRef}>
                   <button
                     onClick={() => setMetricMenuOpen(o => !o)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#171717] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm border rounded-md transition-all duration-200 min-w-[140px] justify-between"
                     aria-label="Select P&L metric"
                     aria-expanded={metricMenuOpen}
                     aria-haspopup="true"
@@ -290,7 +290,7 @@ export default function TagsPage() {
                     <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", metricMenuOpen && "rotate-180")} />
                   </button>
                   {metricMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
+                    <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg min-w-[160px] overflow-hidden z-50">
                       <button 
                         onClick={() => { setPnlMetric('NET P&L'); setMetricMenuOpen(false) }} 
                         className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150"
@@ -344,7 +344,7 @@ export default function TagsPage() {
             </div>
 
             {/* Summary Table */}
-            <div className="bg-white dark:bg-[#171717] rounded-lg">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">
               <div className="p-6 border-b border-gray-200 dark:border-[#2a2a2a]">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Summary</h2>
               </div>

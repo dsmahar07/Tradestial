@@ -71,7 +71,7 @@ export function DashboardContent() {
 
 
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
       <div className="space-y-6">
         {/* Journal Button with Dropdown - Top Right of Content */}
         <div className="flex justify-end mb-4">

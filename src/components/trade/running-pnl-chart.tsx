@@ -84,7 +84,7 @@ export function RunningPnlChart({ trade }: RunningPnlChartProps) {
   const negGradId = `run-neg-${uid}`
 
   return (
-    <div className="p-6 bg-white dark:bg-[#171717] h-full">
+    <div className="p-6 bg-white dark:bg-[#0f0f0f] h-full">
       <div className="mb-4">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center">Running P&L</h3>
       </div>
@@ -152,7 +152,7 @@ export function RunningPnlChart({ trade }: RunningPnlChartProps) {
                   const value = p?.value ?? p?.payload?.value
                   if (value === undefined || value === null) {
                     return (
-                      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
                         <div className="font-semibold text-gray-500">No data</div>
                       </div>
                     )
@@ -160,7 +160,7 @@ export function RunningPnlChart({ trade }: RunningPnlChartProps) {
                   const vNum = Number(value)
                   const formatted = vNum >= 0 ? `$${vNum.toLocaleString()}` : `-$${Math.abs(vNum).toLocaleString()}`
                   return (
-                    <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
                       <div className={`font-semibold ${vNum >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatted}</div>
                     </div>
                   )

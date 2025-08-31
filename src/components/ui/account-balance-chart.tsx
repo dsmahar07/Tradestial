@@ -203,7 +203,7 @@ export function AccountBalanceChart({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null
     return (
-      <div className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
         <div className="font-medium text-gray-900 dark:text-gray-100 mb-2 text-xs">{label}</div>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center justify-between mb-1 last:mb-0">
@@ -232,7 +232,7 @@ export function AccountBalanceChart({
 
   return (
     <motion.div 
-      className={`bg-white dark:bg-[#171717] rounded-xl p-6 text-gray-900 dark:text-gray-100 relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626] ${className}`}
+      className={`bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-gray-100 relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626] ${className}`}
       style={{ height: `${height}px` }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -240,11 +240,16 @@ export function AccountBalanceChart({
     >
       {/* Header */}
       {title && (
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {title}
-          </h3>
-        </div>
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {title}
+            </h3>
+          </div>
+          
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+        </>
       )}
       {hasData ? (
         <>
@@ -259,8 +264,8 @@ export function AccountBalanceChart({
               <span className="text-sm text-gray-600 dark:text-gray-300">Starting Balance</span>
             </div>
           </div>
-
-          {/* Chart */}
+        
+        {/* Chart Container */}
           <div
             className="h-[280px] overflow-visible w-full"
             style={{ marginLeft: -20, width: 'calc(100% + 20px)' }}

@@ -187,11 +187,11 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-6xl translate-x-[-50%] translate-y-[-50%] gap-4 bg-white dark:bg-[#171717] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-lg border border-gray-200 dark:border-[#2a2a2a] max-h-[90vh] overflow-y-auto scrollbar-hide">
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-6xl translate-x-[-50%] translate-y-[-50%] gap-4 bg-white dark:bg-[#0f0f0f] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-lg border border-gray-200 dark:border-[#2a2a2a] max-h-[90vh] overflow-y-auto scrollbar-hide">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-[#2a2a2a] pb-4">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#1f1f1f] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#171717] flex items-center justify-center">
                 <span className="text-lg">🏪</span>
               </div>
               <div>
@@ -205,7 +205,7 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
             </div>
             <div className="flex items-center space-x-3">
               <Button asChild variant="outline" size="sm">
-                <button className="h-8 px-3 text-sm border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-900 dark:text-white rounded-md hover:bg-gray-50 dark:hover:bg-[#1f1f1f]">
+                <button className="h-8 px-3 text-sm border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white rounded-md hover:bg-gray-50 dark:hover:bg-[#171717]">
                   My Strategies
                 </button>
               </Button>
@@ -228,7 +228,7 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
               placeholder="Search strategies, authors, or categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
 
@@ -241,7 +241,7 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
               <div key={category}>
                 <div className="flex items-center space-x-2 mb-4">
                   <h3 className="text-base font-medium text-gray-900 dark:text-white">{category}</h3>
-                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-[#1f1f1f] text-gray-600 dark:text-gray-400 rounded">
+                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-[#171717] text-gray-600 dark:text-gray-400 rounded">
                     {categoryStrategies.length}
                   </span>
                 </div>
@@ -249,7 +249,7 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
                   {categoryStrategies.map((strategy) => (
                     <div
                       key={strategy.id}
-                      className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#171717] hover:shadow-md transition-shadow"
+                      className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#0f0f0f] hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start space-x-3 mb-3">
                         <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-white relative", strategy.color)}>
@@ -316,7 +316,7 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
                         size="sm"
                         className="w-full text-xs h-8"
                       >
-                        <button className="w-full text-xs h-8 border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#171717] text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1f1f1f]">
+                        <button className="w-full text-xs h-8 border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717]">
                           <span className="inline-flex items-center justify-center">
                             <Plus className="w-3 h-3 mr-1" />
                             Add Strategy
