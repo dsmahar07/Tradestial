@@ -1,5 +1,4 @@
 'use client'
-
 import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -7,13 +6,17 @@ import { NotebookTopSearch } from '@/components/features/notes/NotebookTopSearch
 import { NotebookSidebar } from '@/components/features/notes/NotebookSidebar'
 import { NotebookMiddlePanel } from '@/components/features/notes/NotebookMiddlePanel'
 import { NotebookEditor } from '@/components/features/notes/NotebookEditor'
+import JournalHeaderStats from '@/components/ui/journal-header-stats'
+import JournalTradesTable from '@/components/ui/journal-trades-table'
+
 import { useConfirmation } from '@/components/ui/confirmation-modal'
 import { useToast } from '@/components/ui/notification-toast'
 import { TradeJournalingTemplate, defaultTemplates } from '@/lib/templates'
 import type { TemplateInstance } from '@/types/templates'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { useSearchParams } from 'next/navigation'
+import { DataStore } from '@/services/data-store.service'
 
 
 export interface Note {
@@ -29,6 +32,24 @@ export interface Note {
     templateId: string
     customFields?: any[]
     fieldValues: Record<string, any>
+  }
+  // Optional trading data for trade/daily journal notes to power PnL header
+  tradingData?: {
+    netPnl?: number
+    isProfit?: boolean
+    stats?: {
+      totalTrades?: number
+      winners?: number
+      losers?: number
+      winrate?: string
+      grossPnl?: number
+      volume?: number
+      commissions?: number
+      profitFactor?: number
+    }
+    chartData?: Array<{ time: string; value: number }>
+    trades?: any[]
+    date?: string
   }
 }
 
@@ -71,6 +92,187 @@ export default function NotesPage() {
     }
   ])
   const [templates, setTemplates] = useState<TradeJournalingTemplate[]>(defaultTemplates)
+  // Tag filter state
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const tags = useMemo(() => {
+    const set = new Set<string>()
+    for (const n of notes) {
+      (n.tags || []).forEach(t => set.add(t))
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [notes])
+
+  // Date state for PnL header (defaults to today)
+  const [selectedYMD, setSelectedYMD] = useState<string>(() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  })
+
+  // Range state for Sessions Recap (default: last 7 days)
+  const [selectedRange, setSelectedRange] = useState<{ startYMD: string; endYMD: string }>(() => {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(end.getDate() - 6)
+    const toYMD = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+    return { startYMD: toYMD(start), endYMD: toYMD(end) }
+  })
+
+  // Refresh trigger when DataStore updates
+  const [dataTick, setDataTick] = useState(0)
+  useEffect(() => {
+    const unsub = DataStore.subscribe(() => setDataTick(t => t + 1))
+    return unsub
+  }, [])
+
+  // Compute daily PnL header content similar to Journal page
+  const { headerNode, netPnl } = useMemo(() => {
+    const ymd = selectedYMD
+    const [y, m, d] = ymd.split('-').map((n: string) => parseInt(n, 10))
+    const dayDate = new Date(y, m - 1, d)
+    const trades = DataStore.getTradesByDateRange(dayDate, dayDate)
+
+    const totalTrades = trades.length
+    const winners = trades.filter((t: any) => t.netPnl > 0).length
+    const losers = trades.filter((t: any) => t.netPnl < 0).length
+    const winrate = totalTrades > 0 ? `${Math.round((winners / totalTrades) * 100)}%` : '0%'
+    const grossPnl = trades.reduce((s: number, t: any) => s + (t.grossPnl ?? t.netPnl ?? 0), 0)
+    const commissions = trades.reduce((s: number, t: any) => s + (t.commissions ?? 0), 0)
+    const volume = trades.reduce((s: number, t: any) => s + (t.contractsTraded ?? 0), 0)
+    const avgWin = winners > 0 ? trades.filter((t: any) => t.netPnl > 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0) / winners : 0
+    const avgLoss = losers > 0 ? Math.abs(trades.filter((t: any) => t.netPnl < 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0)) / losers : 0
+    const profitFactor = avgLoss > 0 ? +(avgWin / avgLoss).toFixed(2) : 0
+
+    const points = trades
+      .map((t: any) => ({
+        time: (t.entryTime || t.openTime || t.closeTime || '16:00')?.slice(0, 5),
+        pnl: t.netPnl ?? 0,
+      }))
+      .sort((a: any, b: any) => a.time.localeCompare(b.time))
+
+    let running = 0
+    const chartData = points.map((p: any) => {
+      running += p.pnl
+      return { time: p.time, value: Math.round(running) }
+    })
+
+    const netPnl = Math.round(trades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0))
+    const headerNode = (
+      <div className="px-0">
+        <JournalHeaderStats
+          chartData={chartData}
+          stats={{
+            totalTrades,
+            winners,
+            losers,
+            winrate,
+            grossPnl: Math.round(grossPnl),
+            volume,
+            commissions: Math.round(commissions),
+            profitFactor,
+          }}
+        />
+        {Array.isArray(trades) && trades.length > 0 && (
+          <JournalTradesTable trades={trades} />
+        )}
+      </div>
+    )
+
+    return { headerNode, netPnl }
+  }, [selectedYMD, dataTick])
+
+  // Compute PnL header content for a date range (Sessions Recap)
+  const { rangeHeaderNode, rangeNetPnl } = useMemo(() => {
+    const [sy, sm, sd] = selectedRange.startYMD.split('-').map((n: string) => parseInt(n, 10))
+    const [ey, em, ed] = selectedRange.endYMD.split('-').map((n: string) => parseInt(n, 10))
+    const startDate = new Date(sy, sm - 1, sd)
+    const endDate = new Date(ey, em - 1, ed)
+    const trades = DataStore.getTradesByDateRange(startDate, endDate)
+
+    const totalTrades = trades.length
+    const winners = trades.filter((t: any) => t.netPnl > 0).length
+    const losers = trades.filter((t: any) => t.netPnl < 0).length
+    const winrate = totalTrades > 0 ? `${Math.round((winners / totalTrades) * 100)}%` : '0%'
+    const grossPnl = trades.reduce((s: number, t: any) => s + (t.grossPnl ?? t.netPnl ?? 0), 0)
+    const commissions = trades.reduce((s: number, t: any) => s + (t.commissions ?? 0), 0)
+    const volume = trades.reduce((s: number, t: any) => s + (t.contractsTraded ?? 0), 0)
+    const avgWin = winners > 0 ? trades.filter((t: any) => t.netPnl > 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0) / winners : 0
+    const avgLoss = losers > 0 ? Math.abs(trades.filter((t: any) => t.netPnl < 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0)) / losers : 0
+    const profitFactor = avgLoss > 0 ? +(avgWin / avgLoss).toFixed(2) : 0
+
+    // Build equity curve across the period by sorting on combined date+time when available
+    const points = trades
+      .map((t: any) => ({
+        sortKey: `${t.closeDate || t.date || ''} ${(t.entryTime || t.openTime || t.closeTime || '16:00')?.slice(0,5)}`,
+        pnl: t.netPnl ?? 0,
+      }))
+      .sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey))
+
+    let running = 0
+    const chartData = points.map((p: any) => {
+      running += p.pnl
+      return { time: '', value: Math.round(running) }
+    })
+
+    const rangeNetPnl = Math.round(trades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0))
+    const rangeHeaderNode = (
+      <div className="px-0">
+        <JournalHeaderStats
+          chartData={chartData}
+          stats={{
+            totalTrades,
+            winners,
+            losers,
+            winrate,
+            grossPnl: Math.round(grossPnl),
+            volume,
+            commissions: Math.round(commissions),
+            profitFactor,
+          }}
+        />
+        {Array.isArray(trades) && trades.length > 0 && (
+          <JournalTradesTable trades={trades} />
+        )}
+      </div>
+    )
+
+    return { rangeHeaderNode, rangeNetPnl }
+  }, [selectedRange, dataTick])
+
+  const handleDateChange = (selectedDate: Date) => {
+    // Update the editor title to the chosen date and update selectedYMD
+    const formattedTitle = selectedDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
+    if (selectedNote) {
+      handleUpdateNote(selectedNote.id, selectedNote.content, formattedTitle)
+    }
+
+    const y = selectedDate.getFullYear()
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0')
+    const d = String(selectedDate.getDate()).padStart(2, '0')
+    setSelectedYMD(`${y}-${m}-${d}`)
+  }
+
+  const handleRangeChange = (startDate: Date, endDate: Date) => {
+    // Normalize order if user picked reversed
+    const [start, end] = startDate <= endDate ? [startDate, endDate] : [endDate, startDate]
+    const toYMD = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+    setSelectedRange({ startYMD: toYMD(start), endYMD: toYMD(end) })
+
+    // Optionally update title to reflect period
+    if (selectedNote) {
+      const fmt = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+      const title = `${fmt(start)} - ${fmt(end)}`
+      handleUpdateNote(selectedNote.id, selectedNote.content, title)
+    }
+  }
 
   // Handle navigation from Daily Journal with trade data
   useEffect(() => {
@@ -107,7 +309,16 @@ export default function NotesPage() {
             updatedAt: now.toISOString(),
             folder: 'Trade Notes',
             tags: ['trade-analysis', 'daily-journal'],
-            color: '#10b981' // Trade Notes color
+            color: '#10b981', // Trade Notes color
+            // Attach structured trading data to enable PnL header rendering
+            tradingData: {
+              netPnl: tradeData.netPnl,
+              isProfit: tradeData.isProfit,
+              stats: tradeData.stats,
+              chartData: tradeData.chartData,
+              trades: tradeData.trades,
+              date: tradeData.date
+            }
           }
           
           setNotes(prev => [tradeNote, ...prev])
@@ -149,8 +360,16 @@ export default function NotesPage() {
   }
 
   const handleCreateNoteFromTemplate = (template: TradeJournalingTemplate, templateInstance: TemplateInstance, generatedContent: string) => {
+    // If a note is selected, apply template content to it instead of creating a new note
+    if (selectedNote) {
+      handleUpdateNote(selectedNote.id, generatedContent)
+      console.log('Applied template to existing note:', selectedNote.id)
+      success('Template applied', `${template.name} applied to current note.`)
+      return
+    }
+
     const now = new Date()
-    
+
     // Generate a more specific title based on template type
     let title = template.name
     if (template.category === 'daily') {
@@ -168,7 +387,7 @@ export default function NotesPage() {
         title = `${template.name} - ${new Date(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
       }
     }
-    
+
     const newNote: Note = {
       id: Date.now().toString(),
       title,
@@ -180,7 +399,7 @@ export default function NotesPage() {
       color: template.color,
       template: templateInstance
     }
-    
+
     setNotes(prev => [newNote, ...prev])
     setSelectedNote(newNote)
     console.log('Created note from template:', newNote)
@@ -188,8 +407,16 @@ export default function NotesPage() {
   }
 
   const handleQuickApplyTemplate = (template: TradeJournalingTemplate, content: string) => {
+    // If a note is selected, apply template content to it instead of creating a new note
+    if (selectedNote) {
+      handleUpdateNote(selectedNote.id, content)
+      console.log('Quick-applied template to existing note:', selectedNote.id)
+      success('Template applied', `${template.name} applied to current note.`)
+      return
+    }
+
     const now = new Date()
-    
+
     // Generate a more specific title based on template type and current date
     let title = template.name
     if (template.category === 'daily') {
@@ -203,7 +430,7 @@ export default function NotesPage() {
     } else if (template.category === 'review') {
       title = `${template.name} - Week of ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
     }
-    
+
     const newNote: Note = {
       id: Date.now().toString(),
       title,
@@ -214,7 +441,7 @@ export default function NotesPage() {
       tags: [...template.tags],
       color: template.color,
     }
-    
+
     setNotes(prev => [newNote, ...prev])
     setSelectedNote(newNote)
     console.log('Quick applied template:', newNote)
@@ -322,11 +549,22 @@ export default function NotesPage() {
   const handleNoteSelect = (note: Note) => {
     console.log('Selecting note:', note.title)
     setSelectedNote(note)
+    // Try to keep selectedYMD in sync if title looks like a date
+    const parsed = Date.parse(note.title)
+    if (!isNaN(parsed)) {
+      const dt = new Date(parsed)
+      const y = dt.getFullYear()
+      const m = String(dt.getMonth() + 1).padStart(2, '0')
+      const d = String(dt.getDate()).padStart(2, '0')
+      setSelectedYMD(`${y}-${m}-${d}`)
+    }
   }
 
   const handleFolderSelect = (folder: string) => {
     console.log('Selecting folder:', folder)
     setSelectedFolder(folder)
+    // Clear tag filter when switching folders (optional UX)
+    setSelectedTag(null)
     // Clear selected note when changing folders to avoid confusion
     setSelectedNote(null)
   }
@@ -341,13 +579,29 @@ export default function NotesPage() {
     setFolders(prev => [...prev, newFolder])
   }
 
+  // Handle tag selection from sidebar
+  const handleTagSelect = (tag: string | null) => {
+    setSelectedTag(tag)
+    // When a tag is selected, show across all folders
+    if (tag) setSelectedFolder('All notes')
+    setSelectedNote(null)
+  }
+
   const handleDeleteFolder = (folderId: string, folderName: string) => {
-    if (folderId === 'all-notes') return // Prevent deleting "All notes"
-    
+    // Only 'My notes' can be deleted
+    if (folderId === 'all-notes') {
+      warning('Action not allowed', '"All notes" cannot be deleted.')
+      return
+    }
+    if (folderName !== 'My notes') {
+      warning('Action not allowed', 'Only the "My notes" folder can be deleted.')
+      return
+    }
+
     // Check how many notes are in this folder
     const folderToDelete = folders.find(f => f.id === folderId)
     const notesInFolder = notes.filter(note => note.folder === folderToDelete?.name)
-    
+
     confirm({
       title: 'Delete Folder',
       message: `Are you sure you want to delete "${folderName}"? ${notesInFolder.length > 0 ? `All ${notesInFolder.length} notes in this folder will be moved to "My notes".` : 'This folder is empty.'}`,
@@ -355,20 +609,20 @@ export default function NotesPage() {
       confirmText: 'Delete',
       onConfirm: () => {
         setFolders(prev => prev.filter(folder => folder.id !== folderId))
-        
+
         // If we're deleting the currently selected folder, switch to "All notes"
         if (folderToDelete && selectedFolder === folderToDelete.name) {
           setSelectedFolder('All notes')
           setSelectedNote(null)
         }
-        
+
         // Move notes from deleted folder to "My notes"
         setNotes(prev => prev.map(note => 
           note.folder === folderToDelete?.name 
             ? { ...note, folder: 'My notes' }
             : note
         ))
-        
+
         // Only show notification if folder had notes
         if (notesInFolder.length > 0) {
           warning('Folder deleted', `"${folderName}" deleted. ${notesInFolder.length} notes moved to "My notes".`)
@@ -381,6 +635,12 @@ export default function NotesPage() {
     const oldFolder = folders.find(f => f.id === folderId)
     if (!oldFolder) return
     
+    // Only allow renaming 'My notes'
+    if (oldFolder.name !== 'My notes') {
+      warning('Action not allowed', 'Only the "My notes" folder can be renamed.')
+      return
+    }
+
     setFolders(prev => prev.map(folder => 
       folder.id === folderId 
         ? { ...folder, name: newName }
@@ -442,23 +702,23 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-hidden px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
+        <main className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#1C1C1C]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="h-full flex flex-col bg-white dark:bg-[#171717] rounded-xl overflow-hidden shadow-lg"
+            className="h-full min-h-0 flex flex-col bg-white dark:bg-[#171717] rounded-xl overflow-hidden shadow-lg"
           >
             {/* Top Search Bar */}
             <NotebookTopSearch />
             
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 min-h-0 overflow-hidden">
               {/* Left Sidebar with right spacing */}
               <div className="pr-4 border-r border-gray-200 dark:border-[#404040]">
                 <NotebookSidebar 
@@ -470,32 +730,72 @@ export default function NotesPage() {
                   onRenameFolder={handleRenameFolder}
                   onReorderFolders={handleReorderFolders}
                   onUpdateFolderColor={handleUpdateFolderColor}
+                  tags={tags}
+                  selectedTag={selectedTag}
+                  onTagSelect={handleTagSelect}
                 />
               </div>
               
               {/* Middle Panel */}
               <NotebookMiddlePanel 
                 selectedFolder={selectedFolder}
+                selectedTag={selectedTag}
                 selectedNote={selectedNote}
                 notes={notes}
                 onNoteSelect={handleNoteSelect}
                 onCreateNote={handleCreateNote}
-                onCreateNoteFromTemplate={handleCreateNoteFromTemplate}
-                onQuickApplyTemplate={handleQuickApplyTemplate}
                 onDeleteNote={handleDeleteNote}
                 onUpdateNote={handleUpdateNote}
                 onReorderNotes={handleReorderNotes}
                 onDeleteAllNotes={handleDeleteAllNotes}
-                onDeleteTemplate={handleDeleteTemplate}
-                templates={templates}
               />
               
               {/* Right Editor Panel */}
-              <NotebookEditor 
-                note={selectedNote} 
-                onUpdateNote={handleUpdateNote}
-                onDeleteNote={handleDeleteNote}
-              />
+              {(() => {
+                const isSessionRecap = selectedFolder === 'Sessions Recap'
+                const isJournalContext =
+                  selectedFolder === 'Daily Journal' ||
+                  selectedFolder === 'Trade Notes' ||
+                  !!selectedNote?.tradingData ||
+                  (selectedNote?.tags?.some(tag => tag === 'trade-analysis' || tag === 'daily-journal') ?? false)
+
+                const useRange = isSessionRecap
+                const useDaily = !useRange && isJournalContext
+
+                // Convert selectedRange (YYYY-MM-DD) to Date objects for the editor to use during sharing
+                let rangeFromDate: Date | undefined = undefined
+                let rangeToDate: Date | undefined = undefined
+                if (useRange && selectedRange?.startYMD && selectedRange?.endYMD) {
+                  const [sy, sm, sd] = selectedRange.startYMD.split('-').map((n: string) => parseInt(n, 10))
+                  const [ey, em, ed] = selectedRange.endYMD.split('-').map((n: string) => parseInt(n, 10))
+                  rangeFromDate = new Date(sy, sm - 1, sd)
+                  rangeToDate = new Date(ey, em - 1, ed)
+                }
+
+                return (
+                  <NotebookEditor 
+                    note={selectedNote} 
+                    onUpdateNote={handleUpdateNote}
+                    onDeleteNote={handleDeleteNote}
+                    useRangePicker={useRange}
+                    onRangeChange={useRange ? handleRangeChange : undefined}
+                    rangeFrom={rangeFromDate}
+                    rangeTo={rangeToDate}
+                    useDatePicker={useDaily}
+                    onDateChange={useDaily ? handleDateChange : undefined}
+                    headerStats={useRange ? rangeHeaderNode : useDaily ? headerNode : undefined}
+                    netPnlValue={useRange ? rangeNetPnl : useDaily ? netPnl : undefined}
+                    netPnlIsProfit={useRange ? (rangeNetPnl ?? 0) >= 0 : useDaily ? netPnl >= 0 : undefined}
+                    hideNetPnl={!useRange && !useDaily}
+                    // Template creation props moved to editor menu
+                    onCreateNote={handleCreateNote}
+                    onCreateNoteFromTemplate={handleCreateNoteFromTemplate}
+                    onQuickApplyTemplate={handleQuickApplyTemplate}
+                    onDeleteTemplate={handleDeleteTemplate}
+                    templates={templates}
+                  />
+                )
+              })()}
             </div>
           </motion.div>
         </main>

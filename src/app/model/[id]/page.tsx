@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
-import { CleanSelect } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { NotebookEditor } from '@/components/features/notes/NotebookEditor'
 import type { Note } from '@/app/notes/page'
 import { getImportedTrades, TradeRecord } from '@/components/modals/ImportTradesModal'
@@ -13,11 +13,26 @@ import { DataStore } from '@/services/data-store.service'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ModelChart } from '@/components/ui/model-chart'
+import { GripVertical, ChevronDown, Settings } from 'lucide-react'
+import * as Select from '@radix-ui/react-select'
+import * as Dialog from '@radix-ui/react-dialog'
+import { TIMEZONE_REGIONS, formatTimezoneOffset, getCurrentTimezone } from '@/utils/timezones'
+import { DndContext, DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type Frequency = 'Always' | 'Often' | 'Sometimes' | 'Rarely'
 
 interface Rule { id: string; text: string; frequency: Frequency }
 interface RuleGroup { id: string; title: string; rules: Rule[] }
+
+interface AutoRulesConfig {
+  maxLossPerTrade?: { enabled?: boolean; value?: number }
+  maxTradesPerDay?: { enabled?: boolean; value?: number }
+  session?: { enabled?: boolean; start?: string; end?: string; timezone?: string | number; applyIn?: 'local' | 'selected' }
+  maxDailyLoss?: { enabled?: boolean; value?: number }
+  allowedWeekdays?: { enabled?: boolean; value?: number[] }
+}
 
 interface StrategyModel {
   id: string
@@ -31,13 +46,48 @@ interface StrategyModel {
   emoji?: string
   emojiUnified?: string
   image?: string
+  autoRules?: AutoRulesConfig
 }
 
 const STRATEGIES_KEY = 'tradestial:strategies'
 const ASSIGNMENTS_KEY = 'tradestial:strategy-assignments'
 
 function readStrategies(): StrategyModel[] {
-  try { const raw = localStorage.getItem(STRATEGIES_KEY); return raw ? JSON.parse(raw) : [] } catch { return [] }
+  try {
+    const raw = localStorage.getItem(STRATEGIES_KEY)
+    const parsed: any[] = raw ? JSON.parse(raw) : []
+
+    // Normalize any legacy ruleGroups (e.g., rules as strings) to structured Rule objects
+    const normalized = parsed.map((s: any) => {
+      // Ensure autoRules exists object-shape if present
+      const withAuto = {
+        ...s,
+        autoRules: s?.autoRules && typeof s.autoRules === 'object' ? s.autoRules : undefined
+      }
+      if (!withAuto?.ruleGroups || !Array.isArray(withAuto.ruleGroups)) return withAuto
+      return {
+        ...withAuto,
+        ruleGroups: withAuto.ruleGroups.map((g: any) => {
+          const rulesArray = Array.isArray(g?.rules) ? g.rules : []
+          const structuredRules = rulesArray.map((r: any) => {
+            if (r && typeof r === 'object' && 'text' in r) return r
+            const text = (typeof r === 'string' ? r : String(r || '')).trim()
+            if (!text) return null
+            return { id: `rule_${Date.now()}_${Math.random().toString(36).slice(2)}`, text, frequency: 'Always' as const }
+          }).filter(Boolean)
+          return {
+            id: g?.id || `group_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            title: (g?.title ?? '').toString(),
+            rules: structuredRules
+          }
+        })
+      }
+    })
+
+    return normalized
+  } catch {
+    return []
+  }
 }
 
 function writeStrategies(next: StrategyModel[]) {
@@ -234,7 +284,7 @@ export default function StrategyDetailPage() {
               )}
 
               {tab === 'rules' && (
-                <RulesEditor strategy={strategy} onChange={updateStrategy} />
+                <RulesEditor strategy={strategy} onChange={updateStrategy} assignedTrades={assignedTrades} />
               )}
 
               {tab === 'trades' && (
@@ -554,8 +604,9 @@ function StrategyNotes({ strategyId }: { strategyId: string }) {
   )
 }
 
-function RulesEditor({ strategy, onChange }: { strategy: StrategyModel; onChange: (partial: Partial<StrategyModel>) => void }) {
+function RulesEditor({ strategy, onChange, assignedTrades }: { strategy: StrategyModel; onChange: (partial: Partial<StrategyModel>) => void; assignedTrades: any[] }) {
   const groups = strategy.ruleGroups || []
+  const autoRules = strategy.autoRules || {}
   const addGroup = () => onChange({ ruleGroups: [...groups, { id: `group_${Date.now()}`, title: '', rules: [{ id: `rule_${Date.now()}`, text: '', frequency: 'Always' }] }] })
   const removeGroup = (gid: string) => onChange({ ruleGroups: groups.filter(g => g.id !== gid) })
   const setGroupTitle = (gid: string, title: string) => onChange({ ruleGroups: groups.map(g => g.id===gid?{...g, title}:g) })
@@ -563,48 +614,741 @@ function RulesEditor({ strategy, onChange }: { strategy: StrategyModel; onChange
   const setRule = (gid: string, rid: string, partial: Partial<Rule>) => onChange({ ruleGroups: groups.map(g => g.id===gid?{...g, rules: g.rules.map(r => r.id===rid?{...r, ...partial}:r)}:g) })
   const removeRule = (gid: string, rid: string) => onChange({ ruleGroups: groups.map(g => g.id===gid?{...g, rules: g.rules.filter(r => r.id!==rid)}:g) })
 
+  // Load per-trade rule checks and recompute when updated
+  const [tradeMeta, setTradeMeta] = useState<Record<string, any>>({})
+  useEffect(() => {
+    const load = () => {
+      try {
+        const raw = localStorage.getItem('tradestial:trade-metadata')
+        setTradeMeta(raw ? JSON.parse(raw) : {})
+      } catch { setTradeMeta({}) }
+    }
+    load()
+    const refresh = () => load()
+    window.addEventListener('tradestial:trade-rules-updated', refresh as EventListener)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('tradestial:trade-rules-updated', refresh as EventListener)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+
+  const currency = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toFixed(0)}`
+
+  // Compute metrics for a single rule over assigned trades
+  const getRuleMetrics = (ruleId: string) => {
+    const total = assignedTrades.length || 0
+    if (total === 0) {
+      return { followRate: 0, netPnL: 0, profitFactor: 0, winRate: 0 }
+    }
+    const followed = assignedTrades.filter((t: any) => !!(tradeMeta?.[t.id]?.ruleChecks?.[ruleId]))
+    const count = followed.length
+    const followRate = (count / total) * 100
+    let wins = 0, losses = 0, sumWin = 0, sumLossAbs = 0
+    for (const t of followed) {
+      const raw = typeof t.netPnl === 'number' ? t.netPnl : (typeof t.pnl === 'number' ? t.pnl : parseFloat(String(t.pnl || 0)))
+      const pnl = Number.isFinite(raw) ? raw : 0
+      if (pnl > 0) { wins++; sumWin += pnl } else if (pnl < 0) { losses++; sumLossAbs += Math.abs(pnl) }
+    }
+    const netPnL = sumWin - sumLossAbs
+    const profitFactor = sumLossAbs > 0 ? sumWin / sumLossAbs : wins > 0 ? Infinity : 0
+    const winRate = count ? (wins / count) * 100 : 0
+    return { followRate, netPnL, profitFactor, winRate }
+  }
+
+  // ---------- Auto Rules Evaluation (local to RulesEditor) ----------
+  function parseTimeToMinutesLocal(t?: string) {
+    if (!t || typeof t !== 'string') return null
+    const m = t.match(/^(\d{1,2}):(\d{2})$/)
+    if (!m) return null
+    const hh = Math.min(23, Math.max(0, parseInt(m[1], 10)))
+    const mm = Math.min(59, Math.max(0, parseInt(m[2], 10)))
+    return hh * 60 + mm
+  }
+
+  function resolveTradeDate(t: any): Date {
+    const raw = (typeof t.openDate === 'string' && t.openDate) || (typeof t.date === 'string' && t.date) || (typeof t.closeDate === 'string' && t.closeDate)
+    if (raw) return new Date(raw)
+    return new Date()
+  }
+
+  function getZonedFields(date: Date, timeZone?: string | number): { dayKey: string; weekday: number; minutes: number } {
+    try {
+      if (typeof timeZone === 'number' && Number.isFinite(timeZone)) {
+        // Interpret as offset minutes from UTC (same as import UI). Create a shifted time.
+        const shifted = new Date(date.getTime() + (timeZone * 60 * 1000))
+        // Use UTC getters on shifted date to avoid double-applying environment TZ
+        const year = shifted.getUTCFullYear()
+        const month = String(shifted.getUTCMonth() + 1).padStart(2, '0')
+        const day = String(shifted.getUTCDate()).padStart(2, '0')
+        const hour = shifted.getUTCHours()
+        const minute = shifted.getUTCMinutes()
+        const dayKey = `${year}-${month}-${day}`
+        const minutes = Math.min(23, hour) * 60 + Math.min(59, minute)
+        const weekday = shifted.getUTCDay() // 0-6 Sun-Sat
+        return { dayKey, weekday, minutes }
+      }
+
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: (timeZone as string) || undefined, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short' })
+      const parts = fmt.formatToParts(date)
+      const obj: any = {}
+      for (const p of parts) obj[p.type] = p.value
+      // obj: year, month, day, hour, minute, weekday
+      const dayKey = `${obj.year}-${obj.month}-${obj.day}`
+      const minutes = Math.min(23, parseInt(obj.hour || '0', 10)) * 60 + Math.min(59, parseInt(obj.minute || '0', 10))
+      // Map short weekday to 0-6 Sun-Sat
+      const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+      const weekday = map[obj.weekday] ?? date.getUTCDay()
+      return { dayKey, weekday, minutes }
+    } catch {
+      // Fallback to local
+      const dayKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+      const minutes = date.getHours()*60 + date.getMinutes()
+      const weekday = date.getDay()
+      return { dayKey, weekday, minutes }
+    }
+  }
+
+  const autoSummary = useMemo(() => {
+    const cfg = autoRules
+    const totalTrades = assignedTrades.length
+    if (totalTrades === 0) return { totalTrades: 0, withinMaxLoss: 0, withinSession: 0, onAllowedDays: 0, daysWithinMaxTrades: 0 }
+
+    // Per-trade checks
+    let okMaxLoss = 0
+    let okSession = 0
+    let okWeekday = 0
+
+    const startMin = cfg.session?.start ? parseTimeToMinutesLocal(cfg.session.start) : null
+    const endMin = cfg.session?.end ? parseTimeToMinutesLocal(cfg.session.end) : null
+    const hasSession = startMin !== null && endMin !== null
+    const allowedDays = Array.isArray(cfg.allowedWeekdays?.value)
+      ? new Set(cfg.allowedWeekdays.value)
+      : (Array.isArray((cfg as any).allowedWeekdays) ? new Set((cfg as any).allowedWeekdays as number[]) : undefined)
+
+    // Group by day for per-day checks
+    const perDay: Record<string, { count: number; pnl: number }> = {}
+
+    for (const t of assignedTrades) {
+      const rawP = typeof t.netPnl === 'number' ? t.netPnl : (typeof t.pnl === 'number' ? t.pnl : parseFloat(String(t.pnl || 0)))
+      const pnl = Number.isFinite(rawP) ? rawP : 0
+      const dt = resolveTradeDate(t)
+      const tz = (cfg.session?.applyIn === 'local') ? undefined : cfg.session?.timezone
+      const { dayKey, minutes, weekday } = getZonedFields(dt, tz)
+      perDay[dayKey] = perDay[dayKey] || { count: 0, pnl: 0 }
+      perDay[dayKey].count += 1
+      perDay[dayKey].pnl += pnl
+
+      // session window check (treat as enabled if start/end exist and no explicit flag)
+      const sessionEnabled = (cfg.session?.enabled ?? hasSession) && hasSession
+      if (sessionEnabled) {
+        if (minutes >= startMin && minutes <= endMin) okSession++
+      } else {
+        okSession++ // not enabled or configured -> treat as pass
+      }
+
+      // max loss per trade (support legacy number)
+      if (cfg.maxLossPerTrade?.enabled && typeof cfg.maxLossPerTrade?.value === 'number') {
+        if (pnl >= -Math.abs(cfg.maxLossPerTrade.value)) okMaxLoss++
+      } else if (typeof (cfg as any).maxLossPerTrade === 'number') {
+        if (pnl >= -Math.abs((cfg as any).maxLossPerTrade as number)) okMaxLoss++
+      } else {
+        okMaxLoss++ // not enabled or configured -> treat as pass
+      }
+
+      // weekday check (support legacy array)
+      if ((cfg.allowedWeekdays?.enabled || Array.isArray((cfg as any).allowedWeekdays)) && allowedDays) {
+        const wd = getZonedFields(dt, tz).weekday // 0-6 Sun-Sat
+        if (allowedDays.has(wd)) okWeekday++
+      } else {
+        okWeekday++
+      }
+    }
+
+    // Per-day checks (separate counters)
+    let daysOkTrades = 0
+    let daysOkDailyLoss = 0
+    const dayKeys = Object.keys(perDay)
+    for (const [_dayKey, { count, pnl }] of Object.entries(perDay)) {
+      // Max trades per day (support legacy number)
+      if (cfg.maxTradesPerDay?.enabled && typeof cfg.maxTradesPerDay?.value === 'number') {
+        if (count <= cfg.maxTradesPerDay.value) daysOkTrades++
+      } else if (typeof (cfg as any).maxTradesPerDay === 'number') {
+        if (count <= ((cfg as any).maxTradesPerDay as number)) daysOkTrades++
+      } else {
+        daysOkTrades++ // not enabled or configured -> treat as pass
+      }
+
+      // Max daily loss (support legacy number)
+      if (cfg.maxDailyLoss?.enabled && typeof cfg.maxDailyLoss?.value === 'number') {
+        if (pnl >= -Math.abs(cfg.maxDailyLoss.value)) daysOkDailyLoss++
+      } else if (typeof (cfg as any).maxDailyLoss === 'number') {
+        if (pnl >= -Math.abs(((cfg as any).maxDailyLoss as number))) daysOkDailyLoss++
+      } else {
+        daysOkDailyLoss++ // not enabled or configured -> treat as pass
+      }
+    }
+
+    return {
+      totalTrades,
+      withinMaxLoss: Math.round((okMaxLoss / Math.max(1, totalTrades)) * 100),
+      withinSession: Math.round((okSession / Math.max(1, totalTrades)) * 100),
+      onAllowedDays: Math.round((okWeekday / Math.max(1, totalTrades)) * 100),
+      daysWithinMaxTrades: Math.round((daysOkTrades / Math.max(1, dayKeys.length)) * 100),
+      daysWithinMaxDailyLoss: Math.round((daysOkDailyLoss / Math.max(1, dayKeys.length)) * 100)
+    }
+  }, [assignedTrades, autoRules])
+
+  // Drag handlers (local to this editor, updating via onChange)
+  function onGroupsDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = groups.findIndex(g => (g.id || '') === active.id)
+    const newIndex = groups.findIndex(g => (g.id || '') === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const moved = arrayMove(groups, oldIndex, newIndex)
+    onChange({ ruleGroups: moved })
+  }
+
+  function onRulesDragEnd(groupId: string) {
+    return (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const gi = groups.findIndex(g => g.id === groupId)
+      if (gi === -1) return
+      const rules = groups[gi].rules
+      const oldIndex = rules.findIndex(r => (r.id || '') === active.id)
+      const newIndex = rules.findIndex(r => (r.id || '') === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+      const updatedGroups = [...groups]
+      updatedGroups[gi] = { ...groups[gi], rules: arrayMove(rules, oldIndex, newIndex) }
+      onChange({ ruleGroups: updatedGroups })
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-semibold text-gray-900 dark:text-white">Rules</div>
-        <Button onClick={addGroup} className="bg-[#7c3aed] hover:bg-[#6b21a8] text-white h-8 px-3 text-xs">Create group</Button>
+        <div className="flex items-center gap-2">
+          {/* Auto Rules Config Dialog */}
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="outline" className="h-8 px-3 text-xs flex items-center gap-1.5">
+                <Settings className="w-3.5 h-3.5" />
+                Auto Rules
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[200]" />
+              <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-xl z-[201] w-[500px] max-h-[80vh] overflow-auto">
+                <div className="p-6">
+                  <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                    Auto Rules Configuration
+                  </Dialog.Title>
+                  <Dialog.Description className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Set automatic constraints and session rules for this strategy model.
+                  </Dialog.Description>
+                  
+                  <div className="space-y-6">
+                    {/* Trade Constraints */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Trade Constraints</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={autoRules.maxLossPerTrade?.enabled ?? false}
+                                onChange={(e) => onChange({ autoRules: { ...autoRules, maxLossPerTrade: { ...autoRules.maxLossPerTrade, enabled: e.target.checked } } })}
+                              />
+                              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                            <label className="text-sm text-gray-700 dark:text-gray-300">Max loss per trade ($)</label>
+                          </div>
+                          <input type="number" inputMode="decimal" className="w-32 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            disabled={!(autoRules.maxLossPerTrade?.enabled ?? false)}
+                            value={autoRules.maxLossPerTrade?.value ?? ''}
+                            onChange={(e)=> onChange({ autoRules: { ...autoRules, maxLossPerTrade: { ...autoRules.maxLossPerTrade, value: e.target.value === '' ? undefined : Number(e.target.value) } } })}
+                            placeholder="No limit"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={autoRules.maxTradesPerDay?.enabled ?? false}
+                                onChange={(e) => onChange({ autoRules: { ...autoRules, maxTradesPerDay: { ...autoRules.maxTradesPerDay, enabled: e.target.checked } } })}
+                              />
+                              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                            <label className="text-sm text-gray-700 dark:text-gray-300">Max trades per day</label>
+                          </div>
+                          <input type="number" inputMode="numeric" className="w-32 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            disabled={!(autoRules.maxTradesPerDay?.enabled ?? false)}
+                            value={autoRules.maxTradesPerDay?.value ?? ''}
+                            onChange={(e)=> onChange({ autoRules: { ...autoRules, maxTradesPerDay: { ...autoRules.maxTradesPerDay, value: e.target.value === '' ? undefined : Number(e.target.value) } } })}
+                            placeholder="No limit"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={autoRules.maxDailyLoss?.enabled ?? false}
+                                onChange={(e) => onChange({ autoRules: { ...autoRules, maxDailyLoss: { ...autoRules.maxDailyLoss, enabled: e.target.checked } } })}
+                              />
+                              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                            <label className="text-sm text-gray-700 dark:text-gray-300">Max daily loss ($)</label>
+                          </div>
+                          <input type="number" inputMode="decimal" className="w-32 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                            disabled={!(autoRules.maxDailyLoss?.enabled ?? false)}
+                            value={autoRules.maxDailyLoss?.value ?? ''}
+                            onChange={(e)=> onChange({ autoRules: { ...autoRules, maxDailyLoss: { ...autoRules.maxDailyLoss, value: e.target.value === '' ? undefined : Number(e.target.value) } } })}
+                            placeholder="No limit"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Session Rules */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={autoRules.session?.enabled ?? false}
+                            onChange={(e) => onChange({ autoRules: { ...autoRules, session: { ...autoRules.session, enabled: e.target.checked } } })}
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">Session Rules</h3>
+                      </div>
+                      <div className={`space-y-4 ${!(autoRules.session?.enabled ?? false) ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">Session start</label>
+                            {(() => {
+                              const startTime = autoRules.session?.start ?? ''
+                              const [startHour, startMinute] = startTime ? startTime.split(':') : ['', '']
+                              
+                              return (
+                                <div className="flex gap-2">
+                                  <Select.Root value={startHour} onValueChange={(hour) => {
+                                    const minute = startMinute || '00'
+                                    onChange({ autoRules: { ...autoRules, session: { ...(autoRules.session||{}), start: `${hour}:${minute}` } } })
+                                  }}>
+                                    <Select.Trigger className="flex-1 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between">
+                                      <Select.Value placeholder="Hour">
+                                        {startHour || 'Hour'}
+                                      </Select.Value>
+                                      <Select.Icon>
+                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                      </Select.Icon>
+                                    </Select.Trigger>
+                                    <Select.Portal>
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                        <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
+                                        <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
+                                          {Array.from({length: 24}, (_, i) => {
+                                            const hour = i.toString().padStart(2, '0')
+                                            return (
+                                              <Select.Item key={hour} value={hour} className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
+                                                <Select.ItemText>{hour}</Select.ItemText>
+                                              </Select.Item>
+                                            )
+                                          })}
+                                        </Select.Viewport>
+                                        <Select.ScrollDownButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▼</Select.ScrollDownButton>
+                                      </Select.Content>
+                                    </Select.Portal>
+                                  </Select.Root>
+                                  
+                                  <Select.Root value={startMinute} onValueChange={(minute) => {
+                                    const hour = startHour || '00'
+                                    onChange({ autoRules: { ...autoRules, session: { ...(autoRules.session||{}), start: `${hour}:${minute}` } } })
+                                  }}>
+                                    <Select.Trigger className="flex-1 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between">
+                                      <Select.Value placeholder="Min">
+                                        {startMinute || 'Min'}
+                                      </Select.Value>
+                                      <Select.Icon>
+                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                      </Select.Icon>
+                                    </Select.Trigger>
+                                    <Select.Portal>
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                        <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
+                                        <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
+                                          {['00', '15', '30', '45'].map((minute) => (
+                                            <Select.Item key={minute} value={minute} className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
+                                              <Select.ItemText>{minute}</Select.ItemText>
+                                            </Select.Item>
+                                          ))}
+                                        </Select.Viewport>
+                                        <Select.ScrollDownButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▼</Select.ScrollDownButton>
+                                      </Select.Content>
+                                    </Select.Portal>
+                                  </Select.Root>
+                                </div>
+                              )
+                            })()}
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">Session end</label>
+                            {(() => {
+                              const endTime = autoRules.session?.end ?? ''
+                              const [endHour, endMinute] = endTime ? endTime.split(':') : ['', '']
+                              
+                              return (
+                                <div className="flex gap-2">
+                                  <Select.Root value={endHour} onValueChange={(hour) => {
+                                    const minute = endMinute || '00'
+                                    onChange({ autoRules: { ...autoRules, session: { ...(autoRules.session||{}), end: `${hour}:${minute}` } } })
+                                  }}>
+                                    <Select.Trigger className="flex-1 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between">
+                                      <Select.Value placeholder="Hour">
+                                        {endHour || 'Hour'}
+                                      </Select.Value>
+                                      <Select.Icon>
+                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                      </Select.Icon>
+                                    </Select.Trigger>
+                                    <Select.Portal>
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                        <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
+                                        <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
+                                          {Array.from({length: 24}, (_, i) => {
+                                            const hour = i.toString().padStart(2, '0')
+                                            return (
+                                              <Select.Item key={hour} value={hour} className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
+                                                <Select.ItemText>{hour}</Select.ItemText>
+                                              </Select.Item>
+                                            )
+                                          })}
+                                        </Select.Viewport>
+                                        <Select.ScrollDownButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▼</Select.ScrollDownButton>
+                                      </Select.Content>
+                                    </Select.Portal>
+                                  </Select.Root>
+                                  
+                                  <Select.Root value={endMinute} onValueChange={(minute) => {
+                                    const hour = endHour || '00'
+                                    onChange({ autoRules: { ...autoRules, session: { ...(autoRules.session||{}), end: `${hour}:${minute}` } } })
+                                  }}>
+                                    <Select.Trigger className="flex-1 h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between">
+                                      <Select.Value placeholder="Min">
+                                        {endMinute || 'Min'}
+                                      </Select.Value>
+                                      <Select.Icon>
+                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                      </Select.Icon>
+                                    </Select.Trigger>
+                                    <Select.Portal>
+                                      <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[100px]">
+                                        <Select.ScrollUpButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▲</Select.ScrollUpButton>
+                                        <Select.Viewport className="p-1 max-h-[200px] overflow-auto">
+                                          {['00', '15', '30', '45'].map((minute) => (
+                                            <Select.Item key={minute} value={minute} className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
+                                              <Select.ItemText>{minute}</Select.ItemText>
+                                            </Select.Item>
+                                          ))}
+                                        </Select.Viewport>
+                                        <Select.ScrollDownButton className="flex items-center justify-center h-6 text-xs text-gray-500 dark:text-gray-400">▼</Select.ScrollDownButton>
+                                      </Select.Content>
+                                    </Select.Portal>
+                                  </Select.Root>
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">Apply rules in</label>
+                          <Select.Root value={autoRules.session?.applyIn ?? 'selected'} onValueChange={(val) => {
+                            const v = (val === 'local' ? 'local' : 'selected') as 'local'|'selected'
+                            onChange({ autoRules: { ...autoRules, session: { ...(autoRules.session||{}), applyIn: v } } })
+                          }}>
+                            <Select.Trigger className="w-full h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between">
+                              <Select.Value>
+                                {(autoRules.session?.applyIn ?? 'selected') === 'local' ? 'Local timezone' : 'Selected timezone'}
+                              </Select.Value>
+                              <Select.Icon>
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                              </Select.Icon>
+                            </Select.Trigger>
+                            <Select.Portal>
+                              <Select.Content position="popper" side="bottom" align="start" sideOffset={4} className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] w-[220px]">
+                                <Select.Viewport className="p-1">
+                                  <Select.Item value="local" className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
+                                    <Select.ItemText>Local timezone</Select.ItemText>
+                                  </Select.Item>
+                                  <Select.Item value="selected" className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none">
+                                    <Select.ItemText>Selected timezone</Select.ItemText>
+                                  </Select.Item>
+                                </Select.Viewport>
+                              </Select.Content>
+                            </Select.Portal>
+                          </Select.Root>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm text-gray-700 dark:text-gray-300 mb-2">Timezone</label>
+                          {(() => {
+                            const tzValue = autoRules.session?.timezone
+                            const selected = typeof tzValue === 'number'
+                              ? Object.values(TIMEZONE_REGIONS).flat().find(t => t.value === tzValue)
+                              : undefined
+                            return (
+                              <Select.Root value={typeof tzValue === 'number' ? String(tzValue) : ''} onValueChange={(val) => {
+                                const num = parseInt(val)
+                                onChange({ autoRules: { ...autoRules, session: { ...(autoRules.session || {}), timezone: Number.isFinite(num) ? num : undefined } } })
+                              }}>
+                                <Select.Trigger disabled={(autoRules.session?.applyIn ?? 'selected') === 'local'} className="w-full h-8 text-sm bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded px-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed">
+                                  <Select.Value>
+                                    {selected ? (
+                                      `${selected.label} ${formatTimezoneOffset(selected.value)}`
+                                    ) : (
+                                      (typeof tzValue === 'string' && tzValue) ? `Custom: ${tzValue}` : 'Select timezone'
+                                    )}
+                                  </Select.Value>
+                                  <Select.Icon>
+                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                  </Select.Icon>
+                                </Select.Trigger>
+                                <Select.Portal>
+                                  <Select.Content className="bg-white dark:bg-[#171717] border border-gray-200 dark:border-[#2a2a2a] rounded-md shadow-lg z-[300] min-w-[250px] max-h-[300px] overflow-auto">
+                                    <Select.Viewport className="p-1">
+                                      {Object.entries(TIMEZONE_REGIONS).map(([regionName, timezones]) => (
+                                        <Select.Group key={regionName}>
+                                          <Select.Label className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            {regionName}
+                                          </Select.Label>
+                                          {timezones.map((timezone) => (
+                                            <Select.Item
+                                              key={`${timezone.label}-${timezone.value}`}
+                                              value={String(timezone.value)}
+                                              className="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer outline-none"
+                                            >
+                                              <Select.ItemText>
+                                                <div className="flex flex-col">
+                                                  <span className="font-medium">{timezone.label}</span>
+                                                  <span className="text-xs text-gray-500">
+                                                    {formatTimezoneOffset(timezone.value)}
+                                                  </span>
+                                                </div>
+                                              </Select.ItemText>
+                                            </Select.Item>
+                                          ))}
+                                        </Select.Group>
+                                      ))}
+                                    </Select.Viewport>
+                                  </Select.Content>
+                                </Select.Portal>
+                              </Select.Root>
+                            )
+                          })()}
+                          {(() => {
+                            const local = getCurrentTimezone()
+                            return (
+                              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                Your local timezone: <span className="font-medium text-gray-600 dark:text-gray-300">{local.label}</span> {formatTimezoneOffset(local.value)}
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Allowed Weekdays */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={autoRules.allowedWeekdays?.enabled ?? false}
+                            onChange={(e) => onChange({ autoRules: { ...autoRules, allowedWeekdays: { ...autoRules.allowedWeekdays, enabled: e.target.checked } } })}
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">Allowed Weekdays</h3>
+                      </div>
+                      <div className={`grid grid-cols-7 gap-2 ${!(autoRules.allowedWeekdays?.enabled ?? false) ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((lbl, idx)=>{
+                          const list = new Set(autoRules.allowedWeekdays?.value || [])
+                          const checked = list.has(idx)
+                          return (
+                            <label key={idx} className={`h-10 flex items-center justify-center text-xs font-medium rounded border transition-colors cursor-pointer ${
+                              checked 
+                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300' 
+                                : 'border-gray-200 dark:border-[#2a2a2a] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}>
+                              <input type="checkbox" className="hidden" checked={checked} onChange={(e)=>{
+                                const newSet = new Set(autoRules.allowedWeekdays?.value || [])
+                                if (e.target.checked) newSet.add(idx)
+                                else newSet.delete(idx)
+                                onChange({ autoRules: { ...autoRules, allowedWeekdays: { ...autoRules.allowedWeekdays, value: Array.from(newSet) } } })
+                              }} />
+                              {lbl}
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end mt-6">
+                    <Dialog.Close asChild>
+                      <Button className="px-4 py-2 text-sm">Done</Button>
+                    </Dialog.Close>
+                  </div>
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+
+          <Button onClick={addGroup} className="bg-[#7c3aed] hover:bg-[#6b21a8] text-white h-8 px-3 text-xs">Create group</Button>
+        </div>
       </div>
+
+      {/* Auto rules summary - only show enabled rules */}
+      {(autoRules.maxLossPerTrade?.enabled || autoRules.maxTradesPerDay?.enabled || autoRules.maxDailyLoss?.enabled || autoRules.session?.enabled || autoRules.allowedWeekdays?.enabled) && (
+        <div className="mb-3 flex flex-wrap gap-2 text-[11px]">
+          {autoRules.maxLossPerTrade?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Max loss OK: {autoSummary.withinMaxLoss}%</span>}
+          {autoRules.session?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Session OK: {autoSummary.withinSession}%</span>}
+          {autoRules.allowedWeekdays?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Weekdays OK: {autoSummary.onAllowedDays}%</span>}
+          {autoRules.maxTradesPerDay?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Days within max trades: {autoSummary.daysWithinMaxTrades}%</span>}
+          {autoRules.maxDailyLoss?.enabled && <span className="px-2 py-1 rounded bg-gray-100 dark:bg-[#1f1f1f] text-gray-700 dark:text-gray-300">Days within max daily loss: {autoSummary.daysWithinMaxDailyLoss}%</span>}
+        </div>
+      )}
       {groups.length === 0 && (
         <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">No Playbook Rules</div>
       )}
-      <div className="space-y-3">
-        {groups.map((group, groupIndex) => (
-          <div key={group.id || `group-${groupIndex}`} className="rounded-lg p-3 bg-gray-50 dark:bg-[#121212]">
-            <div className="flex items-center gap-2 mb-2">
-              <input value={group.title} onChange={(e)=>setGroupTitle(group.id, e.target.value)} placeholder="E.g. Entry criteria" className="flex-1 h-9 rounded-lg bg-gray-100 dark:bg-[#1a1a1a] text-gray-900 dark:text-white px-3 border border-transparent outline-none focus:ring-0" />
-              <button onClick={()=>removeGroup(group.id)} className="text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-md hover:bg-gray-200/60 dark:hover:bg-[#2a2a2a]">×</button>
-            </div>
-            <div className="space-y-2">
-              {group.rules.map((rule, ruleIndex) => (
-                <div key={rule.id || `rule-${ruleIndex}`} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-9">
-                    <input value={rule.text} onChange={(e)=>setRule(group.id, rule.id, { text: e.target.value })} placeholder="E.g. Trading above VWAP" className="w-full h-9 rounded-lg bg-white dark:bg-[#121212] text-gray-900 dark:text-white px-3 border border-transparent outline-none focus:ring-0" />
+      <DndContext onDragEnd={onGroupsDragEnd}>
+        <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6">
+            {groups.map((group, groupIndex) => (
+              <SortableGroup key={group.id} id={group.id}>
+                {({ setNodeRef, style, attributes, listeners }) => (
+                <div ref={setNodeRef} style={style} {...attributes}> 
+                  {/* Group header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span {...listeners} className="flex items-center justify-center text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing">
+                        <GripVertical className="w-3.5 h-3.5" />
+                      </span>
+                      <input value={group.title} onChange={(e)=>setGroupTitle(group.id, e.target.value)} placeholder="Entry criteria" className="flex-1 h-9 bg-transparent dark:bg-transparent text-gray-900 dark:text-white px-0 border-0 border-b border-transparent focus:border-gray-300 dark:focus:border-[#2a2a2a] outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 font-semibold text-[0.95rem]" />
+                    </div>
+                    {/* Metrics header labels */}
+                    <div className="hidden md:grid grid-cols-4 gap-4 w-[480px] max-w-[55%] justify-items-center text-xs text-gray-500 dark:text-gray-400">
+                      <div className="text-center">Follow rate</div>
+                      <div className="text-center">Net profit/loss</div>
+                      <div className="text-center">Profit factor</div>
+                      <div className="text-center">Win rate</div>
+                    </div>
+                    <button onClick={()=>removeGroup(group.id)} className="ml-3 text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a]">×</button>
                   </div>
-                  <div className="col-span-2">
-                    <CleanSelect value={rule.frequency} onChange={(e)=>setRule(group.id, rule.id, { frequency: e.target.value as Frequency })} className="w-full">
-                      <option value="Always">Always</option>
-                      <option value="Often">Often</option>
-                      <option value="Sometimes">Sometimes</option>
-                      <option value="Rarely">Rarely</option>
-                    </CleanSelect>
-                  </div>
-                  <div className="col-span-1 text-right">
-                    <button onClick={()=>removeRule(group.id, rule.id)} className="text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-md hover:bg-gray-200/60 dark:hover:bg-[#2a2a2a]">×</button>
-                  </div>
+
+                  {/* Rules list (full-bleed rows) */}
+                  <DndContext onDragEnd={onRulesDragEnd(group.id)}>
+                    <SortableContext items={group.rules.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                      <div className="mt-2 divide-y divide-gray-200 dark:divide-[#2a2a2a]">
+                        {group.rules.map((rule, ruleIndex) => (
+                          <SortableRule key={rule.id} id={rule.id}>
+                            {({ setNodeRef: setRuleRef, style: ruleStyle, attributes: ruleAttrs, listeners: ruleListeners }) => (
+                            <div ref={setRuleRef} style={ruleStyle} {...ruleAttrs} className="flex items-center justify-between px-1 py-2 hover:bg-gray-50 dark:hover:bg-[#1f1f1f]">
+                              {/* Left: drag + rule text + delete */}
+                              <div className="flex items-center gap-2 flex-1 pr-4 min-w-0">
+                                <span {...ruleListeners} className="flex items-center justify-center text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing">
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </span>
+                                <input
+                                  value={rule.text}
+                                  onChange={(e)=>setRule(group.id, rule.id, { text: e.target.value })}
+                                  placeholder="Clear stop defined"
+                                  className="w-full h-8 bg-transparent dark:bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 border-0 outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:border-transparent text-sm"
+                                />
+                                <button onClick={()=>removeRule(group.id, rule.id)} className="text-xs text-gray-500 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#2a2a2a]">×</button>
+                              </div>
+                              {/* Right: exactly 4 metric columns */}
+                              <div className="hidden md:grid grid-cols-4 gap-4 w-[480px] max-w-[55%] justify-items-center">
+                                {(() => {
+                                  const rid = rule.id
+                                  const m = getRuleMetrics(rid)
+                                  return (
+                                    <>
+                                      <div className="text-xs text-center text-gray-700 dark:text-gray-300">{m.followRate.toFixed(0)}%</div>
+                                      <div className={`text-xs text-center ${m.netPnL >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'}`}>{currency(m.netPnL)}</div>
+                                      <div className="text-xs text-center text-gray-700 dark:text-gray-300">{Number.isFinite(m.profitFactor) ? m.profitFactor.toFixed(2) : '∞'}</div>
+                                      <div className="text-xs text-center text-gray-700 dark:text-gray-300">{m.winRate.toFixed(0)}%</div>
+                                    </>
+                                  )
+                                })()}
+                              </div>
+                            </div>
+                            )}
+                          </SortableRule>
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+
+                  <button onClick={()=>addRule(group.id)} className="mt-2 text-xs text-[#3559E9] hover:text-[#2947d1]">+ Add rule</button>
                 </div>
-              ))}
-            </div>
-            <button onClick={()=>addRule(group.id)} className="mt-2 text-xs text-[#3559E9] hover:text-[#2947d1]">+ Add rule</button>
+                )}
+              </SortableGroup>
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }
 
+
+// Sortable wrappers
+type SortableRenderArgs = {
+  setNodeRef: (el: HTMLElement | null) => void
+  style: React.CSSProperties
+  attributes: Record<string, any>
+  listeners: Record<string, any>
+}
+
+function SortableGroup({ id, children }: { id: string; children: (args: SortableRenderArgs) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.9 : undefined
+  } as React.CSSProperties
+  return (
+    <>
+      {children({ setNodeRef, style, attributes: attributes ?? {}, listeners: listeners ?? {} })}
+    </>
+  )
+}
+
+function SortableRule({ id, children }: { id: string; children: (args: SortableRenderArgs) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.9 : undefined
+  } as React.CSSProperties
+  return (
+    <>
+      {children({ setNodeRef, style, attributes: attributes ?? {}, listeners: listeners ?? {} })}
+    </>
+  )
+}
 

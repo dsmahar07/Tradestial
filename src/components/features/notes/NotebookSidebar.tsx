@@ -39,6 +39,10 @@ interface NotebookSidebarProps {
   onUpdateFolderColor: (folderId: string, color: string) => void
   isCollapsed?: boolean
   onToggleCollapse?: () => void
+  // Tags API
+  tags?: string[]
+  selectedTag?: string | null
+  onTagSelect?: (tag: string | null) => void
 }
 
 export function NotebookSidebar({
@@ -51,7 +55,10 @@ export function NotebookSidebar({
   onReorderFolders,
   onUpdateFolderColor,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  tags = [],
+  selectedTag = null,
+  onTagSelect
 }: NotebookSidebarProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>(['folders', 'tags'])
   const [editingFolder, setEditingFolder] = useState<string | null>(null)
@@ -60,7 +67,7 @@ export function NotebookSidebar({
   const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState<string | null>(null)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const [draggedOver, setDraggedOver] = useState<number | null>(null)
-  const [tags, setTags] = useState<string[]>(['Session Recap', 'Trade Analysis', 'Market Notes', 'Strategy Review'])
+  const [showSubfolders, setShowSubfolders] = useState(true)
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -186,6 +193,8 @@ export function NotebookSidebar({
         {(expandedSections.includes('folders') || isCollapsed) && (
           <div className={cn("space-y-1", !isCollapsed && "mt-2")}>
             {folders.map((folder, index) => {
+              // Hide subfolders when collapsed under All notes
+              if (folder.id !== 'all-notes' && !showSubfolders) return null
               if (isCollapsed) {
                 // Collapsed view - show only icons with tooltips
                 return (
@@ -193,11 +202,17 @@ export function NotebookSidebar({
                     <div
                       className={cn(
                         "w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200 ease-in-out cursor-pointer relative",
-                        selectedFolder === folder.name
+                        (folder.id !== 'all-notes' && selectedFolder === folder.name)
                           ? "bg-gray-100 dark:bg-[#2A2A2A] text-gray-900 dark:text-white"
                           : "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]"
                       )}
-                      onClick={() => onFolderSelect(folder.name)}
+                      onClick={() => {
+                        if (folder.id === 'all-notes') {
+                          setShowSubfolders(prev => !prev)
+                        } else {
+                          onFolderSelect(folder.name)
+                        }
+                      }}
                     >
                       {/* Color indicator */}
                       <div 
@@ -226,7 +241,7 @@ export function NotebookSidebar({
                   onDrop={(e) => handleDrop(e, index)}
                   className={cn(
                     "w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out group relative border-l-4 cursor-pointer",
-                    selectedFolder === folder.name
+                    folder.id !== 'all-notes' && selectedFolder === folder.name
                       ? "bg-gray-100 dark:bg-[#2A2A2A] text-gray-900 dark:text-white font-medium"
                       : "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]",
                     draggedItem === index && "opacity-60 scale-95 rotate-2 shadow-xl z-50",
@@ -235,81 +250,141 @@ export function NotebookSidebar({
                   style={{
                     borderLeftColor: folder.color || '#3b82f6'
                   }}
+                  onClick={() => {
+                    if (folder.id === 'all-notes') {
+                      setShowSubfolders(prev => !prev)
+                    }
+                  }}
                 >
-                  {/* Drag handle */}
-                  {folder.id !== 'all-notes' && (
-                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-grab active:cursor-grabbing hover:scale-110">
-                      <GripVertical className="w-3 h-3 text-gray-400 hover:text-gray-600" />
-                    </div>
-                  )}
-
                   {folder.id === 'all-notes' ? (
-                    <FolderOpen className="w-4 h-4 flex-shrink-0" />
+                    <>
+                      <div className="flex items-center gap-2 flex-1">
+                        {showSubfolders ? (
+                          <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                        )}
+                        <FolderOpen className="w-4 h-4 flex-shrink-0" />
+                        {editingFolder === folder.id ? (
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onBlur={handleSaveEdit}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit()
+                              if (e.key === 'Escape') handleCancelEdit()
+                            }}
+                            className="flex-1 bg-transparent border-b border-blue-500 outline-none text-gray-900 dark:text-white"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span className="flex-1 text-left" onClick={(e) => e.stopPropagation()}>
+                            {folder.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {/* Color picker button */}
+                        <button
+                          className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowAdvancedColorPicker(folder.id)
+                          }}
+                          title="Change folder color"
+                        >
+                          <Palette className="w-3 h-3" />
+                        </button>
+
+                        {/* Edit button for All notes */}
+                        <button
+                          className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartEdit(folder)
+                          }}
+                          title="Rename folder"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </>
                   ) : (
-                    <Folder className="w-4 h-4 flex-shrink-0" />
+                    <>
+                      {/* Drag handle */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-grab active:cursor-grabbing hover:scale-110">
+                        <GripVertical className="w-3 h-3 text-gray-400 hover:text-gray-600" />
+                      </div>
+
+                      <Folder className="w-4 h-4 flex-shrink-0" />
+
+                      {editingFolder === folder.id ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={handleSaveEdit}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit()
+                            if (e.key === 'Escape') handleCancelEdit()
+                          }}
+                          className="flex-1 bg-transparent border-b border-blue-500 outline-none text-gray-900 dark:text-white"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="flex-1 text-left cursor-pointer"
+                          onClick={() => onFolderSelect(folder.name)}
+                        >
+                          {folder.name}
+                        </span>
+                      )}
+
+                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {/* Color picker button */}
+                        <button
+                          className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowAdvancedColorPicker(folder.id)
+                          }}
+                          title="Change folder color"
+                        >
+                          <Palette className="w-3 h-3" />
+                        </button>
+
+                        {/* Edit button */}
+                        {folder.name === 'My notes' && (
+                          <button
+                            className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleStartEdit(folder)
+                            }}
+                            title="Rename folder"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                        )}
+
+                        {/* Delete button */}
+                        {folder.name === 'My notes' && (
+                          <button
+                            className="h-5 w-5 rounded hover:bg-red-200 dark:hover:bg-red-900 p-0.5 transition-colors text-red-500"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDeleteFolder(folder.id, folder.name)
+                            }}
+                            title="Delete folder"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
-
-                  {editingFolder === folder.id ? (
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onBlur={handleSaveEdit}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveEdit()
-                        if (e.key === 'Escape') handleCancelEdit()
-                      }}
-                      className="flex-1 bg-transparent border-b border-blue-500 outline-none text-gray-900 dark:text-white"
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      className="flex-1 text-left cursor-pointer"
-                      onClick={() => onFolderSelect(folder.name)}
-                    >
-                      {folder.name}
-                    </span>
-                  )}
-
-                  <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {/* Color picker button */}
-                    <button
-                      className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowAdvancedColorPicker(folder.id)
-                      }}
-                      title="Change folder color"
-                    >
-                      <Palette className="w-3 h-3" />
-                    </button>
-
-                    {/* Edit button */}
-                    <button
-                      className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleStartEdit(folder)
-                      }}
-                      title="Rename folder"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </button>
-
-                    {/* Delete button */}
-                    {folder.id !== 'all-notes' && (
-                      <button
-                        className="h-5 w-5 rounded hover:bg-red-200 dark:hover:bg-red-900 p-0.5 transition-colors text-red-500"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteFolder(folder.id, folder.name)
-                        }}
-                        title="Delete folder"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
                 </div>
               )
             })}
@@ -343,49 +418,49 @@ export function NotebookSidebar({
                 </div>
               </Tooltip>
             ) : (
-              // Expanded view - show all tags
-              <>
-                {tags.map((tag, index) => (
-                  <div
-                    key={index}
-                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out group relative cursor-pointer text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+              // Expanded view - show tag chips styled like editor header tags
+              <div className="px-3 py-2">
+                {tags.length === 0 ? (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">No tags yet</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => {
+                      // Same palette as header tags in NotebookEditor
+                      const tagColors = [
+                        { bg: '#FB3748', hover: '#e12d3f' }, // Red
+                        { bg: '#1FC16B', hover: '#1ba85c' }, // Green
+                        { bg: '#F6B51E', hover: '#e0a31b' }, // Orange/Yellow
+                        { bg: '#7D52F4', hover: '#6b45e0' }, // Purple
+                        { bg: '#FB4BA3', hover: '#e73d92' }, // Pink
+                        { bg: '#3559E9', hover: '#2947d1' }  // Blue
+                      ]
+                      const colorIndex = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % tagColors.length
+                      const selectedColor = tagColors[colorIndex]
 
-                    <span className="flex-1 text-left">
-                      {tag}
-                    </span>
-
-                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      {/* Delete tag button */}
-                      <button
-                        className="h-5 w-5 rounded hover:bg-red-200 dark:hover:bg-red-900 p-0.5 transition-colors text-red-500"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setTags(prev => prev.filter((_, i) => i !== index))
-                        }}
-                        title="Delete tag"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => onTagSelect?.(selectedTag === tag ? null : tag)}
+                          className={cn(
+                            "relative inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-white border-none shadow-sm overflow-hidden group transition-colors before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none",
+                            selectedTag === tag && "outline outline-2 outline-offset-2 outline-blue-500"
+                          )}
+                          style={{ backgroundColor: selectedColor.bg }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor = selectedColor.hover
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor = selectedColor.bg
+                          }}
+                          title={selectedTag === tag ? 'Clear filter' : 'Filter by tag'}
+                        >
+                          <span className="relative z-10">{tag}</span>
+                        </button>
+                      )
+                    })}
                   </div>
-                ))}
-
-                {/* Add new tag button */}
-                <button
-                  onClick={() => {
-                    const newTag = prompt('Enter tag name:')
-                    if (newTag && newTag.trim()) {
-                      setTags(prev => [...prev, newTag.trim()])
-                    }
-                  }}
-                  className="w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#222222] border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Add tag</span>
-                </button>
-              </>
+                )}
+              </div>
             )}
           </div>
         )}

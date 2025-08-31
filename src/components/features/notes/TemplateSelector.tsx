@@ -15,7 +15,12 @@ interface TemplateSelectorProps {
   onCreateBlankNote: () => void
   onDeleteTemplate?: (template: TradeJournalingTemplate) => void
   templates?: TradeJournalingTemplate[]
-  children: React.ReactNode
+  children?: React.ReactNode
+  // Controlled dialog support
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  // If false, do not render inline trigger wrapper around children
+  useInlineTrigger?: boolean
 }
 
 const categoryIcons = {
@@ -34,8 +39,14 @@ const categoryColors = {
   custom: 'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300'
 }
 
-export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCreateBlankNote, onDeleteTemplate, templates = defaultTemplates, children }: TemplateSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCreateBlankNote, onDeleteTemplate, templates = defaultTemplates, children, open, onOpenChange, useInlineTrigger = true }: TemplateSelectorProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = typeof open === 'boolean'
+  const isOpen = isControlled ? !!open : internalOpen
+  const setOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next)
+    if (!isControlled) setInternalOpen(next)
+  }
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
@@ -54,20 +65,20 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
 
   const handleTemplateSelect = (template: TradeJournalingTemplate) => {
     onTemplateSelect(template)
-    setIsOpen(false)
+    setOpen(false)
     setSearchQuery('')
     setSelectedCategory('all')
   }
 
   const handleBlankNote = () => {
     onCreateBlankNote()
-    setIsOpen(false)
+    setOpen(false)
   }
 
   const handleQuickApply = (template: TradeJournalingTemplate) => {
     const content = generateQuickTemplateContent(template)
     onQuickApplyTemplate(template, content)
-    setIsOpen(false)
+    setOpen(false)
     setSearchQuery('')
     setSelectedCategory('all')
   }
@@ -80,10 +91,12 @@ export function TemplateSelector({ onTemplateSelect, onQuickApplyTemplate, onCre
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)}>
-        {children}
-      </div>
-      <Dialog open={isOpen} onClose={() => setIsOpen(false)}>
+      {useInlineTrigger && children ? (
+        <div onClick={() => setOpen(true)}>
+          {children}
+        </div>
+      ) : null}
+      <Dialog open={isOpen} onClose={() => setOpen(false)}>
               <DialogContent className="w-full max-w-6xl h-[85vh] overflow-hidden p-0 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-700">
         <DialogHeader className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#171717]">
           <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Choose a Template</DialogTitle>

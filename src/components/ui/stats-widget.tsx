@@ -9,6 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import { PencilIcon, SwatchIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Trade, RunningPnlPoint } from '@/services/trade-data.service'
@@ -54,6 +57,21 @@ export function StatsWidget({
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [strategies, setStrategies] = useState<Array<{ id: string; name: string }>>([])
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('')
+  const [ruleChecks, setRuleChecks] = useState<Record<string, boolean>>({})
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false)
+  const [showChecklist, setShowChecklist] = useState(false)
+  
+  // Retrieve full selected strategy object (with ruleGroups) from localStorage
+  const selectedStrategy = (() => {
+    if (typeof window === 'undefined') return null as any
+    try {
+      const raw = localStorage.getItem('tradestial:strategies')
+      const list = raw ? JSON.parse(raw) : []
+      return list.find((s: any) => String(s.id) === String(selectedStrategyId)) || null
+    } catch {
+      return null as any
+    }
+  })()
 
   useEffect(() => {
     const checkDarkMode = () => {
@@ -75,6 +93,36 @@ export function StatsWidget({
       mediaQuery.removeEventListener('change', checkDarkMode)
     }
   }, [])
+
+  // Load per-trade rule checks when trade or model changes
+  useEffect(() => {
+    if (!trade?.id) { setRuleChecks({}); return }
+    try {
+      const raw = localStorage.getItem('tradestial:trade-metadata')
+      const meta = raw ? JSON.parse(raw) : {}
+      const checks = meta?.[trade.id]?.ruleChecks || {}
+      setRuleChecks(checks)
+    } catch {
+      setRuleChecks({})
+    }
+  }, [trade?.id, selectedStrategyId])
+
+  const persistRuleCheck = (ruleId: string, checked: boolean) => {
+    if (!trade?.id) return
+    try {
+      const raw = localStorage.getItem('tradestial:trade-metadata')
+      const meta = raw ? JSON.parse(raw) : {}
+      if (!meta[trade.id]) meta[trade.id] = {}
+      const current = meta[trade.id].ruleChecks || {}
+      current[ruleId] = checked
+      meta[trade.id].ruleChecks = current
+      localStorage.setItem('tradestial:trade-metadata', JSON.stringify(meta))
+      setRuleChecks({ ...current })
+      // Also mark daily completion for this rule id
+      try { RuleTrackingService.setRuleCompletion(ruleId, checked) } catch {}
+      try { window.dispatchEvent(new CustomEvent('tradestial:trade-rules-updated')) } catch {}
+    } catch {}
+  }
 
   // Load strategies and get assigned model for current trade
   useEffect(() => {
@@ -306,7 +354,7 @@ export function StatsWidget({
 
         <div className="flex justify-between items-center py-1">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Model</span>
-          <DropdownMenu>
+          <DropdownMenu open={isModelMenuOpen} onOpenChange={(o) => { setIsModelMenuOpen(o); if (!o) setShowChecklist(false) }}>
             <DropdownMenuTrigger asChild>
               <button className="text-xs font-medium hover:underline transition-colors" style={{color: '#7F85AF'}}>
                 {(() => {
@@ -315,28 +363,17 @@ export function StatsWidget({
                 })()}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 p-1">
-              {selectedStrategyId && (
+            <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto p-1">
+              {selectedStrategyId ? (
                 <>
-                  <DropdownMenuItem
-                    className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
-                    onClick={() => {
-                      window.location.href = `/model/${selectedStrategyId}`
-                    }}
-                  >
-                    <span className="text-blue-500">🔗</span>
-                    View Model Details
-                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
                     onClick={() => {
                       if (trade && trade.id && selectedStrategyId) {
                         modelStatsService.removeTradeFromModel(trade.id, selectedStrategyId)
                         setSelectedStrategyId('')
-                        console.log(`Removed trade ${trade.id} from model`)
-                        
-                        // Notify others that model stats have been updated
-                        try { window.dispatchEvent(new Event('tradestial:model-stats-updated')) } catch {}
+                        setShowChecklist(false)
+                        window.dispatchEvent(new CustomEvent('tradestial:model-stats-updated'))
                       }
                     }}
                   >
@@ -345,33 +382,97 @@ export function StatsWidget({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </>
-              )}
+              ) : null}
+
               {strategies.length === 0 ? (
                 <div className="px-3 py-2 text-xs text-gray-500">No models found</div>
               ) : (
                 strategies.map((s) => (
-                  <DropdownMenuItem
-                    key={s.id}
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
-                    onClick={() => {
-                      if (trade && trade.id) {
-                        modelStatsService.assignTradeToModel(trade.id, s.id)
-                        setSelectedStrategyId(s.id)
-                        console.log(`Assigned trade ${trade.id} to model ${s.name}`)
-                        
-                        // Track model selection for rule completion
-                        RuleTrackingService.trackModelSelection(trade.id, s.name)
-                        
-                        // Dispatch event to notify other components
-                        window.dispatchEvent(new CustomEvent('tradestial:model-stats-updated'))
-                      }
-                    }}
-                  >
-                    <span className={`inline-block h-2 w-2 rounded-full ${selectedStrategyId===s.id?'bg-[#3559E9]':'bg-gray-300'}`} />
-                    <span className="truncate">{s.name}</span>
-                  </DropdownMenuItem>
+                  s.id === selectedStrategyId && showChecklist ? (
+                    <DropdownMenuSub key={s.id}>
+                      <DropdownMenuSubTrigger className="flex items-center gap-2 px-3 py-2 text-sm rounded-md">
+                        <span className={`inline-block h-2 w-2 rounded-full bg-[#3559E9]`} />
+                        <span className="truncate">{s.name}</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="w-72 max-h-80 overflow-y-auto">
+                        <div className="px-1 py-1">
+                          <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-2">Rules Checklist</div>
+                          {(() => {
+                            const groups = (selectedStrategy?.ruleGroups || []) as Array<{ id: string; title?: string; rules?: any[] }>
+                            if (!groups.length) {
+                              return <div className="text-xs text-gray-500 dark:text-gray-400 px-2 pb-2">No rules defined for this model</div>
+                            }
+                            return (
+                              <div className="space-y-2 px-2 pb-2">
+                                {groups.map((g) => {
+                                  const rules = Array.isArray(g?.rules) ? g.rules : []
+                                  return (
+                                    <div key={g.id || Math.random().toString(36)}>
+                                      {g?.title ? (
+                                        <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{g.title}</div>
+                                      ) : null}
+                                      <div className="space-y-1">
+                                        {rules.map((r: any, idx: number) => {
+                                          const rid = String(r?.id || `${(typeof r === 'string' ? r : (r?.text ?? ''))}`)
+                                          const label = typeof r === 'string' ? r : (r?.text ?? '')
+                                          if (!label) return null
+                                          const checked = !!ruleChecks[rid]
+                                          return (
+                                            <label key={rid || idx} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                              <input
+                                                type="checkbox"
+                                                className="mt-0.5 h-3.5 w-3.5"
+                                                checked={checked}
+                                                onChange={(e) => persistRuleCheck(rid, e.currentTarget.checked)}
+                                              />
+                                              <span className="leading-4">{label}</span>
+                                            </label>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
+                          <div className="mt-2 px-2">
+                            <button
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              onClick={() => { window.location.href = `/model/${selectedStrategyId}` }}
+                            >
+                              Open Model
+                            </button>
+                          </div>
+                        </div>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  ) : (
+                    <DropdownMenuItem
+                      key={s.id}
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
+                      onClick={(e) => {
+                        if (s.id === selectedStrategyId) {
+                          e.preventDefault()
+                          setShowChecklist(true)
+                          return
+                        }
+                        if (trade && trade.id) {
+                          modelStatsService.assignTradeToModel(trade.id, s.id)
+                          setSelectedStrategyId(s.id)
+                          setShowChecklist(true)
+                          RuleTrackingService.trackModelSelection(trade.id, s.name)
+                          window.dispatchEvent(new CustomEvent('tradestial:model-stats-updated'))
+                        }
+                      }}
+                    >
+                      <span className={`inline-block h-2 w-2 rounded-full ${s.id === selectedStrategyId ? 'bg-[#3559E9]' : 'bg-gray-300'}`} />
+                      <span className="truncate">{s.name}</span>
+                    </DropdownMenuItem>
+                  )
                 ))
               )}
+
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"

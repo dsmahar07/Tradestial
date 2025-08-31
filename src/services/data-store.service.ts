@@ -18,6 +18,7 @@ export class DataStore {
   
   // Storage key for persisting trades
   private static readonly TRADES_STORAGE_KEY = 'tradestial:trades-data'
+  private static readonly STARTING_BALANCE_KEY = 'tradestial:starting-balance'
 
   // Initialize DataStore - load persisted trades from localStorage
   private static initialize(): void {
@@ -25,11 +26,18 @@ export class DataStore {
     
     try {
       const stored = localStorage.getItem(this.TRADES_STORAGE_KEY)
+      const storedStarting = localStorage.getItem(this.STARTING_BALANCE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed)) {
           this.trades = parsed.slice(-this.MAX_TRADES) // Respect limits
           console.log(`DataStore: Loaded ${this.trades.length} trades from localStorage`)
+        }
+      }
+      if (storedStarting !== null) {
+        const n = parseFloat(storedStarting)
+        if (!isNaN(n)) {
+          this.startingBalance = n
         }
       }
     } catch (error) {
@@ -405,16 +413,25 @@ export class DataStore {
   // Set starting balance
   static async setStartingBalance(balance: number): Promise<void> {
     this.startingBalance = balance
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(this.STARTING_BALANCE_KEY, String(balance))
+      } catch (err) {
+        console.warn('DataStore: Failed to persist starting balance:', err)
+      }
+    }
     this.notifyListeners()
   }
 
   // Get starting balance
   static getStartingBalance(): number {
+    this.initialize()
     return this.startingBalance
   }
 
   // Get current account balance (starting balance + cumulative P&L)
   static getCurrentAccountBalance(): number {
+    this.initialize()
     const cumulativePnL = this.trades.reduce((sum, trade) => sum + trade.netPnl, 0)
     return this.startingBalance + cumulativePnL
   }
@@ -427,6 +444,7 @@ export class DataStore {
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem(this.TRADES_STORAGE_KEY)
+        localStorage.removeItem(this.STARTING_BALANCE_KEY)
       } catch (error) {
         console.warn('DataStore: Failed to clear persisted trades:', error)
       }

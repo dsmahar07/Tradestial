@@ -9,11 +9,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AdvancedColorPicker } from '@/components/ui/advanced-color-picker'
-import { TemplateSelector } from './TemplateSelector'
-import { SimpleTemplateEditor } from './SimpleTemplateEditor'
-import { TradeJournalingTemplate } from '@/lib/templates'
-import { TemplateInstance } from '@/types/templates'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Note } from '@/app/notes/page'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
@@ -44,35 +39,29 @@ const noteColors = [
 
 interface NotebookMiddlePanelProps {
   selectedFolder: string
+  selectedTag?: string | null
   selectedNote: Note | null
   notes: Note[]
   onNoteSelect: (note: Note) => void
   onCreateNote: () => void
-  onCreateNoteFromTemplate: (template: any, templateInstance: any, generatedContent: string) => void
-  onQuickApplyTemplate: (template: any, content: string) => void
-  onDeleteTemplate?: (template: any) => void
   onDeleteNote: (id: string, noteTitle: string) => void
   onUpdateNote: (id: string, content: string, title?: string, color?: string) => void
   onReorderNotes: (startIndex: number, endIndex: number) => void
   onDeleteAllNotes?: () => void
-  templates?: TradeJournalingTemplate[]
   onToggleCollapse?: () => void
 }
 
 export function NotebookMiddlePanel({ 
   selectedFolder, 
+  selectedTag = null,
   selectedNote, 
   notes, 
   onNoteSelect, 
   onCreateNote,
-  onCreateNoteFromTemplate,
-  onQuickApplyTemplate,  
   onDeleteNote,
   onUpdateNote,
   onReorderNotes,
   onDeleteAllNotes,
-  onDeleteTemplate,
-  templates,
   onToggleCollapse
 }: NotebookMiddlePanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -80,8 +69,6 @@ export function NotebookMiddlePanel({
   const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState<string | null>(null)
   const [draggedNote, setDraggedNote] = useState<number | null>(null)
   const [draggedOverNote, setDraggedOverNote] = useState<number | null>(null)
-  const [selectedTemplate, setSelectedTemplate] = useState<TradeJournalingTemplate | null>(null)
-  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
 
   // Drag and drop handlers for notes
   const handleNoteDragStart = (e: React.DragEvent, index: number) => {
@@ -111,41 +98,6 @@ export function NotebookMiddlePanel({
     setDraggedOverNote(null)
   }
 
-  // Template handlers
-  const handleTemplateSelect = (template: TradeJournalingTemplate) => {
-    setSelectedTemplate(template)
-    setShowTemplateEditor(true)
-  }
-
-  const handleTemplateEditorSave = (content: string) => {
-    if (selectedTemplate) {
-      // Create a simple template instance for the new flow
-      const templateInstance = {
-        templateId: selectedTemplate.id,
-        fieldValues: {},
-        customFields: []
-      }
-      onCreateNoteFromTemplate(selectedTemplate, templateInstance, content)
-    }
-    setShowTemplateEditor(false)
-    setSelectedTemplate(null)
-  }
-
-  const handleDeleteTemplate = (template: TradeJournalingTemplate) => {
-    if (onDeleteTemplate) {
-      onDeleteTemplate(template)
-    }
-  }
-
-  const handleTemplateEditorCancel = () => {
-    setShowTemplateEditor(false)
-    setSelectedTemplate(null)
-  }
-
-  const handleQuickApplyTemplate = (template: TradeJournalingTemplate, content: string) => {
-    onQuickApplyTemplate(template, content)
-  }
-
   // Close color picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -161,10 +113,11 @@ export function NotebookMiddlePanel({
   }, [showColorPicker])
 
   const filteredNotes = notes.filter(note => {
-    const matchesFolder = selectedFolder === 'All notes' || note.folder === selectedFolder
+    const matchesTag = !selectedTag || note.tags?.includes(selectedTag)
+    const matchesFolder = selectedTag ? true : (selectedFolder === 'All notes' || note.folder === selectedFolder)
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          note.content.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesFolder && matchesSearch
+    return matchesTag && matchesFolder && matchesSearch
   })
 
   const formatDate = (dateString: string) => {
@@ -188,20 +141,13 @@ export function NotebookMiddlePanel({
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          
-                  <TemplateSelector
-          onTemplateSelect={handleTemplateSelect}
-          onQuickApplyTemplate={handleQuickApplyTemplate}
-          onCreateBlankNote={onCreateNote}
-          onDeleteTemplate={handleDeleteTemplate}
-          templates={templates}
-        >
-            <Button className="bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 border-none shadow-sm transition-all duration-200 font-medium px-4 py-2 rounded-lg">
-              <Plus className="w-4 h-4 mr-2" />
-              <span>New note</span>
-            </Button>
-          </TemplateSelector>
-          
+          <Button
+            onClick={onCreateNote}
+            className="bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 border-none shadow-sm transition-all duration-200 font-medium px-4 py-2 rounded-lg"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            <span>New note</span>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2A2A2A] rounded-md transition-colors">
@@ -403,19 +349,6 @@ export function NotebookMiddlePanel({
         currentColor={showAdvancedColorPicker ? filteredNotes.find(n => n.id === showAdvancedColorPicker)?.color : undefined}
         title="Choose note color"
       />
-
-      {/* Template Editor Dialog */}
-      <Dialog open={showTemplateEditor} onClose={() => setShowTemplateEditor(false)}>
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden p-0">
-          {selectedTemplate && (
-            <SimpleTemplateEditor
-              template={selectedTemplate}
-              onSave={handleTemplateEditorSave}
-              onCancel={handleTemplateEditorCancel}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

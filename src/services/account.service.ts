@@ -77,9 +77,25 @@ class AccountService {
       
       if (activeStored) {
         this.activeAccountId = activeStored
+        // Sync active account data to DataStore on initialization
+        this.syncActiveAccountToDataStore()
       }
     } catch (error) {
       console.warn('AccountService: Failed to load from storage:', error)
+    }
+  }
+
+  private async syncActiveAccountToDataStore(): Promise<void> {
+    if (!this.activeAccountId) return
+    
+    const activeAccount = this.accounts.get(this.activeAccountId)
+    if (!activeAccount) return
+    
+    try {
+      await DataStore.replaceTrades(activeAccount.trades)
+      await DataStore.setStartingBalance(activeAccount.balance.starting)
+    } catch (error) {
+      console.warn('AccountService: Failed to sync active account to DataStore:', error)
     }
   }
 
@@ -248,6 +264,23 @@ class AccountService {
     }
 
     this.accounts.set(id, updatedAccount)
+
+    // Keep DataStore in sync if the active account is being modified
+    try {
+      if (this.activeAccountId === id) {
+        // If trades changed, mirror trades to DataStore
+        if (updates.trades) {
+          await DataStore.replaceTrades(updatedAccount.trades)
+        }
+        // If starting balance changed, mirror to DataStore
+        if (updates.balance && typeof updates.balance.starting === 'number') {
+          await DataStore.setStartingBalance(updatedAccount.balance.starting)
+        }
+      }
+    } catch (err) {
+      console.warn('AccountService: Failed to sync DataStore with active account update:', err)
+    }
+
     this.saveToStorage()
     this.notifyListeners()
     return true

@@ -26,10 +26,17 @@ import {
   FileText,
   Trash2,
   ChevronDown,
-  Calendar
+  Calendar,
+  Plus,
+  X,
+  Save,
+  MoreVertical
 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { Button } from '@/components/ui/button'
+import { TemplateSelector } from '@/components/features/notes/TemplateSelector'
+import { SimpleTemplateEditor } from '@/components/features/notes/SimpleTemplateEditor'
+import { DateRangePicker } from '@/components/ui/DateRangePicker'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,10 +44,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Note } from '@/app/notes/page'
+import type { TradeJournalingTemplate } from '@/lib/templates'
+import type { TemplateInstance } from '@/types/templates'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { cn } from '@/lib/utils'
+import { encodeNoteToToken } from '@/lib/note-share'
+import { DataStore } from '@/services/data-store.service'
+import { accountService } from '@/services/account.service'
 
 interface NotebookEditorProps {
   note: Note | null
@@ -48,30 +61,231 @@ interface NotebookEditorProps {
   onDeleteNote?: (id: string, noteTitle: string) => void
   useDatePicker?: boolean
   onDateChange?: (selectedDate: Date) => void
+  useRangePicker?: boolean
+  onRangeChange?: (startDate: Date, endDate: Date) => void
+  // When using Sessions Recap, parent can pass the active range so sharing has stats even if user didn't open picker here
+  rangeFrom?: Date
+  rangeTo?: Date
   hideNetPnl?: boolean
   headerStats?: React.ReactNode
   netPnlValue?: number
   netPnlIsProfit?: boolean
+  // Template creation props (optional)
+  onCreateNote?: () => void
+  onCreateNoteFromTemplate?: (template: TradeJournalingTemplate, templateInstance: TemplateInstance, generatedContent: string) => void
+  onQuickApplyTemplate?: (template: TradeJournalingTemplate, content: string) => void
+  onDeleteTemplate?: (template: TradeJournalingTemplate) => void
+  templates?: TradeJournalingTemplate[]
 }
 
-export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker = false, onDateChange, hideNetPnl = false, headerStats, netPnlValue, netPnlIsProfit }: NotebookEditorProps) {
+export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker = false, onDateChange, useRangePicker = false, onRangeChange, rangeFrom, rangeTo, hideNetPnl = false, headerStats, netPnlValue, netPnlIsProfit, onCreateNote, onCreateNoteFromTemplate, onQuickApplyTemplate, onDeleteTemplate, templates }: NotebookEditorProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [tempTitle, setTempTitle] = useState('')
   const [content, setContent] = useState('')
   const [showStats, setShowStats] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string>('')
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showRangePicker, setShowRangePicker] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  // Template editor state
+  const [selectedTemplate, setSelectedTemplate] = useState<TradeJournalingTemplate | null>(null)
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+
+  // Clipboard helper to avoid runtime errors in non-secure/unsupported contexts
+  const safeCopyToClipboard = useCallback(async (text: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && (window as any).isSecureContext !== false) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {
+      // fall back to execCommand
+    }
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      return ok
+    } catch {
+      return false
+    }
+  }, [])
 
   const handleTitleEdit = () => {
     if (note) {
-      if (useDatePicker) {
+      if (useRangePicker) {
+        setShowRangePicker(!showRangePicker)
+        setShowDatePicker(false)
+      } else if (useDatePicker) {
         setShowDatePicker(!showDatePicker)
+        setShowRangePicker(false)
       } else {
         setTempTitle(note.title)
         setIsEditingTitle(true)
       }
     }
+  }
+
+  // Compute tradingData snapshot for sharing when the note doesn't already have it.
+  // Supports both single-day and range (Sessions Recap) contexts.
+  const computeTradingDataForShare = useCallback((n: Note | null) => {
+    if (!n) return undefined
+    if (n.tradingData) return n.tradingData
+    // If we're in Sessions Recap and have a selected range, compute range stats
+    if (useRangePicker) {
+      const start = dateRange.from || rangeFrom
+      const end = dateRange.to || rangeTo
+      if (start && end) {
+        const trades = DataStore.getTradesByDateRange(start, end)
+      if (!Array.isArray(trades) || trades.length === 0) return undefined
+
+      const totalTrades = trades.length
+      const winners = trades.filter((t: any) => t.netPnl > 0).length
+      const losers = trades.filter((t: any) => t.netPnl < 0).length
+      const winrate = totalTrades > 0 ? `${Math.round((winners / totalTrades) * 100)}%` : '0%'
+      const grossPnl = trades.reduce((s: number, t: any) => s + (t.grossPnl ?? t.netPnl ?? 0), 0)
+      const commissions = trades.reduce((s: number, t: any) => s + (t.commissions ?? 0), 0)
+      const volume = trades.reduce((s: number, t: any) => s + (t.contractsTraded ?? 0), 0)
+      const avgWin = winners > 0 ? trades.filter((t: any) => t.netPnl > 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0) / winners : 0
+      const avgLoss = losers > 0 ? Math.abs(trades.filter((t: any) => t.netPnl < 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0)) / losers : 0
+      const profitFactor = avgLoss > 0 ? +(avgWin / avgLoss).toFixed(2) : 0
+
+      const points = trades
+        .map((t: any) => ({
+          time: (t.entryTime || t.openTime || t.closeTime || '16:00')?.slice(0, 5),
+          pnl: t.netPnl ?? 0,
+        }))
+        .sort((a: any, b: any) => a.time.localeCompare(b.time))
+
+      let running = 0
+      const chartData = points.map((p: any) => {
+        running += p.pnl
+        return { time: p.time, value: Math.round(running) }
+      })
+
+      const netPnl = Math.round(trades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0))
+
+      const fmt = (d: Date) => {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${dd}`
+      }
+
+      return {
+        netPnl,
+        isProfit: netPnl >= 0,
+        stats: {
+          totalTrades,
+          winners,
+          losers,
+          winrate,
+          grossPnl: Math.round(grossPnl),
+          volume,
+          commissions: Math.round(commissions),
+          profitFactor,
+        },
+        chartData,
+        trades,
+        date: `${fmt(start)}..${fmt(end)}`,
+      }
+      }
+    }
+
+    // Otherwise, infer a single journal day in a robust way
+    let day: Date | null = null
+    const parsedFromTitle = Date.parse(n.title || '')
+    if (!isNaN(parsedFromTitle)) {
+      day = new Date(parsedFromTitle)
+    } else if (n.createdAt) {
+      const parsedCreated = Date.parse(String(n.createdAt))
+      if (!isNaN(parsedCreated)) day = new Date(parsedCreated)
+    } else if (n.updatedAt) {
+      const parsedUpdated = Date.parse(String(n.updatedAt))
+      if (!isNaN(parsedUpdated)) day = new Date(parsedUpdated)
+    }
+    if (!day) return undefined
+    const trades = DataStore.getTradesByDateRange(day, day)
+    if (!Array.isArray(trades) || trades.length === 0) return undefined
+
+    const totalTrades = trades.length
+    const winners = trades.filter((t: any) => t.netPnl > 0).length
+    const losers = trades.filter((t: any) => t.netPnl < 0).length
+    const winrate = totalTrades > 0 ? `${Math.round((winners / totalTrades) * 100)}%` : '0%'
+    const grossPnl = trades.reduce((s: number, t: any) => s + (t.grossPnl ?? t.netPnl ?? 0), 0)
+    const commissions = trades.reduce((s: number, t: any) => s + (t.commissions ?? 0), 0)
+    const volume = trades.reduce((s: number, t: any) => s + (t.contractsTraded ?? 0), 0)
+    const avgWin = winners > 0 ? trades.filter((t: any) => t.netPnl > 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0) / winners : 0
+    const avgLoss = losers > 0 ? Math.abs(trades.filter((t: any) => t.netPnl < 0).reduce((s: number, t: any) => s + (t.netPnl ?? 0), 0)) / losers : 0
+    const profitFactor = avgLoss > 0 ? +(avgWin / avgLoss).toFixed(2) : 0
+
+    const points = trades
+      .map((t: any) => ({
+        time: (t.entryTime || t.openTime || t.closeTime || '16:00')?.slice(0, 5),
+        pnl: t.netPnl ?? 0,
+      }))
+      .sort((a: any, b: any) => a.time.localeCompare(b.time))
+
+    let running = 0
+    const chartData = points.map((p: any) => {
+      running += p.pnl
+      return { time: p.time, value: Math.round(running) }
+    })
+
+    const netPnl = Math.round(trades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0))
+    const y = day.getFullYear()
+    const m = String(day.getMonth() + 1).padStart(2, '0')
+    const d = String(day.getDate()).padStart(2, '0')
+
+    return {
+      netPnl,
+      isProfit: netPnl >= 0,
+      stats: {
+        totalTrades,
+        winners,
+        losers,
+        winrate,
+        grossPnl: Math.round(grossPnl),
+        volume,
+        commissions: Math.round(commissions),
+        profitFactor,
+      },
+      chartData,
+      trades,
+      date: `${y}-${m}-${d}`,
+    }
+  }, [])
+
+  const handleTemplateSelect = (template: TradeJournalingTemplate) => {
+    setSelectedTemplate(template)
+    setShowTemplateEditor(true)
+  }
+
+  const handleTemplateEditorSave = (content: string) => {
+    if (selectedTemplate && onCreateNoteFromTemplate) {
+      const templateInstance: TemplateInstance = {
+        templateId: selectedTemplate.id,
+        fieldValues: {},
+        customFields: [],
+      }
+      onCreateNoteFromTemplate(selectedTemplate, templateInstance, content)
+    }
+    setShowTemplateEditor(false)
+    setSelectedTemplate(null)
+  }
+
+  const handleTemplateEditorCancel = () => {
+    setShowTemplateEditor(false)
+    setSelectedTemplate(null)
   }
 
   const handleDateSelect = (selectedDate: Date) => {
@@ -88,6 +302,16 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         onUpdateNote?.(note.id, note.content, formattedDate)
       }
       setShowDatePicker(false)
+    }
+  }
+
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({ from: undefined, to: undefined })
+
+  const handleRangeChange = (range: { from: Date | undefined; to: Date | undefined }) => {
+    if (range.from && range.to && onRangeChange) {
+      onRangeChange(range.from, range.to)
+      setDateRange(range)
+      setShowRangePicker(false)
     }
   }
 
@@ -603,7 +827,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   }
 
   return (
-    <div className="flex-1 bg-white dark:bg-[#171717] flex flex-col">
+    <div className="flex-1 min-h-0 min-w-0 bg-white dark:bg-[#171717] flex flex-col">
       {/* Trading Journal Header */}
       <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#171717]">
         {/* Top Header with Date and Actions */}
@@ -702,6 +926,26 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                     </div>
                   </>
                 )}
+
+                {/* Range Picker - using Radix UI component */}
+                {showRangePicker && useRangePicker && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowRangePicker(false)}
+                    />
+                    {/* Range Picker Container */}
+                    <div className="absolute top-full left-0 mt-2 z-20">
+                      <DateRangePicker
+                        value={dateRange}
+                        onValueChange={handleRangeChange}
+                        placeholder="Select date range"
+                        className="w-auto"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -778,18 +1022,40 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#171717] border-gray-200 dark:border-[#404040]">
+                {templates && templates.length > 0 && (
+                  <DropdownMenuItem onClick={() => setShowTemplatePicker(true)}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Create from template
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className="text-blue-600 dark:text-blue-400 dark:hover:bg-[#2A2A2A]"
                   onClick={() => {
                     if (note) {
-                      navigator.share?.({
+                      // Ensure latest edits are persisted
+                      onUpdateNote?.(note.id, content)
+                      const active = accountService.getActiveAccount()
+                      const sharerName = active?.name || 'Anonymous'
+                      const initials = sharerName
+                        .split(/\s+/)
+                        .map(s => s[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()
+                      const token = encodeNoteToToken({
                         title: note.title,
-                        text: note.content,
-                        url: window.location.href
-                      }).catch(() => {
-                        navigator.clipboard.writeText(`${note.title}\n\n${note.content}`)
-                        console.log('Note copied to clipboard!')
+                        content: content,
+                        tags: note.tags,
+                        tradingData: (note as any).tradingData || computeTradingDataForShare(note),
+                        color: note.color,
+                        createdAt: note.createdAt,
+                        updatedAt: note.updatedAt,
+                        sharedBy: { name: sharerName, initials },
                       })
+                      const url = `${window.location.origin}/notes/share/${token}`
+                      setShareUrl(url)
+                      setShowShareModal(true)
                     }
                   }}
                 >
@@ -799,9 +1065,30 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 <DropdownMenuItem
                   onClick={() => {
                     if (note) {
-                      const url = `${window.location.origin}/notes/${note.id}`
-                      navigator.clipboard.writeText(url)
-                      console.log('Link copied to clipboard!')
+                      // Ensure latest edits are persisted
+                      onUpdateNote?.(note.id, content)
+                      const active = accountService.getActiveAccount()
+                      const sharerName = active?.name || 'Anonymous'
+                      const initials = sharerName
+                        .split(/\s+/)
+                        .map(s => s[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()
+                      const token = encodeNoteToToken({
+                        title: note.title,
+                        content: content,
+                        tags: note.tags,
+                        tradingData: (note as any).tradingData || computeTradingDataForShare(note),
+                        color: note.color,
+                        createdAt: typeof (note as any).createdAt === 'string' ? (note as any).createdAt : new Date((note as any).createdAt).toISOString(),
+                        updatedAt: typeof (note as any).updatedAt === 'string' ? (note as any).updatedAt : new Date((note as any).updatedAt).toISOString(),
+                        sharedBy: { name: sharerName, initials },
+                      })
+                      const url = `${window.location.origin}/notes/share/${token}`
+                      safeCopyToClipboard(url)
+                      console.log('View-only link copied to clipboard!')
                     }
                   }}
                 >
@@ -820,7 +1107,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                             <h1>${note.title}</h1>
                             <p>Created: ${new Date(note.createdAt).toLocaleString()}</p>
                             <hr/>
-                            <div>${note.content}</div>
+                            <div>${content}</div>
                           </body>
                         </html>
                       `)
@@ -838,7 +1125,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                       const lexicalData = JSON.stringify({
                         id: note.id,
                         title: note.title,
-                        content: note.content,
+                        content: content,
                         createdAt: note.createdAt,
                         updatedAt: note.updatedAt,
                         folder: note.folder,
@@ -1430,7 +1717,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 p-4 overflow-y-auto bg-white dark:bg-[#171717] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-white dark:bg-[#171717] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:dark:bg-gray-600 [&::-webkit-scrollbar-thumb]:rounded-full">
         {!note ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-500 dark:text-gray-400">
@@ -1439,7 +1726,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             </div>
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative h-full">
             <div
               ref={editorRef}
               contentEditable={!!note}
@@ -1448,7 +1735,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 "text-gray-900 dark:text-white",
                 "focus:ring-0 focus:outline-none",
                 "prose prose-gray dark:prose-invert max-w-none",
-                "overflow-auto break-words whitespace-pre-wrap",
+                "break-words whitespace-pre-wrap",
                 // Ensure emoji images display inline properly
                 "[&_img[alt]]:inline-block [&_img[alt]]:align-text-bottom [&_img[alt]]:w-5 [&_img[alt]]:h-5 [&_img[alt]]:mx-0.5"
               )}
@@ -1481,25 +1768,79 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
               onPaste={handleEditorPaste}
               onBlur={handleEditorBlur}
               onClick={handleEditorClick}
-
             />
-            {!note && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <p className="text-gray-400 dark:text-gray-500">
-                  Select a note to start editing
-                </p>
-              </div>
-            )}
             {note && (!content || content === '<p><br></p>' || content === '<p>Start typing...</p>' || content.trim() === '') && !isEditing && (
               <div className="absolute inset-0 pointer-events-none flex items-start justify-start">
-                <p className="text-gray-400 dark:text-gray-500 text-base">
-                  Enter some text...
-                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-base">Enter some text...</p>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Template Selector (controlled, rendered outside dropdown) */}
+      {templates && templates.length > 0 && (
+        <TemplateSelector
+          open={showTemplatePicker}
+          onOpenChange={setShowTemplatePicker}
+          useInlineTrigger={false}
+          onTemplateSelect={handleTemplateSelect}
+          onQuickApplyTemplate={(t, content) => onQuickApplyTemplate?.(t, content)}
+          onCreateBlankNote={() => onCreateNote?.()}
+          onDeleteTemplate={onDeleteTemplate}
+          templates={templates}
+        />
+      )}
+
+      {/* Template Editor Dialog */}
+      {selectedTemplate && (
+        <Dialog open={showTemplateEditor} onClose={handleTemplateEditorCancel}>
+          <DialogContent className="max-w-2xl p-0 bg-white dark:bg-[#171717]">
+            <SimpleTemplateEditor
+              template={selectedTemplate}
+              onCancel={handleTemplateEditorCancel}
+              onSave={handleTemplateEditorSave}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Share Dialog */}
+      <Dialog open={showShareModal} onClose={() => setShowShareModal(false)}>
+        <DialogContent className="max-w-lg bg-white dark:bg-[#171717]">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Share note</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Anyone with this link can view this note. Editing is disabled.</p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={shareUrl}
+                className="flex-1 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-[#404040] bg-white dark:bg-[#1E1E1E] text-gray-900 dark:text-white"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (shareUrl) safeCopyToClipboard(shareUrl)
+                }}
+              >
+                Copy
+              </Button>
+              <Button
+                onClick={() => {
+                  if (shareUrl) window.open(shareUrl, '_blank')
+                }}
+              >
+                Open
+              </Button>
+            </div>
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={() => setShowShareModal(false)}>Close</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Bottom status bar removed to let the editor use the full area */}
     </div>

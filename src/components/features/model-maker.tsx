@@ -179,7 +179,18 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       return
     }
     
-    // Create the strategy object in the format expected by ModelModelsTable
+    // Normalize rule groups to the format expected by the main rules page
+    const normalizedRuleGroups = (formData.ruleGroups || []).map(g => ({
+      id: g.id,
+      title: g.title || '',
+      rules: (g.rules || [])
+        .map(r => (typeof r === 'string' ? r : String(r)))
+        .map(r => r.trim())
+        .filter(r => r.length > 0)
+        .map(r => ({ id: `rule_${Date.now()}_${Math.random().toString(36).slice(2)}`, text: r, frequency: 'Always' as const }))
+    }))
+
+    // Create the strategy object in the structured format
     const strategy = {
       id: `strategy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: formData.name.trim(),
@@ -188,7 +199,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       image: formData.image,
       updatedAt: Date.now(),
       description: formData.description.trim(),
-      ruleGroups: formData.ruleGroups
+      ruleGroups: normalizedRuleGroups
     }
 
     try {

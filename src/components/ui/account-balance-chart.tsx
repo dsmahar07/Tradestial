@@ -87,8 +87,26 @@ export function AccountBalanceChart({
       }
       
       if (trades.length === 0) {
-        setHasData(false)
-        setChartData([])
+        // Show a minimal baseline so the chart reflects starting balance changes
+        const today = new Date()
+        const yesterday = new Date(today)
+        yesterday.setDate(today.getDate() - 1)
+
+        const baseline: AccountBalanceData[] = [
+          {
+            date: formatDisplayTime(yesterday.toISOString().split('T')[0], { timezone: getDisplayTimezone() }).split(' ')[0],
+            accountBalance: startingBalance,
+            startingBalance: startingBalance,
+          },
+          {
+            date: formatDisplayTime(today.toISOString().split('T')[0], { timezone: getDisplayTimezone() }).split(' ')[0],
+            accountBalance: startingBalance,
+            startingBalance: startingBalance,
+          }
+        ]
+
+        setHasData(true)
+        setChartData(baseline)
         return
       }
 
@@ -131,11 +149,14 @@ export function AccountBalanceChart({
 
     loadAccountBalanceData()
 
-    const unsubscribe = accountId 
-      ? accountService.subscribe(loadAccountBalanceData)
-      : DataStore.subscribe(loadAccountBalanceData);
-      
-    return unsubscribe
+    // Subscribe to both sources to be robust: account-level and global datastore
+    const unsubAccount = accountService.subscribe(loadAccountBalanceData)
+    const unsubDataStore = DataStore.subscribe(loadAccountBalanceData)
+    
+    return () => {
+      unsubAccount()
+      unsubDataStore()
+    }
   }, [accountId])
 
   const actualData = data || chartData
@@ -149,45 +170,31 @@ export function AccountBalanceChart({
     return `$${value.toLocaleString()}`
   }
 
-  // Compute dynamic Y-axis ticks across both series (accountBalance & startingBalance)
-  const yTicks = useMemo(() => {
-    if (!actualData || actualData.length === 0) return [0]
+  // Compute dynamic Y-axis domain with padding; let Recharts pick nice ticks
+  const yDomain = useMemo(() => {
+    if (!actualData || actualData.length === 0) {
+      return { min: 0, max: 1 }
+    }
     const values: number[] = []
     for (const d of actualData) {
       if (typeof d.accountBalance === 'number' && isFinite(d.accountBalance)) values.push(d.accountBalance)
       if (typeof d.startingBalance === 'number' && isFinite(d.startingBalance)) values.push(d.startingBalance)
     }
-    if (values.length === 0) return [0]
+    if (values.length === 0) return { min: 0, max: 1 }
 
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-
-    // Guard single-value or flat series
+    let min = Math.min(...values)
+    let max = Math.max(...values)
     if (min === max) {
-      const pad = Math.max(1, Math.abs(min) * 0.1)
-      return [min - 2 * pad, min - pad, min, min + pad, min + 2 * pad]
+      const pad = Math.max(Math.abs(min) * 0.1, 1000)
+      min -= pad
+      max += pad
+    } else {
+      const range = max - min
+      const pad = Math.max(range * 0.08, 500) // at least $500 pad
+      min -= pad
+      max += pad
     }
-
-    // Nice step calculation for ~6 segments
-    const range = max - min
-    const rawStep = range / 6
-    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))))
-    const niceStep = Math.ceil(rawStep / magnitude) * magnitude
-
-    // Expand to nice bounds
-    const niceMin = Math.floor(min / niceStep) * niceStep
-    const niceMax = Math.ceil(max / niceStep) * niceStep
-
-    const ticks: number[] = []
-    for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
-      // Round to avoid floating point precision issues that can cause fractional pixel positioning
-      const roundedTick = Math.round(Number(v.toFixed(10)))
-      // Avoid duplicate ticks that would cause overlapping grid lines
-      if (!ticks.includes(roundedTick)) {
-        ticks.push(roundedTick)
-      }
-    }
-    return ticks
+    return { min, max }
   }, [actualData])
 
   // Use raw data so deposits line sits on $0 until the spike
@@ -214,6 +221,14 @@ export function AccountBalanceChart({
       </div>
     )
   }
+
+  // Exact baseline reference (ensures a dashed line aligns with Starting Balance)
+  const baselineY = useMemo(() => {
+    if (!actualData || actualData.length === 0) return undefined
+    const first = actualData[0]
+    const sb = typeof first.startingBalance === 'number' ? first.startingBalance : undefined
+    return Number.isFinite(sb) ? (sb as number) : undefined
+  }, [actualData])
 
   return (
     <motion.div 
@@ -255,8 +270,8 @@ export function AccountBalanceChart({
                 data={actualData}
                 margin={{ top: 20, right: 5, left: -5, bottom: 20 }}
               >
-                {/* Disable default grid entirely */}
-                <CartesianGrid stroke="none" vertical={false} horizontal={false} />
+                {/* Clean horizontal grid lines; no verticals */}
+                <CartesianGrid stroke="var(--grid)" vertical={false} horizontal={true} strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
                   stroke="#9ca3af"
@@ -277,8 +292,8 @@ export function AccountBalanceChart({
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatCurrency}
-                  domain={[Math.min(...yTicks), Math.max(...yTicks)]}
-                  ticks={yTicks}
+                  domain={[yDomain.min, yDomain.max]}
+                  tickCount={6}
                   tick={{ 
                     fontSize: 11, 
                     fill: '#9ca3af'
@@ -287,17 +302,15 @@ export function AccountBalanceChart({
                   scale="linear"
                   allowDecimals={false}
                 />
-                {/* Draw horizontal grid lines exactly at labeled ticks */}
-                {yTicks.map((t) => (
+                {baselineY !== undefined && (
                   <ReferenceLine
-                    key={`grid-${t}`}
-                    y={t}
+                    y={baselineY}
                     stroke="var(--grid)"
                     strokeDasharray="3 3"
                     strokeWidth={1}
                     ifOverflow="visible"
                   />
-                ))}
+                )}
                 <Tooltip content={<CustomTooltip />} cursor={false} />
                 {/* Violet line: Account Balance (starting balance + cumulative P&L) */}
                 <Line
