@@ -253,7 +253,7 @@ export function SymbolPerformanceChart() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
+              margin={{ top: 20, right: 5, left: 2, bottom: 60 }}
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 

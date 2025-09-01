@@ -337,11 +337,11 @@ export function CumulativePnlBar() {
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
         {/* Bar Chart */}
-        <div className="h-72">
+        <div className="h-[405px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 5, left: -10, bottom: 5 }}
+              margin={{ top: 20, right: 5, left: 2, bottom: 60 }}
             >
               {/* Disable default grid entirely */}
               <CartesianGrid stroke="none" vertical={false} horizontal={false} />
@@ -359,6 +359,7 @@ export function CumulativePnlBar() {
                 className="dark:fill-gray-400"
                 height={25}
                 tickMargin={5}
+                interval="preserveStartEnd"
               />
               <YAxis
                 stroke="#6b7280"

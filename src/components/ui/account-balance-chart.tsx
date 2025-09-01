@@ -249,11 +249,11 @@ export function AccountBalanceChart({
           </div>
         
         {/* Chart Container */}
-          <div className="h-[320px] w-full">
+          <div className="h-[320px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={actualData}
-                margin={{ top: 20, right: 5, left: -10, bottom: 10 }}
+                margin={{ top: 20, right: 5, left: 2, bottom: 10 }}
               >
                 <CartesianGrid stroke="none" vertical={false} horizontal={false} />
                 <XAxis 
