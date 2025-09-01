@@ -109,12 +109,12 @@ export function TradeStats({ trade }: TradeStatsProps) {
             <div className="text-gray-500 dark:text-gray-400">Model</div>
             <div className="font-medium">{trade.model}</div>
 
-            <div className="text-gray-500 dark:text-gray-400">Zella Scale</div>
+            <div className="text-gray-500 dark:text-gray-400">Stial Scale</div>
             <div className="flex items-center space-x-2">
               <div className="h-1.5 bg-green-200 dark:bg-green-900/40 rounded w-full relative">
                 <div
                   className="absolute -top-1.5 h-4 w-1 rounded bg-green-600"
-                  style={{ left: `${trade.zellaScale}%` }}
+                  style={{ left: `${trade.stialScale}%` }}
                 />
               </div>
             </div>

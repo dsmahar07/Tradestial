@@ -482,7 +482,7 @@ export function StatsWidget({
           </DropdownMenu>
         </div>
 
-        {/* Zella Scale */}
+        {/* Stial Scale */}
         <div className="flex justify-between items-center py-1 group relative">
           <span className="font-semibold" style={{color: '#7F85AF'}}>Scale</span>
           <div className="relative h-2 w-24 bg-gray-200 dark:bg-neutral-800 rounded-full cursor-pointer">

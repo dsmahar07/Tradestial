@@ -1150,17 +1150,17 @@ export function DailyJournalContent() {
                               )}
                               {visibleColumns['scale'] && (
                                 <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[100px]">
-                                  {trade.zellaScale !== undefined && trade.zellaScale !== null ? (
+                                  {trade.stialScale !== undefined && trade.stialScale !== null ? (
                                     <div className="flex justify-center">
                                       <div className="relative h-2 w-16 bg-gray-200 dark:bg-neutral-800 rounded-full">
                                         <div 
                                           className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E]"
-                                          style={{ width: `${Math.max(0, Math.min(100, (trade.zellaScale / 5) * 100))}%` }}
+                                          style={{ width: `${Math.max(0, Math.min(100, (trade.stialScale / 5) * 100))}%` }}
                                         ></div>
                                         <span
                                           className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
                                           style={{ 
-                                            left: `${Math.max(1, Math.min(99, (trade.zellaScale / 5) * 100))}%`,
+                                            left: `${Math.max(1, Math.min(99, (trade.stialScale / 5) * 100))}%`,
                                             borderColor: '#693EE0'
                                           }}
                                         />

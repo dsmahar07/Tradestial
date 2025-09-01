@@ -552,7 +552,7 @@ export class DataParserService {
 
       // Additional metadata
       expirationDate: tradeData.expirationDate || undefined,
-      zellaScale: isNaN(parseFloat(tradeData.zellaScale)) ? undefined : toNum(tradeData.zellaScale),
+      stialScale: isNaN(parseFloat(tradeData.stialScale)) ? undefined : toNum(tradeData.stialScale),
       tradeRating: isNaN(parseFloat(tradeData.tradeRating)) ? undefined : toNum(tradeData.tradeRating)
     }
 

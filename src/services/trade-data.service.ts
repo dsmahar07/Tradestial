@@ -19,8 +19,8 @@ export interface Trade {
   adjustedCost?: number
   mae?: number // Maximum Adverse Excursion
   mfe?: number // Maximum Favorable Excursion
-  zellaInsights?: string
-  zellaScale?: number
+  stialInsights?: string
+  stialScale?: number
   side?: 'LONG' | 'SHORT'
   points?: number
   ticks?: number

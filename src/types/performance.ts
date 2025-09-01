@@ -65,7 +65,7 @@ export interface PerformanceMetrics {
   largestLosingDay: MetricValue
   avgTradingDaysDuration: MetricValue
   largestProfitableDay: MetricValue
-  zellaScale: {
+  stialScale: {
     current: number
     max: number
     color: 'red' | 'yellow' | 'green'

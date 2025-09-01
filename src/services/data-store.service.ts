@@ -380,7 +380,7 @@ export class DataStore {
       longestTradeDuration: { value: this.calculateLongestTradeDuration(trades) },
       avgPlannedRMultiple: { value: metrics.avgPlannedRMultiple, formatted: `${metrics.avgPlannedRMultiple.toFixed(2)}R` },
       avgRealizedRMultiple: { value: metrics.avgRealizedRMultiple, formatted: `${metrics.avgRealizedRMultiple.toFixed(2)}R` },
-      zellaScale: { current: 7.5, max: 10, color: 'green' as const } // Placeholder
+      stialScale: { current: 7.5, max: 10, color: 'green' as const } // Placeholder
     }
   }
 
@@ -787,7 +787,7 @@ export class DataStore {
       longestTradeDuration: { value: 0 },
       avgPlannedRMultiple: { value: 0, formatted: '0R' },
       avgRealizedRMultiple: { value: 0, formatted: '0R' },
-      zellaScale: { current: 0, max: 10, color: 'red' as const }
+      stialScale: { current: 0, max: 10, color: 'red' as const }
     }
   }
   

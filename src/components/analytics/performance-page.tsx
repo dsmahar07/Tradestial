@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { PerformanceChart } from './performance-chart'
 import { MetricGrid } from './metric-card'
-import { ZellaScale } from './zella-scale'
+import { StialScale } from './stial-scale'
 import { PerformanceTabs } from './performance-tabs'
 import { PerformanceTab, PerformanceData } from '@/types/performance'
 import { useAnalytics, useChartData } from '@/hooks/use-analytics'
@@ -34,7 +34,7 @@ const emptyPerformanceData: PerformanceData = {
     largestLosingDay: { value: 0, isPositive: false },
     avgTradingDaysDuration: { value: 0, formatted: '0m' },
     largestProfitableDay: { value: 0, isPositive: true },
-    zellaScale: { current: 0, max: 10, color: 'red' },
+    stialScale: { current: 0, max: 10, color: 'red' },
     longsWinRate: { value: 0, isPositive: true },
     largestProfitableTrade: { value: 0, isPositive: true },
     largestLosingTrade: { value: 0, isPositive: false },
@@ -122,8 +122,8 @@ export function PerformancePage({ data }: PerformancePageProps) {
     const totalVolume = trades.reduce((sum, trade) => sum + (trade.contractsTraded || 1), 0)
     const avgDailyVolume = dailyPnLArray.length > 0 ? totalVolume / dailyPnLArray.length : 0
 
-    // Calculate Zella Score (simplified)
-    const zellaScore = Math.min(10, Math.max(0, 
+    // Calculate Stial Score (simplified)
+    const stialScore = Math.min(10, Math.max(0, 
       (winRate / 10) + (profitFactor) + (totalNetPnL / 10000)
     ))
 
@@ -158,7 +158,7 @@ export function PerformancePage({ data }: PerformancePageProps) {
         largestLosingDay: { value: Math.min(...dailyPnLArray.map(d => d.value)), isPositive: false },
         avgTradingDaysDuration: { value: 0, formatted: '0m' },
         largestProfitableDay: { value: Math.max(...dailyPnLArray.map(d => d.value)), isPositive: true },
-        zellaScale: { current: zellaScore, max: 10, color: zellaScore > 6 ? 'green' : zellaScore > 3 ? 'yellow' : 'red' },
+        stialScale: { current: stialScore, max: 10, color: stialScore > 6 ? 'green' : stialScore > 3 ? 'yellow' : 'red' },
         longsWinRate: { value: longsWinRate, isPositive: longsWinRate >= 50 },
         largestProfitableTrade: { value: largestWin, isPositive: true },
         largestLosingTrade: { value: largestLoss, isPositive: false },
@@ -592,7 +592,7 @@ export function PerformancePage({ data }: PerformancePageProps) {
     }
   }
 
-  const showZellaScale = () => activeTab === 'Days' || activeTab === 'Trades'
+  const showStialScale = () => activeTab === 'Days' || activeTab === 'Trades'
 
   if (loading) {
     return (
@@ -652,7 +652,7 @@ export function PerformancePage({ data }: PerformancePageProps) {
       <MetricGrid 
         metrics={getCurrentMetrics()} 
         columns={getMetricColumns()}
-        zellaScale={showZellaScale() ? actualData.metrics.zellaScale : undefined}
+        stialScale={showStialScale() ? actualData.metrics.stialScale : undefined}
       />
     </div>
   )

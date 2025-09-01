@@ -3,7 +3,7 @@
 import { HelpCircle, ExternalLink } from 'lucide-react'
 import { MetricValue } from '@/types/performance'
 import { Card, CardContent } from '@/components/ui/card'
-import { ZellaScale } from './zella-scale'
+import { StialScale } from './stial-scale'
 import { cn } from '@/lib/utils'
 
 interface MetricCardProps {
@@ -133,27 +133,27 @@ interface MetricGridProps {
   }>
   columns?: number
   className?: string
-  zellaScale?: {
+  stialScale?: {
     current: number
     max: number
     color: 'red' | 'yellow' | 'green'
   }
 }
 
-export function MetricGrid({ metrics, columns = 4, className, zellaScale }: MetricGridProps) {
+export function MetricGrid({ metrics, columns = 4, className, stialScale }: MetricGridProps) {
   return (
     <Card className={cn("border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
       <CardContent className="p-6">
         <div className={cn(
-          zellaScale ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : "",
-          !zellaScale && columns === 2 && "grid grid-cols-1 md:grid-cols-2 gap-6",
-          !zellaScale && columns === 3 && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6", 
-          !zellaScale && columns === 4 && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
-          !zellaScale && columns === 5 && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
+          stialScale ? "grid grid-cols-1 lg:grid-cols-4 gap-6" : "",
+          !stialScale && columns === 2 && "grid grid-cols-1 md:grid-cols-2 gap-6",
+          !stialScale && columns === 3 && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6", 
+          !stialScale && columns === 4 && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
+          !stialScale && columns === 5 && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
         )}>
           {/* Metrics Grid */}
           <div className={cn(
-            zellaScale ? "lg:col-span-3" : "col-span-full",
+            stialScale ? "lg:col-span-3" : "col-span-full",
             "grid gap-6",
             columns === 2 && "grid-cols-1 md:grid-cols-2",
             columns === 3 && "grid-cols-1 md:grid-cols-2 lg:grid-cols-3", 
@@ -171,13 +171,13 @@ export function MetricGrid({ metrics, columns = 4, className, zellaScale }: Metr
             ))}
           </div>
           
-          {/* Zella Scale */}
-          {zellaScale && (
+          {/* Stial Scale */}
+          {stialScale && (
             <div className="lg:col-span-1 flex items-center">
-              <ZellaScale 
-                current={zellaScale.current}
-                max={zellaScale.max}
-                color={zellaScale.color}
+              <StialScale 
+                current={stialScale.current}
+                max={stialScale.max}
+                color={stialScale.color}
                 className="w-full"
               />
             </div>
