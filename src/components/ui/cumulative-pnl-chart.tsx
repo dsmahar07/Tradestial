@@ -271,7 +271,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-[385px] flex items-center justify-center">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-[432px] flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400 text-center">
           <div>Loading cumulative P&L…</div>
         </div>
@@ -281,7 +281,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
 
   if (!chartData.length) {
     return (
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 h-[385px] text-gray-900 dark:text-white">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 h-[432px] text-gray-900 dark:text-white">
         {/* Header (title visible, dropdown hidden) */}
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
@@ -302,7 +302,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
   }
 
   return (
-    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
@@ -313,7 +313,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
 
       {/* Chart */}
       <div 
-        className="h-[300px] -ml-6 overflow-visible w-full" 
+        className="h-[405px] -ml-6 overflow-visible w-full" 
         style={{ width: 'calc(100% + 24px)' }}
         role="img"
         aria-label={`Cumulative P&L chart showing ${chartData.length} data points over ${timeFilter === 'all' ? 'all time' : timeFilter === 'month' ? 'the last month' : 'the last week'}`}
@@ -321,7 +321,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 20, right: 5, left: -10, bottom: 20 }}
+            margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
           >
             <defs>
               {/* Green gradient for positive areas */}
@@ -361,13 +361,11 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
                 const v = typeof value === 'number' ? value : Number(value)
                 const d = chartData.find(pt => pt.index === v)
                 const label = d?.time || ''
-                // Since we now provide custom ticks (excluding baseline), this should always be non-empty
                 return label
               }}
               interval="preserveStartEnd"
               tickCount={6}
               minTickGap={20}
-              // Only place ticks where we have labels to avoid unlabeled grid positions
               ticks={xTicks}
             />
             <YAxis

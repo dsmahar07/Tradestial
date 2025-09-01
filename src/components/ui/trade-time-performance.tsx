@@ -146,7 +146,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
         transition={{ duration: 0.5, delay: 1.8 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Trade time performance
@@ -156,7 +156,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
           {/* Header Divider */}
           <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           
-          <div className="h-[320px] flex items-center justify-center">
+          <div className="h-[405px] flex items-center justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No time performance data</div>
               <div className="text-sm mt-1">Import your CSV with exit times to see trading patterns</div>
@@ -219,7 +219,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
       transition={{ duration: 0.5, delay: 1.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Trade time performance
@@ -230,10 +230,10 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         
         
-        <div className="h-[320px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
+        <div className="h-[405px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart
-              margin={{ top: 20, right: 5, left: -10, bottom: 25 }}
+              margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
             >
               <XAxis 
                 type="number"

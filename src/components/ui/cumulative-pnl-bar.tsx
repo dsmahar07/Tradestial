@@ -40,19 +40,31 @@ const generatePnlDataFromTrades = (trades: Trade[]): PnlPeriod[] => {
   const data: PnlPeriod[] = []
   const dailyTradeMap = new Map<string, { pnl: number; trades: number }>()
   
-  // Group trades by day
-  trades.forEach(trade => {
-    const tradeDate = new Date(trade.closeDate || trade.openDate)
-    const dateKey = tradeDate.toDateString()
+  // Group trades by date (using close date consistently for P&L realization timing)
+  const tradesByDate = trades.reduce((acc, trade) => {
+    // Use closeDate consistently for P&L realization timing
+    let dateToUse = trade.closeDate
+    if (!dateToUse || dateToUse.trim() === '') {
+      dateToUse = trade.openDate
+      if (!dateToUse || dateToUse.trim() === '') return acc
+    }
     
-    const existing = dailyTradeMap.get(dateKey) || { pnl: 0, trades: 0 }
-    existing.pnl += trade.netPnl
-    existing.trades += 1
-    dailyTradeMap.set(dateKey, existing)
+    const dateKey = dateToUse.split('T')[0] // Extract date part
+    if (!acc[dateKey]) {
+      acc[dateKey] = []
+    }
+    acc[dateKey].push(trade)
+    return acc
+  }, {} as Record<string, Trade[]>)
+
+  // Populate dailyTradeMap with P&L data
+  Object.entries(tradesByDate).forEach(([dateKey, dayTrades]) => {
+    const dailyPnl = dayTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
+    dailyTradeMap.set(dateKey, { pnl: dailyPnl, trades: dayTrades.length })
   })
-  
+
   // Get all trading days and sort them
-  const tradingDays = Array.from(dailyTradeMap.keys())
+  const tradingDays = Array.from(Object.keys(tradesByDate))
     .map(dateKey => new Date(dateKey))
     .sort((a, b) => a.getTime() - b.getTime())
   
@@ -63,19 +75,21 @@ const generatePnlDataFromTrades = (trades: Trade[]): PnlPeriod[] => {
   
   // Calculate cumulative P&L for recent days
   recentDays.forEach(date => {
-    const dateKey = date.toDateString()
-    const dayData = dailyTradeMap.get(dateKey)!
+    const dateKey = date.toISOString().split('T')[0] // Use YYYY-MM-DD format
+    const dayData = dailyTradeMap.get(dateKey)
     
-    cumulativePnl += dayData.pnl
-    
-    data.push({
-      period: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      name: date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
-      cumulativePnl: Math.round(cumulativePnl),
-      dailyPnl: Math.round(dayData.pnl),
-      trades: dayData.trades,
-      color: cumulativePnl >= 0 ? '#10b981' : '#ef4444'
-    })
+    if (dayData) {
+      cumulativePnl += dayData.pnl
+      
+      data.push({
+        period: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        name: date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+        cumulativePnl: Math.round(cumulativePnl),
+        dailyPnl: Math.round(dayData.pnl),
+        trades: dayData.trades,
+        color: cumulativePnl >= 0 ? '#10b981' : '#ef4444'
+      })
+    }
   })
   
   return data
@@ -193,7 +207,7 @@ export function CumulativePnlBar() {
         transition={{ duration: 0.5, delay: 1.2 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Cumulative P&L
@@ -260,7 +274,7 @@ export function CumulativePnlBar() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div>

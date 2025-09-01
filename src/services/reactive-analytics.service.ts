@@ -1089,18 +1089,18 @@ export class ReactiveAnalyticsService {
 
     const totalTrades = trades.length
     const netCumulativePnl = trades.reduce((sum, trade) => sum + trade.netPnl, 0)
-    const winningTrades = trades.filter(trade => trade.status === 'WIN').length
-    const losingTrades = trades.filter(trade => trade.status === 'LOSS').length
+    // Use P&L for consistent win/loss determination (more reliable than status field)
+    const winTrades = trades.filter(trade => trade.netPnl > 0)
+    const lossTrades = trades.filter(trade => trade.netPnl < 0)
+    const winningTrades = winTrades.length
+    const losingTrades = lossTrades.length
     const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
-
-    const winTrades = trades.filter(trade => trade.status === 'WIN')
-    const lossTrades = trades.filter(trade => trade.status === 'LOSS')
     const totalWinAmount = winTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
     const totalLossAmount = Math.abs(lossTrades.reduce((sum, trade) => sum + trade.netPnl, 0))
 
     const avgWinAmount = winningTrades > 0 ? totalWinAmount / winningTrades : 0
     const avgLossAmount = losingTrades > 0 ? totalLossAmount / losingTrades : 0
-    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : 0
+    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : (totalWinAmount > 0 ? Infinity : 0)
 
     const grossPnl = trades.reduce((sum, trade) => sum + (trade.grossPnl || trade.netPnl), 0)
     const totalCommissions = trades.reduce((sum, trade) => sum + (trade.commissions || 0), 0)
@@ -1115,38 +1115,58 @@ export class ReactiveAnalyticsService {
     let consecutiveWins = 0
     let consecutiveLosses = 0
     trades.forEach(t => {
-      if (t.status === 'WIN') {
+      if (t.netPnl > 0) {
         currentWinStreak++
         currentLossStreak = 0
         if (currentWinStreak > consecutiveWins) consecutiveWins = currentWinStreak
-      } else {
+      } else if (t.netPnl < 0) {
         currentLossStreak++
         currentWinStreak = 0
         if (currentLossStreak > consecutiveLosses) consecutiveLosses = currentLossStreak
       }
+      // Breakeven trades (netPnl === 0) don't break streaks
     })
 
-    // Drawdown
+    // Drawdown (percentage-based)
     let runningPnl = 0
     let peak = 0
-    let maxDrawdown = 0
+    let maxDrawdownPercent = 0
     trades.forEach(trade => {
       runningPnl += trade.netPnl
-      peak = Math.max(peak, runningPnl)
-      const dd = peak - runningPnl
-      maxDrawdown = Math.max(maxDrawdown, dd)
+      if (runningPnl > peak) {
+        peak = runningPnl
+      }
+      // Calculate percentage drawdown from peak
+      if (peak > 0) {
+        const drawdownPercent = ((peak - runningPnl) / peak) * 100
+        maxDrawdownPercent = Math.max(maxDrawdownPercent, drawdownPercent)
+      }
     })
+    const maxDrawdown = maxDrawdownPercent
 
-    const avgTradeDuration = 0
-    const sharpeRatio = 0
     const profitabilityIndex = winRate / 100
     const riskRewardRatio = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
     const expectancy = (winRate / 100) * avgWinAmount - ((100 - winRate) / 100) * avgLossAmount
+    const sharpeRatio = this.calculateSharpeRatio(trades)
+    const avgTradeDuration = 0 // TODO: Implement trade duration calculation
 
     // R-Multiple metrics using per-trade metadata
-    const getTradeMetadata = (tradeId: string) => TradeMetadataService.getTradeMetadata(tradeId)
-    const rMultipleMetrics = calculateRMultipleMetrics(trades, getTradeMetadata)
-    const rMultipleExpectancyData = calculateRMultipleExpectancy(trades, getTradeMetadata)
+    const rMultipleMetrics = calculateRMultipleMetrics(trades, (tradeId: string) => {
+      const trade = trades.find(t => t.id === tradeId)
+      if (!trade) return null
+      return {
+        stopLoss: trade.stopLoss?.toString(),
+        profitTarget: trade.profitTarget?.toString()
+      }
+    })
+    const rMultipleExpectancyData = calculateRMultipleExpectancy(trades, (tradeId: string) => {
+      const trade = trades.find(t => t.id === tradeId)
+      if (!trade) return null
+      return {
+        stopLoss: trade.stopLoss?.toString(),
+        profitTarget: trade.profitTarget?.toString()
+      }
+    })
 
     return {
       totalTrades,
@@ -1363,14 +1383,57 @@ export class ReactiveAnalyticsService {
     return out
   }
 
+  private calculateSharpeRatio(trades: Trade[]): number {
+    if (trades.length < 2) return 0
+    
+    // Group trades by date to get daily returns
+    const dailyReturns: Record<string, number> = {}
+    
+    trades.forEach(trade => {
+      // Use closeDate for P&L realization timing
+      let dateToUse = trade.closeDate
+      if (!dateToUse || dateToUse.trim() === '') {
+        dateToUse = trade.openDate
+        if (!dateToUse || dateToUse.trim() === '') return
+      }
+      
+      const date = dateToUse.split('T')[0]
+      if (!date) return
+      
+      dailyReturns[date] = (dailyReturns[date] || 0) + trade.netPnl
+    })
+    
+    const returns = Object.values(dailyReturns)
+    if (returns.length < 2) return 0
+    
+    // Calculate mean return
+    const meanReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length
+    
+    // Calculate standard deviation of returns
+    const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - meanReturn, 2), 0) / (returns.length - 1)
+    const stdDev = Math.sqrt(variance)
+    
+    if (stdDev === 0) return 0
+    
+    // Sharpe ratio = (mean return - risk-free rate) / std dev
+    // Assuming risk-free rate = 0 for simplicity
+    // Annualize by multiplying by sqrt(252) for daily returns
+    return (meanReturn / stdDev) * Math.sqrt(252)
+  }
+
   private calculateDailyPnLData(trades: Trade[]): Array<{ date: string; pnl: number }> {
     const dailyGroups: Record<string, number> = {}
     
     for (const trade of trades) {
-      // Prefer closeDate for realized PnL timing; fallback to openDate
-      const iso = (trade.closeDate || trade.openDate || '').trim()
-      if (!iso) continue
-      const date = iso.split('T')[0]
+      // Use closeDate consistently for P&L realization timing
+      // Only fallback to openDate if closeDate is missing (should be rare)
+      let dateToUse = trade.closeDate
+      if (!dateToUse || dateToUse.trim() === '') {
+        dateToUse = trade.openDate
+        if (!dateToUse || dateToUse.trim() === '') continue
+      }
+      
+      const date = dateToUse.split('T')[0]
       if (!date) continue
       dailyGroups[date] = (dailyGroups[date] || 0) + trade.netPnl
     }
@@ -1385,18 +1448,22 @@ export class ReactiveAnalyticsService {
     const sorted = [...trades]
       .filter(t => (t.closeDate || t.openDate))
       .sort((a, b) => {
-        const aIso = (a.closeDate || a.openDate) as string
-        const bIso = (b.closeDate || b.openDate) as string
-        return aIso.localeCompare(bIso)
+        // Consistent date logic: prefer closeDate for chronological order
+        const aDate = a.closeDate || a.openDate
+        const bDate = b.closeDate || b.openDate
+        return aDate.localeCompare(bDate)
       })
 
     let cumulative = 0
     const out: Array<{ date: string; cumulative: number }> = []
     for (const t of sorted) {
       cumulative += t.netPnl
-      const iso = (t.closeDate || t.openDate) as string
-      // Use just date portion if ISO-like, else fallback to full string
-      const date = iso.includes('T') ? iso.split('T')[0] : iso
+      // Use closeDate consistently for P&L realization timing
+      let dateToUse = t.closeDate
+      if (!dateToUse || dateToUse.trim() === '') {
+        dateToUse = t.openDate
+      }
+      const date = dateToUse.includes('T') ? dateToUse.split('T')[0] : dateToUse
       out.push({ date, cumulative })
     }
     return out

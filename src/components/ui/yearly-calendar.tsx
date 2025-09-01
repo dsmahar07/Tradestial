@@ -135,8 +135,9 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                             <Info className="w-4 h-4 text-gray-400" />
                         </div>
                     </div>
+                    <div className="border-b border-gray-200 dark:border-gray-800 mt-4"></div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="pt-4">
                     <div className="h-32 flex items-center justify-center">
                         <div className="text-gray-500 dark:text-gray-400 text-center">
                             <div>No yearly trading data</div>
@@ -225,9 +226,11 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                         </div>
                     </div>
                 </div>
+                {/* Header Divider */}
+                <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mt-4"></div>
             </CardHeader>
 
-            <CardContent className="pt-0">
+            <CardContent className="pt-4">
                 <div className="space-y-4">
                     {/* Calendar Grid */}
                     <div className="grid gap-2 text-sm" style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}>

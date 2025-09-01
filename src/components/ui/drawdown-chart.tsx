@@ -155,7 +155,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
         transition={{ duration: 0.5, delay: 1.6 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -165,7 +165,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
             </div>
           </div>
           <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
-          <div className="h-[300px] flex items-center justify-center">
+          <div className="h-[405px] -ml-6 overflow-visible w-full justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No drawdown data available</div>
               <div className="text-sm mt-1">Import your CSV to see drawdown analysis</div>
@@ -183,7 +183,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
       transition={{ duration: 0.5, delay: 1.6 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -193,11 +193,11 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
           </div>
         </div>
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
-        <div className="h-[300px] w-full outline-none focus:outline-none">
+        <div className="h-[405px] -ml-6 overflow-visible w-full outline-none focus:outline-none" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%" className="focus:outline-none [&>*]:focus:outline-none">
             <ComposedChart
               data={drawdownData}
-              margin={{ top: 20, right: 5, left: -15, bottom: 25 }}
+              margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
             >
               {yTicks.map((y) => (
                 <ReferenceLine
@@ -230,6 +230,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 className="dark:fill-gray-400"
                 height={25}
                 tickMargin={5}
+                interval="preserveStartEnd"
                 tickFormatter={(value, index) => {
                   // Show MM/DD from the corresponding datum's formattedDate
                   // Recharts passes value as the x (index); use index to access data array safely
@@ -238,7 +239,6 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                   const parts = d.formattedDate.split('/')
                   return `${parts[0]}/${parts[1]}`
                 }}
-                interval="preserveStartEnd"
               />
               
               <YAxis 

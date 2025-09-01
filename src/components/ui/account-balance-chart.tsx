@@ -28,6 +28,7 @@ interface AccountBalanceData {
   date: string
   accountBalance: number // Starting balance + cumulative P&L (violet line)
   startingBalance: number // Constant starting balance (red line)
+  index?: number // Index for X-axis positioning
 }
 
 interface AccountBalanceChartProps {
@@ -60,7 +61,7 @@ export function AccountBalanceChart({
   data,
   title = "Account balance",
   timeRanges = defaultTimeRanges,
-  height = 385
+  height = 432
 }: AccountBalanceChartProps) {
   const [selectedTimeRange, setSelectedTimeRange] = useState('ALL')
   const [chartData, setChartData] = useState<AccountBalanceData[]>(data || [])
@@ -87,26 +88,8 @@ export function AccountBalanceChart({
       }
       
       if (trades.length === 0) {
-        // Show a minimal baseline so the chart reflects starting balance changes
-        const today = new Date()
-        const yesterday = new Date(today)
-        yesterday.setDate(today.getDate() - 1)
-
-        const baseline: AccountBalanceData[] = [
-          {
-            date: formatDisplayTime(yesterday.toISOString().split('T')[0], { timezone: getDisplayTimezone() }).split(' ')[0],
-            accountBalance: startingBalance,
-            startingBalance: startingBalance,
-          },
-          {
-            date: formatDisplayTime(today.toISOString().split('T')[0], { timezone: getDisplayTimezone() }).split(' ')[0],
-            accountBalance: startingBalance,
-            startingBalance: startingBalance,
-          }
-        ]
-
         setHasData(true)
-        setChartData(baseline)
+        setChartData(defaultData)
         return
       }
 
@@ -232,7 +215,7 @@ export function AccountBalanceChart({
 
   return (
     <motion.div 
-      className={`bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-gray-100 relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626] ${className}`}
+      className={`bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-gray-100 relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626] overflow-hidden ${className}`}
       style={{ height: `${height}px` }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -266,17 +249,13 @@ export function AccountBalanceChart({
           </div>
         
         {/* Chart Container */}
-          <div
-            className="h-[280px] overflow-visible w-full"
-            style={{ marginLeft: -20, width: 'calc(100% + 20px)' }}
-          >
+          <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={actualData}
-                margin={{ top: 20, right: 5, left: -5, bottom: 20 }}
+                margin={{ top: 20, right: 5, left: -10, bottom: 10 }}
               >
-                {/* Clean horizontal grid lines; no verticals */}
-                <CartesianGrid stroke="var(--grid)" vertical={false} horizontal={true} strokeDasharray="3 3" />
+                <CartesianGrid stroke="none" vertical={false} horizontal={false} />
                 <XAxis 
                   dataKey="date" 
                   stroke="#9ca3af"
@@ -291,19 +270,19 @@ export function AccountBalanceChart({
                   className="dark:fill-gray-400"
                   height={25}
                   tickMargin={5}
+                  interval="preserveStartEnd"
                 />
-                <YAxis 
-                  stroke="#6b7280"
-                  tickLine={false}
+                <YAxis
                   axisLine={false}
-                  tickFormatter={formatCurrency}
-                  domain={[yDomain.min, yDomain.max]}
-                  tickCount={6}
+                  tickLine={false}
                   tick={{ 
                     fontSize: 11, 
                     fill: '#9ca3af'
                   }}
                   className="dark:fill-gray-400"
+                  tickFormatter={formatCurrency}
+                  domain={[yDomain.min, yDomain.max]}
+                  tickCount={6}
                   scale="linear"
                   allowDecimals={false}
                 />

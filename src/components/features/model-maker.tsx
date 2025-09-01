@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { modelStatsService } from '@/services/model-stats.service'
-import { getImportedTrades } from '@/components/modals/ImportTradesModal'
+import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Button } from '@/components/ui/button'
-import { X, TrendingUp, Plus, Minus, Upload, Smile } from 'lucide-react'
+import { X, Plus, Minus, Upload } from 'lucide-react'
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react'
 
 interface ModelMakerProps {
@@ -29,7 +27,6 @@ const getInitialFormData = () => ({
   ruleGroups: [] as RuleGroup[]
 })
 
-const emojis = ['📈', '📊', '💰', '🎯', '⚡', '🚀', '💎', '🔥', '⭐', '🏆', '📋', '🎲', '🎪', '🎨', '🌟', '💡', '🔔', '🎵', '🌈', '🌙']
 
 export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps) {
   const [formData, setFormData] = useState(getInitialFormData)
@@ -61,6 +58,16 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // Basic validation
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert('Image size must be less than 5MB')
+        return
+      }
+      
       const reader = new FileReader()
       reader.onload = (e) => {
         const result = e.target?.result as string
@@ -175,8 +182,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
     e.preventDefault()
     
     if (!formData.name.trim()) {
-      alert('Please enter a model name')
-      return
+      return // HTML5 validation will handle this
     }
     
     // Normalize rule groups to the format expected by the main rules page
@@ -203,9 +209,15 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
     }
 
     try {
-      // Get existing strategies from localStorage
-      const existingStrategiesRaw = localStorage.getItem('tradestial:strategies')
-      const existingStrategies = existingStrategiesRaw ? JSON.parse(existingStrategiesRaw) : []
+      // Get existing strategies from localStorage with safe parsing
+      let existingStrategies = []
+      try {
+        const existingStrategiesRaw = localStorage.getItem('tradestial:strategies')
+        existingStrategies = existingStrategiesRaw ? JSON.parse(existingStrategiesRaw) : []
+      } catch (parseError) {
+        console.warn('Failed to parse existing strategies, starting fresh:', parseError)
+        existingStrategies = []
+      }
       
       // Add new strategy to the beginning of the list
       const updatedStrategies = [strategy, ...existingStrategies]
@@ -218,8 +230,9 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       // Reset form data for next use
       setFormData(getInitialFormData())
       
-      // Notify parent component and close
+      // Notify parent component and close modal
       onModelCreated?.()
+      onClose()
     } catch (error) {
       console.error('Failed to save strategy:', error)
       alert('Failed to create model. Please try again.')
@@ -332,8 +345,9 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
           <form id="model-form" onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Model Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Model Name *</label>
+              <label htmlFor="model-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Model Name *</label>
               <input
+                id="model-name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter your model name (e.g., ICT 2024 Strategy)"
@@ -344,8 +358,9 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+              <label htmlFor="model-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
               <textarea
+                id="model-description"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe your trading model and methodology (optional)"

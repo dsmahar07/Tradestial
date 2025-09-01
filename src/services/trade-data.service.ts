@@ -214,20 +214,19 @@ export class TradeDataService {
 
     const totalTrades = sortedTrades.length
     const netCumulativePnl = sortedTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
-    const winningTrades = sortedTrades.filter(trade => trade.status === 'WIN').length
-    const losingTrades = sortedTrades.filter(trade => trade.status === 'LOSS').length
+    // Use P&L for consistent win/loss determination (more reliable than status field)
+    const winTrades = sortedTrades.filter(trade => trade.netPnl > 0)
+    const lossTrades = sortedTrades.filter(trade => trade.netPnl < 0)
+    const winningTrades = winTrades.length
+    const losingTrades = lossTrades.length
     const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
-    
-    // Calculate average win and loss amounts
-    const winTrades = sortedTrades.filter(trade => trade.status === 'WIN')
-    const lossTrades = sortedTrades.filter(trade => trade.status === 'LOSS')
     
     const totalWinAmount = winTrades.reduce((sum, trade) => sum + trade.netPnl, 0)
     const totalLossAmount = Math.abs(lossTrades.reduce((sum, trade) => sum + trade.netPnl, 0))
     
     const avgWinAmount = winningTrades > 0 ? totalWinAmount / winningTrades : 0
     const avgLossAmount = losingTrades > 0 ? totalLossAmount / losingTrades : 0
-    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : 0
+    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : (totalWinAmount > 0 ? Infinity : 0)
 
     // Calculate additional metrics
     const grossPnl = sortedTrades.reduce((sum, trade) => sum + (trade.grossPnl || trade.netPnl), 0)
@@ -246,31 +245,39 @@ export class TradeDataService {
     let maxLossStreak = 0
 
     sortedTrades.forEach(trade => {
-      if (trade.status === 'WIN') {
+      if (trade.netPnl > 0) {
         currentWinStreak++
         currentLossStreak = 0
         maxWinStreak = Math.max(maxWinStreak, currentWinStreak)
-      } else {
+      } else if (trade.netPnl < 0) {
         currentLossStreak++
         currentWinStreak = 0
         maxLossStreak = Math.max(maxLossStreak, currentLossStreak)
       }
+      // Breakeven trades (netPnl === 0) don't break streaks
     })
 
     consecutiveWins = maxWinStreak
     consecutiveLosses = maxLossStreak
 
-    // Calculate drawdown
+    // Calculate drawdown (percentage-based)
     let runningPnl = 0
     let peak = 0
-    let maxDrawdown = 0
+    let maxDrawdownPercent = 0
 
     sortedTrades.forEach(trade => {
       runningPnl += trade.netPnl
-      peak = Math.max(peak, runningPnl)
-      const drawdown = peak - runningPnl
-      maxDrawdown = Math.max(maxDrawdown, drawdown)
+      if (runningPnl > peak) {
+        peak = runningPnl
+      }
+      // Calculate percentage drawdown from peak
+      if (peak > 0) {
+        const drawdownPercent = ((peak - runningPnl) / peak) * 100
+        maxDrawdownPercent = Math.max(maxDrawdownPercent, drawdownPercent)
+      }
     })
+
+    const maxDrawdown = maxDrawdownPercent
 
     // Simple calculations for remaining metrics
     // Average trade duration in MINUTES, computed per trade using entry/exit times and dates
@@ -283,7 +290,8 @@ export class TradeDataService {
     const avgTradeDuration = durationMinutes.length > 0
       ? durationMinutes.reduce((s, v) => s + v, 0) / durationMinutes.length
       : 0
-    const sharpeRatio = 0 // Would need daily returns and risk-free rate
+    // Calculate Sharpe ratio using daily returns
+    const sharpeRatio = this.calculateSharpeRatio(sortedTrades)
     const profitabilityIndex = winRate / 100
     const riskRewardRatio = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
     const expectancy = (winRate / 100) * avgWinAmount - ((100 - winRate) / 100) * avgLossAmount
@@ -331,8 +339,45 @@ export class TradeDataService {
     })
   }
 
-  // Sort trades
-  static sortTrades(trades: Trade[], sortBy: 'date' | 'pnl' | 'symbol' | 'rating', order: 'asc' | 'desc' = 'desc'): Trade[] {
+  private static calculateSharpeRatio(trades: Trade[]): number {
+    if (trades.length < 2) return 0
+    
+    // Group trades by date to get daily returns
+    const dailyReturns: Record<string, number> = {}
+    
+    trades.forEach(trade => {
+      // Use closeDate for P&L realization timing
+      let dateToUse = trade.closeDate
+      if (!dateToUse || dateToUse.trim() === '') {
+        dateToUse = trade.openDate
+        if (!dateToUse || dateToUse.trim() === '') return
+      }
+      
+      const date = dateToUse.split('T')[0]
+      if (!date) return
+      
+      dailyReturns[date] = (dailyReturns[date] || 0) + trade.netPnl
+    })
+    
+    const returns = Object.values(dailyReturns)
+    if (returns.length < 2) return 0
+    
+    // Calculate mean return
+    const meanReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length
+    
+    // Calculate standard deviation of returns
+    const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - meanReturn, 2), 0) / (returns.length - 1)
+    const stdDev = Math.sqrt(variance)
+    
+    if (stdDev === 0) return 0
+    
+    // Sharpe ratio = (mean return - risk-free rate) / std dev
+    // Assuming risk-free rate = 0 for simplicity
+    // Annualize by multiplying by sqrt(252) for daily returns
+    return (meanReturn / stdDev) * Math.sqrt(252)
+  }
+
+  static sortTrades(trades: Trade[], sortBy: string, sortOrder: 'asc' | 'desc'): Trade[] {
     return [...trades].sort((a, b) => {
       let comparison = 0
       
@@ -351,7 +396,7 @@ export class TradeDataService {
           break
       }
       
-      return order === 'asc' ? comparison : -comparison
+      return sortOrder === 'asc' ? comparison : -comparison
     })
   }
 }

@@ -220,7 +220,7 @@ export class DataStore {
     
     const avgWinAmount = winningTrades > 0 ? totalWinAmount / winningTrades : 0
     const avgLossAmount = losingTrades > 0 ? totalLossAmount / losingTrades : 0
-    const profitFactor = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
+    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : (totalWinAmount > 0 ? Infinity : 0)
 
     // Additional metrics to satisfy TradeMetrics
     const grossPnl = tradesToAnalyze.reduce((sum, trade) => sum + (trade.grossPnl || trade.netPnl), 0)
@@ -243,8 +243,14 @@ export class DataStore {
     let running = 0, peak = 0, maxDrawdown = 0
     tradesToAnalyze.forEach(t => {
       running += t.netPnl
-      peak = Math.max(peak, running)
-      maxDrawdown = Math.max(maxDrawdown, peak - running)
+      if (running > peak) {
+        peak = running
+      }
+      // Calculate percentage drawdown from peak
+      if (peak > 0) {
+        const drawdownPercent = ((peak - running) / peak) * 100
+        maxDrawdown = Math.max(maxDrawdown, drawdownPercent)
+      }
     })
 
     const avgTradeDuration = 0 // not available without per-trade durations in minutes

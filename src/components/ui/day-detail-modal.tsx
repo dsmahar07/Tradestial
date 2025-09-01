@@ -348,7 +348,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
             <div className="flex items-center gap-3 text-lg">
               <span className="font-semibold">{date ? date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }) : '—'}</span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300" />
-              <span className={cn('text-sm font-semibold', isPositive ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+              <span className={cn('text-sm font-semibold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                 Net P&L {typeof pnl === 'number' ? `${pnl >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(pnl))}`.replace('$-', '-') : '$0'}
               </span>
             </div>
@@ -679,11 +679,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   </div>
                 </div>
                 {/* Column 3 */}
-                <div className="border-l border-gray-200 dark:border-[#2a2a2a] pl-6">
+                <div className="border-l border-gray-200 dark:border-[#2a2a2a] pl-4">
                   <div className="space-y-6">
                     <div>
                       <div className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Gross P&L</div>
-                      <div className={cn('text-lg font-semibold', (grossPnl ?? 0) >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                      <div className={cn('text-lg font-semibold', (grossPnl ?? 0) >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                         {(grossPnl ?? 0) >= 0 ? '+' : '-'}{formatCurrencyValue(Math.abs(grossPnl))}
                       </div>
                     </div>
@@ -856,7 +856,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
           <DialogFooter className="mt-4 flex items-center justify-between">
             <div />
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
+              <Button variant="outline" onClick={onClose} className="dark:bg-[#0f0f0f] dark:border-[#2a2a2a]">Cancel</Button>
               <Button className="bg-[#3559E9] hover:bg-[#2947d1] text-white">View Details</Button>
             </div>
           </DialogFooter>

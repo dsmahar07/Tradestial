@@ -14,6 +14,7 @@ import { DailyCheckListDialog } from '@/components/features/daily-checklist-dial
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
 const CumulativePnlChart = lazy(() => import('@/components/ui/cumulative-pnl-chart').then(m => ({ default: m.CumulativePnlChart })))
+const DailyCumulativePnlWidget = lazy(() => import('@/components/ui/daily-cumulative-pnl-widget').then(m => ({ default: m.DailyCumulativePnlWidget })))
 const MetricsOverTimeChart = lazy(() => import('@/components/ui/metrics-over-time-chart').then(m => ({ default: m.MetricsOverTimeChart })))
 const RecentTradesTable = lazy(() => import('@/components/ui/recent-trades-table').then(m => ({ default: m.RecentTradesTable })))
 const SymbolPerformanceChart = lazy(() => import('@/components/ui/symbol-performance-chart').then(m => ({ default: m.SymbolPerformanceChart })))
@@ -132,11 +133,16 @@ export function DashboardContent() {
             </Suspense>
           </div>
 
-          {/* Fourth Row: PNL Overview (large) + Trade Time Performance */}
+          {/* Fourth Row: PNL Overview + Daily & Cumulative P&L + Trade Time Performance */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div>
               <Suspense fallback={<ChartSkeleton />}>
                 <PnlOverviewChart />
+              </Suspense>
+            </div>
+            <div>
+              <Suspense fallback={<ChartSkeleton />}>
+                <DailyCumulativePnlWidget />
               </Suspense>
             </div>
             <div>

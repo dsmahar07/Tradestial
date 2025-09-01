@@ -135,7 +135,7 @@ export function SymbolPerformanceChart() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-96 flex items-center justify-center">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-[432px] flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500 dark:text-gray-400">Loading symbol data...</p>
@@ -152,7 +152,7 @@ export function SymbolPerformanceChart() {
         transition={{ duration: 0.5, delay: 1.2 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '385px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
           {/* Header (title visible, dropdowns hidden) */}
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -234,7 +234,7 @@ export function SymbolPerformanceChart() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '385px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -249,11 +249,11 @@ export function SymbolPerformanceChart() {
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
         {/* Bar Chart */}
-        <div className="h-72">
+        <div className="h-[405px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 5, left: -10, bottom: 5 }}
+              margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
@@ -275,6 +275,7 @@ export function SymbolPerformanceChart() {
                 className="dark:fill-gray-400"
                 height={25}
                 tickMargin={5}
+                interval="preserveStartEnd"
               />
               <YAxis
                 axisLine={false}

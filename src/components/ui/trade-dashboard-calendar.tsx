@@ -272,10 +272,13 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
           </Button>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" className="text-xs text-gray-900 dark:text-white bg-[#3559E9]/20 hover:bg-[#3559E9]/30 rounded-lg px-2 py-1 h-7">
+            1 day
+          </Button>
           <div
             className={cn(
               'text-xs sm:text-sm font-semibold border rounded-md px-2 py-1 border-gray-200 dark:border-[#2a2a2a]',
-              monthlyTotal >= 0 ? 'text-[#2547D0]' : 'text-[#FB3748]'
+              monthlyTotal >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'
             )}
           >
             {formatMonthlyDisplay(monthlyTotal)}
@@ -341,9 +344,16 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
-          <Button variant="ghost" size="sm" className="text-xs text-gray-600 dark:text-gray-400">
-            1 day
-          </Button>
+          <button
+            aria-label="Image action"
+            className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16.2402 3.5H7.74023C4.97881 3.5 2.74023 5.73858 2.74023 8.5V15.5C2.74023 18.2614 4.97881 20.5 7.74023 20.5H16.2402C19.0017 20.5 21.2402 18.2614 21.2402 15.5V8.5C21.2402 5.73858 19.0017 3.5 16.2402 3.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2.99023 17L5.74023 13.8C6.10008 13.4427 6.57234 13.2206 7.07711 13.1714C7.58188 13.1222 8.08815 13.2489 8.51023 13.53C8.93232 13.8112 9.43859 13.9379 9.94335 13.8887C10.4481 13.8395 10.9204 13.6174 11.2802 13.26L13.6102 10.93C14.2797 10.2583 15.1661 9.84625 16.1113 9.76749C17.0564 9.68872 17.9988 9.94835 18.7702 10.5L21.2602 12.43" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7.99008 10.1701C8.90687 10.1701 9.65008 9.42689 9.65008 8.5101C9.65008 7.59331 8.90687 6.8501 7.99008 6.8501C7.07329 6.8501 6.33008 7.59331 6.33008 8.5101C6.33008 9.42689 7.07329 10.1701 7.99008 10.1701Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -380,7 +390,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                   <div className="flex-grow flex flex-col items-center justify-center -mt-2">
                     {/* Primary metric - Daily P&L (centered) */}
                     {settings.dailyPl && (
-                      <div className={cn(useCompact ? 'text-center text-sm font-bold mb-0.5' : 'text-center text-base font-bold mb-1', isPositive ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                      <div className={cn(useCompact ? 'text-center text-sm font-bold mb-0.5' : 'text-center text-base font-bold mb-1', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                         {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
                       </div>
                     )}
@@ -412,7 +422,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                     )}
                     {/* Default P&L when no metrics selected */}
                     {!settings.dailyPl && !settings.rMultiple && !settings.ticks && !settings.pips && !settings.points && (
-                      <div className={cn(useCompact ? 'text-center text-sm font-bold' : 'text-center text-base font-bold', isPositive ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                      <div className={cn(useCompact ? 'text-center text-sm font-bold' : 'text-center text-base font-bold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                         {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
                       </div>
                     )}
@@ -460,7 +470,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                     <div className="flex-grow flex flex-col items-center justify-center -mt-3">
                       {/* Primary metric - Daily P&L (centered, larger) */}
                       {settings.dailyPl && (
-                        <div className={cn(useCompact ? 'text-center text-base font-bold mb-1' : 'text-center text-lg font-bold mb-2', isPositive ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                        <div className={cn(useCompact ? 'text-center text-base font-bold mb-1' : 'text-center text-lg font-bold mb-2', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                           {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
                         </div>
                       )}
@@ -507,7 +517,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                       
                       {/* Default P&L when no metrics selected */}
                       {!settings.dailyPl && !settings.rMultiple && !settings.ticks && !settings.pips && !settings.points && (
-                        <div className={cn(useCompact ? 'text-center text-lg font-bold' : 'text-center text-xl font-bold', isPositive ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+                        <div className={cn(useCompact ? 'text-center text-lg font-bold' : 'text-center text-xl font-bold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                           {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
                         </div>
                       )}
@@ -523,7 +533,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 <div className="text-sm text-gray-600 dark:text-gray-400">Week {i + 1}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{weeklyStats[i]?.days ?? 0} {(weeklyStats[i]?.days ?? 0) === 1 ? 'day' : 'days'}</div>
               </div>
-              <div className={cn('text-base font-semibold', (weeklyStats[i]?.pnl ?? 0) >= 0 ? 'text-[#3559E9]' : 'text-[#FB3748]')}>
+              <div className={cn('text-base font-semibold', (weeklyStats[i]?.pnl ?? 0) >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                 {(weeklyStats[i]?.pnl ?? 0) === 0 ? '$0' : `${(weeklyStats[i]?.pnl ?? 0) > 0 ? '+' : '-'}$${Math.abs(weeklyStats[i]?.pnl ?? 0)}`}
               </div>
             </div>
