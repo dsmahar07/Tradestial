@@ -86,7 +86,7 @@ export function AccountSelector({ onAccountChange, className }: AccountSelectorP
     return (
       <Button
         variant="outline"
-        className={cn("h-10 px-3 justify-between min-w-[200px]", className)}
+        className={cn("h-10 px-3 justify-between min-w-[200px] dark:bg-[#0f0f0f] dark:border-[#2a2a2a] dark:hover:bg-[#171717]", className)}
         onClick={() => window.location.href = '/import-data'}
       >
         <div className="flex items-center gap-2">

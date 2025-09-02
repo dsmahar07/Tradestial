@@ -10,6 +10,8 @@ import { DataStore } from '@/services/data-store.service'
 import { useRouter } from 'next/navigation'
 import { useHydrated } from '@/hooks/use-hydrated'
 import { DailyCheckListDialog } from '@/components/features/daily-checklist-dialog'
+import { MoodSelectionModal, MoodType } from '@/components/features/mood-selection-modal'
+import { MoodTrackerService } from '@/services/mood-tracker.service'
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
@@ -32,6 +34,8 @@ const AdvanceRadar = lazy(() => import('@/components/ui/AdvanceRadar').then(m =>
 export function DashboardContent() {
   const [isNavigating, setIsNavigating] = useState(false)
   const [isDailyChecklistOpen, setIsDailyChecklistOpen] = useState(false)
+  const [isMoodModalOpen, setIsMoodModalOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const isHydrated = useHydrated()
   const [analyticsCards, setAnalyticsCards] = useState<AnalyticsCardConfig[]>(() => {
     // Always start with empty state to prevent hydration mismatch
@@ -60,6 +64,20 @@ export function DashboardContent() {
   }, [isHydrated])
 
   const handleDateSelect = (date: Date) => {
+    // Check if mood is already logged for this date
+    const existingMood = MoodTrackerService.getMoodEntry(date)
+    
+    if (existingMood) {
+      // Mood already logged, navigate directly
+      navigateToJournal(date)
+    } else {
+      // Show mood selection modal first
+      setSelectedDate(date)
+      setIsMoodModalOpen(true)
+    }
+  }
+
+  const navigateToJournal = (date: Date) => {
     setIsNavigating(true)
     // Navigate to journal page with selected date
     // Use local date formatting to avoid timezone issues
@@ -68,6 +86,24 @@ export function DashboardContent() {
     const day = String(date.getDate()).padStart(2, '0')
     const dateStr = `${year}-${month}-${day}` // Format: YYYY-MM-DD
     router.push(`/journal-page?date=${dateStr}`)
+  }
+
+  const handleMoodSelected = (mood: MoodType, notes?: string) => {
+    if (selectedDate) {
+      // Save mood entry
+      MoodTrackerService.saveMoodEntry(selectedDate, mood, notes)
+      
+      // Close modal and navigate to journal
+      setIsMoodModalOpen(false)
+      navigateToJournal(selectedDate)
+      setSelectedDate(null)
+    }
+  }
+
+  const handleMoodModalClose = () => {
+    setIsMoodModalOpen(false)
+    setSelectedDate(null)
+    setIsNavigating(false)
   }
 
 
@@ -183,6 +219,16 @@ export function DashboardContent() {
         manualRules={[]}
         onUpdateManualRules={() => {}}
       />
+
+      {/* Mood Selection Modal */}
+      {selectedDate && (
+        <MoodSelectionModal
+          open={isMoodModalOpen}
+          onClose={handleMoodModalClose}
+          onMoodSelected={handleMoodSelected}
+          selectedDate={selectedDate}
+        />
+      )}
     </main>
   )
 }

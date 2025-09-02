@@ -15,6 +15,7 @@ import { DataStore } from '@/services/data-store.service'
 import { RuleTrackingService } from '@/services/rule-tracking.service'
 import JournalHeaderStats from '@/components/ui/journal-header-stats'
 import JournalTradesTable from '@/components/ui/journal-trades-table'
+import { MoodDisplayWidget } from '@/components/ui/mood-display-widget'
 
 export interface Note {
   id: string
@@ -273,6 +274,10 @@ function JournalPageContent() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="w-80 space-y-6"
             >
+              <MoodDisplayWidget 
+                selectedDate={selectedYMD}
+              />
+
               <ProgressWidget 
                 completed={0}
                 total={0}

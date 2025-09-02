@@ -109,7 +109,7 @@ export function RadixJournalDatePicker({
 
         <Popover.Portal>
           <Popover.Content
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 w-64 z-50"
+            className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 w-64 z-50"
             align="end"
             sideOffset={8}
           >
@@ -117,7 +117,7 @@ export function RadixJournalDatePicker({
             <div className="flex items-center justify-between mb-3">
               <button
                 onClick={() => navigateMonth('prev')}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -126,7 +126,7 @@ export function RadixJournalDatePicker({
               </span>
               <button
                 onClick={() => navigateMonth('next')}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] rounded"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -143,7 +143,7 @@ export function RadixJournalDatePicker({
                 <button
                   key={index}
                   onClick={() => handleDateSelect(day.fullDate)}
-                  className={`p-1 text-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                  className={`p-1 text-center rounded hover:bg-gray-100 dark:hover:bg-[#1a1a1a] ${
                     day.isCurrentMonth 
                       ? 'text-gray-900 dark:text-gray-100' 
                       : 'text-gray-400 dark:text-gray-600'

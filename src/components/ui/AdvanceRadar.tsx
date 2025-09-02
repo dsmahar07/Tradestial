@@ -368,7 +368,7 @@ const AdvanceRadar: React.FC = () => {
             <div ref={chartRef} style={{ width: "100%", height: "100%" }} />
           </div>
           {/* Score + Progress (single row) */}
-          <div className="px-2 pb-1">
+          <div className="px-2 pb-1 mt-4">
             {(() => {
               const overall = Math.max(0, Math.min(100, calculateOverallScore()))
               // Prevent visual clipping at the edges while keeping value accurate
