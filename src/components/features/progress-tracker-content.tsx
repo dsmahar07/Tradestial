@@ -552,11 +552,22 @@ export function ProgressTrackerContent() {
         {/* Top Section */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          {/* Left Stats Column */}
+          {/* Left Progress Tracker Heatmap */}
+          <div className="lg:col-span-3">
+            <ProgressTrackerHeatmap 
+              todayScore={progressMetrics.percentage}
+              todayCompleted={progressMetrics.completed}
+              todayTotal={progressMetrics.total}
+              history={history}
+              onOpenDailyChecklist={() => setIsDailyCheckListDialogOpen(true)}
+            />
+          </div>
+          
+          {/* Right Stats Column */}
           <div className="lg:col-span-1 space-y-4">
             
             {/* Current Streak */}
-            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4" style={{ height: '144px' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Current streak</span>
                 <Info className="w-4 h-4 text-gray-400" />
@@ -570,7 +581,7 @@ export function ProgressTrackerContent() {
             </div>
             
             {/* Current Period Score */}
-            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4" style={{ height: '144px' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Current period score</span>
                 <Info className="w-4 h-4 text-gray-400" />
@@ -607,7 +618,7 @@ export function ProgressTrackerContent() {
             </div>
             
             {/* Today's Progress */}
-            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4">
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4" style={{ height: '144px' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Today's progress</span>
                 <Info className="w-4 h-4 text-gray-400" />
@@ -625,17 +636,6 @@ export function ProgressTrackerContent() {
               </div>
             </div>
             
-          </div>
-          
-          {/* Center Progress Tracker Heatmap */}
-          <div className="lg:col-span-3">
-            <ProgressTrackerHeatmap 
-              todayScore={progressMetrics.percentage}
-              todayCompleted={progressMetrics.completed}
-              todayTotal={progressMetrics.total}
-              history={history}
-              onOpenDailyChecklist={() => setIsDailyCheckListDialogOpen(true)}
-            />
           </div>
           
         </div>

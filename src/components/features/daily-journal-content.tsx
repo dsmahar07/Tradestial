@@ -1278,7 +1278,7 @@ export function DailyJournalContent() {
         </div>
         
         {/* Right side - Monthly Calendar */}
-        <div className="w-full lg:w-[650px] flex-shrink-0">
+        <div className="w-full lg:w-[650px] xl:w-[700px] flex-shrink-0">
           <MonthlyCalendar 
             tradingDays={tradingDays}
             onDateSelect={handleDateSelect}

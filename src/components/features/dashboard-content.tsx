@@ -119,7 +119,7 @@ export function DashboardContent() {
         </div>
 
         {/* Analytics Cards Row - Load immediately */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           {analyticsCards.map((cardConfig, index) => (
             <AnalyticsCard
               key={cardConfig.title}
@@ -131,7 +131,7 @@ export function DashboardContent() {
         {/* Charts Row - Lazy loaded */}
         <div className="space-y-6">
           {/* Top Row: SymbolPerformanceChart + AdvanceRadar + AccountBalanceChart */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             <Suspense fallback={<ChartSkeleton />}>
               <SymbolPerformanceChart />
             </Suspense>
@@ -144,7 +144,7 @@ export function DashboardContent() {
           </div>
           
           {/* Second Row: TradingStreakHeatmap + DrawdownChart + CumulativePnlChart */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             <Suspense fallback={<ChartSkeleton />}>
               <TradingStreakHeatmap />
             </Suspense>
@@ -157,7 +157,7 @@ export function DashboardContent() {
           </div>
           
           {/* Third Row: CumulativePnlBar + ReportChart + ProgressTrackerHeatmap */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             <Suspense fallback={<ChartSkeleton />}>
               <CumulativePnlBar />
             </Suspense>
@@ -170,7 +170,7 @@ export function DashboardContent() {
           </div>
 
           {/* Fourth Row: PNL Overview + Daily & Cumulative P&L + Trade Time Performance */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             <div>
               <Suspense fallback={<ChartSkeleton />}>
                 <PnlOverviewChart />
@@ -189,7 +189,7 @@ export function DashboardContent() {
           </div>
           
           {/* Recent Trades + Calendar row */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             <div className="lg:col-span-4 self-start">
               <Suspense fallback={<ChartSkeleton />}>
                 <RecentTradesTable />

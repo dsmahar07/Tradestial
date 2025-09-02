@@ -34,8 +34,8 @@ export default function JournalTradesTable({ trades }: JournalTradesTableProps) 
 
   return (
     <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-4">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <table className="min-w-full text-sm whitespace-nowrap">
           <thead>
             <tr className="text-left text-gray-500 dark:text-gray-400">
               <th className="py-2 pr-4 font-medium">Symbol</th>

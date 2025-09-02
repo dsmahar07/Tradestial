@@ -602,8 +602,8 @@ export default function TradesPage() {
 
             {/* Table */}
             <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full" style={{ minWidth: '1200px' }}>
+              <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                <table className="w-full min-w-[1200px]">
                 <thead className="bg-white dark:bg-[#0f0f0f] border-b-2 border-gray-300 dark:border-[#2a2a2a]">
                   <tr>
                     <th className="w-12 px-4 py-3 text-left">

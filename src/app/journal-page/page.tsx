@@ -246,14 +246,14 @@ function JournalPageContent() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-6">
-          <div className="flex gap-6 h-full">
+        <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-3 md:p-6">
+          <div className="flex flex-col lg:flex-row gap-6 h-full">
             {/* Left Sidebar Widgets */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="w-80 space-y-6"
+              className="w-full lg:w-80 space-y-6 order-2 lg:order-1"
             >
               <MoodDisplayWidget 
                 selectedDate={selectedYMD}
@@ -277,7 +277,7 @@ function JournalPageContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg"
+              className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg order-1 lg:order-2 min-h-[400px] lg:min-h-0"
             >
               <NotebookEditor 
                 note={currentNote} 
@@ -304,13 +304,13 @@ export default function JournalPage() {
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader />
-          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-6">
-            <div className="flex gap-6 h-full">
-              <div className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg">
-                <PageLoading text="Loading Journal..." />
-              </div>
+          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-3 md:p-6">
+          <div className="flex flex-col lg:flex-row gap-6 h-full">
+            <div className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg min-h-[400px] lg:min-h-0">
+              <PageLoading text="Loading Journal..." />
             </div>
-          </main>
+          </div>
+        </main>
         </div>
       </div>
     }>

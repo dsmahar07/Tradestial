@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, LayoutGrid, Plus, LogOut, Moon, Settings, UserCog } from 'lucide-react'
+import { Activity, LayoutGrid, Plus, LogOut, Moon, Settings, UserCog, Menu, X } from 'lucide-react'
 import Image from 'next/image'
 import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
@@ -49,7 +49,8 @@ function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function Sidebar() {
-  const isCollapsed = true // Permanently collapsed
+  const [isCollapsed, setIsCollapsed] = useState(true)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -90,10 +91,40 @@ export function Sidebar() {
   }
 
   return (
-    <Tooltip.Provider delayDuration={400} skipDelayDuration={100}>
-      <div 
-        className="bg-white dark:bg-[#171717] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent w-20"
+    <>
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-4 left-4 z-50 lg:hidden bg-white dark:bg-gray-800 shadow-lg"
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        aria-label="Toggle navigation menu"
+        aria-expanded={isMobileOpen}
+        aria-controls="mobile-navigation"
       >
+        {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </Button>
+
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      <Tooltip.Provider delayDuration={400} skipDelayDuration={100}>
+        <div 
+          id="mobile-navigation"
+          role="navigation"
+          aria-label="Main navigation"
+          className={cn(
+            "bg-white dark:bg-[#171717] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent transition-all duration-300",
+            "fixed lg:sticky z-50 lg:z-auto",
+            isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+            isCollapsed ? "w-20" : "w-64"
+          )}
+        >
       {/* Logo */}
       <div className="py-4 flex items-center justify-center px-5">
         <div className="w-8 h-8 relative">
@@ -292,8 +323,8 @@ export function Sidebar() {
         </DropdownMenu>
       </div>
 
-      </div>
-
-    </Tooltip.Provider>
+        </div>
+      </Tooltip.Provider>
+    </>
   )
 }

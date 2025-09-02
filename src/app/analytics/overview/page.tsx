@@ -13,6 +13,7 @@ import { useTradeMetadata } from '@/hooks/use-trade-metadata'
 import { Area, AreaChart, Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useAnalytics } from '@/hooks/use-analytics'
+import { DailyCumulativePnlWidget } from '@/components/ui/daily-cumulative-pnl-widget'
 
 type PnlMetric = 'NET P&L' | 'GROSS P&L'
 
@@ -274,8 +275,6 @@ export default function OverviewPage() {
     const avgLoss = lossDur.length ? lossDur.reduce((a, b) => a + b, 0) / lossDur.length : null
     const avgScratch = scratch.length ? scratch.reduce((a, b) => a + b, 0) / scratch.length : null
 
-    // Open trades (no closeDate)
-    const openTrades = trades.filter(t => !t.closeDate).length
 
     // R-Multiple calculations
     const rMultipleMetrics = calculateRMultipleMetrics(trades, getTradeMetadata)
@@ -301,7 +300,6 @@ export default function OverviewPage() {
       expectancy,
       volumes: { avgDailyContracts },
       drawdown: { max: Math.abs(maxDrawdown), maxPct: maxDrawdownPct, avg: Math.abs(avgDrawdown), avgPct: avgDrawdownPct },
-      openTrades,
       avgPlannedRMultiple: rMultipleMetrics.avgPlannedRMultiple,
       avgRealizedRMultiple: rMultipleMetrics.avgRealizedRMultiple,
     }
@@ -334,47 +332,7 @@ export default function OverviewPage() {
         <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#0f0f0f]">
           <div className="w-full space-y-6">
             {/* Toolbar: Timeframe and P&L metric */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={async () => {
-                    // Debug data flow - always visible
-                    try {
-                      const { DataStore } = await import('@/services/data-store.service')
-                      const directTrades = DataStore.getAllTrades()
-                      
-                      console.log('🔍 Debug Results:')
-                      console.log('  - DataStore trades:', directTrades.length)
-                      console.log('  - useAnalytics trades:', trades?.length || 0)
-                      console.log('  - Loading state:', loading)
-                      console.log('  - Error state:', error)
-                      console.log('  - Analytics state:', state)
-                      
-                      if (directTrades.length > 0) {
-                        console.log('  - Sample trade:', directTrades[0])
-                        alert(`DataStore has ${directTrades.length} trades, but useAnalytics shows ${trades?.length || 0} trades. Check console for details.`)
-                      } else {
-                        alert('DataStore is empty. CSV import may have failed.')
-                      }
-                    } catch (err) {
-                      console.error('Debug failed:', err)
-                      alert('Debug failed. Check console.')
-                    }
-                  }}
-                  className="px-3 py-1.5 text-xs bg-orange-100 dark:bg-orange-800 text-orange-700 dark:text-orange-200 rounded-md hover:bg-orange-200 dark:hover:bg-orange-700 transition-colors"
-                >
-                  🐛 Debug Data
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('🔄 Force refresh analytics...')
-                    window.location.reload()
-                  }}
-                  className="px-3 py-1.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-md hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
-                >
-                  🔄 Refresh
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-2 flex-wrap">
               <div className="flex items-center gap-2">
               <div className="relative" ref={timeframeMenuRef}>
                 <button
@@ -489,7 +447,7 @@ export default function OverviewPage() {
                           const { DataStore } = await import('@/services/data-store.service')
                           const directTrades = DataStore.getAllTrades()
                           
-                          console.log('🔍 Debug Results:')
+                          console.log(' Debug Results:')
                           console.log('  - DataStore trades:', directTrades.length)
                           console.log('  - useAnalytics trades:', trades?.length || 0)
                           console.log('  - Loading state:', loading)
@@ -512,7 +470,7 @@ export default function OverviewPage() {
                     </button>
                     <button
                       onClick={() => {
-                        console.log('🔄 Refreshing analytics page...')
+                        console.log(' Refreshing analytics page...')
                         window.location.reload()
                       }}
                       className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-700 transition-colors"
@@ -648,10 +606,6 @@ export default function OverviewPage() {
                     {/* Right Column */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center py-1 border-b border-zinc-100 dark:border-zinc-800">
-                        <span className="text-sm text-zinc-600 dark:text-zinc-400">Open trades</span>
-                        <span className="text-sm font-semibold text-zinc-900 dark:text-white">{derived.openTrades}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
                         <span className="text-sm text-zinc-600 dark:text-zinc-400">Total trading days</span>
                         <span className="text-sm font-semibold text-zinc-900 dark:text-white">{derived.days.total}</span>
                       </div>
@@ -734,48 +688,7 @@ export default function OverviewPage() {
                 {/* Charts Section */}
                 <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Daily Cumulative P&L */}
-                  <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
-                    <div className="flex items-center space-x-2 mb-6">
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">DAILY {pnlMetric.split(' ')[0]} CUMULATIVE P&L</h3>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">(ALL DATES)</span>
-                      <div className="w-2 h-2 rounded-full bg-purple-500 ml-auto"></div>
-                    </div>
-                    <div className="h-64">
-                      {derived.cumulative.length === 0 ? (
-                        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800/20 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-600">
-                          <div className="text-center">
-                            <div className="text-gray-400 dark:text-gray-500 mb-2">
-                              <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                              </svg>
-                            </div>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs">No cumulative P&L data</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={derived.cumulative}>
-                          <defs>
-                            <linearGradient id="overviewCumGreen" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(16,185,129,0.8)" />
-                              <stop offset="100%" stopColor="rgba(16,185,129,0.1)" />
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatAxisCurrency}
-                            domain={([dataMin, dataMax]: [number, number]) => [
-                              Math.floor(Math.min(0, dataMin) * 1.1),
-                              Math.ceil(Math.max(0, dataMax) * 1.2)
-                            ]}
-                          />
-                          <Tooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Cumulative P&L']} />
-                          <Area type="monotone" dataKey="value" stroke="#2E22B9" strokeWidth={2} fill="url(#overviewCumGreen)" isAnimationActive={false} />
-                          <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" strokeWidth={1} ifOverflow="extendDomain" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                      )}
-                    </div>
-                  </div>
+                  <DailyCumulativePnlWidget />
 
                   {/* Daily P&L Bars */}
                   <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">

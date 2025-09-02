@@ -149,7 +149,7 @@ export function AnalyticsOverviewSection() {
           </div>
 
           {/* Top Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
             <div className="space-y-2">
               <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Best month</div>
               <div className="text-2xl font-bold text-zinc-900 dark:text-white">$4,337.5</div>
@@ -178,7 +178,7 @@ export function AnalyticsOverviewSection() {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 lg:gap-x-12 gap-y-4">
             {/* Left Column */}
             <div className="space-y-4">
               <div className="flex justify-between items-center py-1 border-b border-zinc-100 dark:border-zinc-800">
@@ -290,14 +290,10 @@ export function AnalyticsOverviewSection() {
             {/* Right Column */}
             <div className="space-y-4">
               <div className="flex justify-between items-center py-1 border-b border-zinc-100 dark:border-zinc-800">
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">Open trades</span>
-                <span className="text-sm font-semibold text-zinc-900 dark:text-white">1</span>
-              </div>
-              
-              <div className="flex justify-between items-center py-1">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">Total trading days</span>
                 <span className="text-sm font-semibold text-zinc-900 dark:text-white">18</span>
               </div>
+              
               
               <div className="flex justify-between items-center py-1">
                 <span className="text-sm text-zinc-600 dark:text-zinc-400">Winning days</span>
@@ -399,7 +395,7 @@ export function AnalyticsOverviewSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Daily Gross Cumulative P&L Chart */}
           <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6">
             <div className="flex items-center space-x-2 mb-6">

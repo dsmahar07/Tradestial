@@ -162,7 +162,7 @@ export function ProgressTrackerHeatmap({
       transition={{ duration: 0.3, delay: 0 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '464px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -189,7 +189,7 @@ export function ProgressTrackerHeatmap({
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         
         {/* Fixed Height Content Area */}
-        <div className="h-[340px] flex flex-col px-1 overflow-visible">
+        <div className="h-[372px] flex flex-col px-1 overflow-visible">
           {/* Month Headers - Dynamic Layout */}
           <div className="flex mb-3">
             <div className="w-10"></div> {/* Space for day labels */}
