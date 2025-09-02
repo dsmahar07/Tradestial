@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useMemo, useEffect } from 'react'
+import { userProfileService, UserProfile } from '@/services/user-profile.service'
 
 import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe, X } from 'lucide-react'
 import Image from 'next/image'
@@ -338,8 +339,36 @@ interface ImportState {
 }
 
 export default function ImportDataPage() {
-  usePageTitle('Import Trading Data')
+  usePageTitle('Import Data')
   const router = useRouter()
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  // Load user profile
+  useEffect(() => {
+    const profile = userProfileService.getUserProfile()
+    setUserProfile(profile)
+    
+    // Listen for profile updates (cross-tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tradestial_user_profile') {
+        const updatedProfile = userProfileService.getUserProfile()
+        setUserProfile(updatedProfile)
+      }
+    }
+    
+    // Listen for profile updates (same-tab)
+    const handleProfileUpdate = (e: CustomEvent) => {
+      setUserProfile(e.detail)
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
+    }
+  }, [])
   const isImportingRef = useRef(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilters, setSelectedFilters] = useState<string[]>([])
@@ -831,11 +860,21 @@ export default function ImportDataPage() {
       <div className="max-w-7xl mx-auto px-6 space-y-6">
         {/* Welcome Section */}
         <div className="text-center py-4">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg">
-            <span className="text-white text-xl font-semibold">U</span>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg overflow-hidden">
+            {userProfile?.profilePicture ? (
+              <img 
+                src={userProfile.profilePicture} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-white text-xl font-semibold">
+                {userProfile?.fullName.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+              </span>
+            )}
           </div>
           <h2 className="text-xl font-medium text-gray-700 mb-2">
-            Welcome, User
+            Welcome, {userProfile?.fullName.split(' ')[0] || 'User'}
           </h2>
           <p className="text-2xl font-semibold max-w-md mx-auto bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">
             To start analyzing, please import your trading data.

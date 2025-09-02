@@ -248,26 +248,7 @@ function JournalPageContent() {
         
         <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-6">
           <div className="flex gap-6 h-full">
-            {/* Main Notepad - Left Side */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg"
-            >
-              <NotebookEditor 
-                note={currentNote} 
-                onUpdateNote={handleUpdateNote}
-                onDeleteNote={handleDeleteNote}
-                useDatePicker={true}
-                onDateChange={handleDateChange}
-                headerStats={headerNode}
-                netPnlValue={netPnl}
-                netPnlIsProfit={netPnl >= 0}
-              />
-            </motion.div>
-
-            {/* Right Sidebar Widgets */}
+            {/* Left Sidebar Widgets */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -289,6 +270,25 @@ function JournalPageContent() {
               <div className="bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg p-3">
                 <TradingViewWidget />
               </div>
+            </motion.div>
+
+            {/* Main Notepad - Right Side */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg"
+            >
+              <NotebookEditor 
+                note={currentNote} 
+                onUpdateNote={handleUpdateNote}
+                onDeleteNote={handleDeleteNote}
+                useDatePicker={true}
+                onDateChange={handleDateChange}
+                headerStats={headerNode}
+                netPnlValue={netPnl}
+                netPnlIsProfit={netPnl >= 0}
+              />
             </motion.div>
           </div>
         </main>

@@ -2,7 +2,8 @@
 
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { userProfileService, UserProfile } from '@/services/user-profile.service'
 import * as Avatar from '@/components/ui/avatar'
 import * as Badge from '@/components/ui/badge'
 import * as NavigationMenu from '@radix-ui/react-navigation-menu'
@@ -51,6 +52,34 @@ export function Sidebar() {
   const isCollapsed = true // Permanently collapsed
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  // Load user profile
+  useEffect(() => {
+    const profile = userProfileService.getUserProfile()
+    setUserProfile(profile)
+    
+    // Listen for profile updates (cross-tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tradestial_user_profile') {
+        const updatedProfile = userProfileService.getUserProfile()
+        setUserProfile(updatedProfile)
+      }
+    }
+    
+    // Listen for profile updates (same-tab)
+    const handleProfileUpdate = (e: CustomEvent) => {
+      setUserProfile(e.detail)
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
+    }
+  }, [])
 
   // Use theme from context
   const isDarkMode = theme === 'dark'
@@ -156,14 +185,14 @@ export function Sidebar() {
             <button className="focus:outline-none">
               <Avatar.Root size="40" className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
                 <Avatar.Image 
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
+                  src={userProfile?.profilePicture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"} 
                   alt="Trader Avatar" 
                 />
                 <Avatar.Indicator position="top">
                   <CustomVerifiedIconSVG className="w-4 h-4" />
                 </Avatar.Indicator>
                 <Avatar.Fallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-                  TR
+                  {userProfile?.fullName.split(' ').map(n => n[0]).join('').toUpperCase() || 'TR'}
                 </Avatar.Fallback>
               </Avatar.Root>
             </button>
@@ -178,15 +207,15 @@ export function Sidebar() {
             {/* User Info */}
             <div className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-[#2a2a2a]">
               <Avatar.Root size="40">
-                <Avatar.Image src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" />
+                <Avatar.Image src={userProfile?.profilePicture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"} />
                 <Avatar.Indicator position="top">
                   <CustomVerifiedIconSVG className="w-4 h-4" />
                 </Avatar.Indicator>
               </Avatar.Root>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">Alex Chen</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile?.fullName || 'Alex Chen'}</div>
                 <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  alex@tradestial.com
+                  {userProfile?.email || 'alex@tradestial.com'}
                 </div>
               </div>
               <Badge.Root variant="light" color="green" size="medium">

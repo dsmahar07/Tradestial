@@ -24,6 +24,11 @@ export function DashboardHeader() {
           title: 'Daily Journal',
           description: 'Your daily trading reflections and insights'
         }
+      case '/journal-page':
+        return {
+          title: 'Journal',
+          description: 'Your trading journal and daily reflections'
+        }
       case '/analytics':
         return {
           title: 'Analytics',

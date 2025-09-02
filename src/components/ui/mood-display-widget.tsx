@@ -152,7 +152,7 @@ export function MoodDisplayWidget({ selectedDate, onEditMood }: MoodDisplayWidge
 
   if (isLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl shadow-lg p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
           <div className="flex-1">
@@ -166,13 +166,13 @@ export function MoodDisplayWidget({ selectedDate, onEditMood }: MoodDisplayWidge
 
   if (!moodEntry) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl shadow-lg p-4 border-2 border-dashed border-gray-300 dark:border-gray-600">
         <div className="text-center py-6">
           <Heart className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+          <p className="text-sm text-gray-500 dark:text-gray-200 mb-1">
             No mood logged for this day
           </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-400 dark:text-gray-300">
             Mood is captured when you first access the journal
           </p>
         </div>
@@ -187,7 +187,7 @@ export function MoodDisplayWidget({ selectedDate, onEditMood }: MoodDisplayWidge
   })
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 border-l-4 ${config.borderColor}`}>
+    <div className={`bg-white dark:bg-[#0f0f0f] rounded-xl shadow-lg p-4 border-l-4 ${config.borderColor}`}>
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3 flex-1">
           <div className="w-12 h-12 rounded-full flex items-center justify-center">
@@ -196,22 +196,22 @@ export function MoodDisplayWidget({ selectedDate, onEditMood }: MoodDisplayWidge
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className={`font-medium ${config.color} capitalize`}>
+              <h3 className={`font-medium ${config.color} dark:text-white capitalize`}>
                 {moodEntry.mood}
               </h3>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs text-gray-500 dark:text-gray-300">
                 {formattedTime}
               </span>
             </div>
             
             {moodEntry.notes && (
-              <p className="text-sm text-gray-600 dark:text-gray-300 break-words">
+              <p className="text-sm text-gray-600 dark:text-gray-200 break-words">
                 {moodEntry.notes}
               </p>
             )}
             
             {!moodEntry.notes && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+              <p className="text-xs text-gray-400 dark:text-gray-400 italic">
                 No additional notes
               </p>
             )}
@@ -229,8 +229,8 @@ export function MoodDisplayWidget({ selectedDate, onEditMood }: MoodDisplayWidge
         )}
       </div>
       
-      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-300">
           <span>Mood Tracking</span>
           <span>Journal Day</span>
         </div>

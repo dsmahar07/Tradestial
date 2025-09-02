@@ -71,18 +71,6 @@ export function ProgressTrackerHeatmap({
     }
   }, [todayScore, todayCompleted, todayTotal])
 
-  const weeks = useMemo(() => {
-    const today = new Date()
-    const startThisWeek = startOfWeekSun(today)
-    const weeks: Date[] = []
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(startThisWeek)
-      d.setDate(d.getDate() - i * 7)
-      weeks.push(d)
-    }
-    return weeks
-  }, [])
-
   const historyWithToday = useMemo(() => {
     const merged = { ...history }
     const k = toKey(todayData.date)
@@ -93,6 +81,35 @@ export function ProgressTrackerHeatmap({
     }
     return merged
   }, [history, todayData])
+
+  const weeks = useMemo(() => {
+    const today = new Date()
+    const startThisWeek = startOfWeekSun(today)
+    
+    // Get all possible weeks first
+    const allWeeks: Date[] = []
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(startThisWeek)
+      d.setDate(d.getDate() - i * 7)
+      allWeeks.push(d)
+    }
+    
+    // Filter weeks that have at least one day with data
+    const weeksWithData = allWeeks.filter(startOfWeek => {
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const cellDate = new Date(startOfWeek)
+        cellDate.setDate(cellDate.getDate() + dayIndex)
+        const key = toKey(cellDate)
+        const entry = historyWithToday[key]
+        if (entry && entry.total > 0) {
+          return true
+        }
+      }
+      return false
+    })
+    
+    return weeksWithData
+  }, [historyWithToday])
 
   const monthHeaders = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -154,15 +171,29 @@ export function ProgressTrackerHeatmap({
             </h3>
             <Info className="w-4 h-4 text-gray-400" />
           </div>
+          
+          {/* Legend moved to header */}
+          <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+            <span>Less</span>
+            <div className="flex space-x-1">
+              <div className="w-3 h-3 bg-gray-100 dark:bg-gray-700"></div>
+              <div className="w-3 h-3 bg-blue-200 dark:bg-blue-900/60"></div>
+              <div className="w-3 h-3 bg-blue-300 dark:bg-blue-800/70"></div>
+              <div className="w-3 h-3 bg-blue-400 dark:bg-blue-700/80"></div>
+              <div className="w-3 h-3 bg-blue-500 dark:bg-blue-600/90"></div>
+              <div className="w-3 h-3 bg-blue-600 dark:bg-blue-500"></div>
+            </div>
+            <span>More</span>
+          </div>
         </div>
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         
         {/* Fixed Height Content Area */}
-        <div className="h-[300px] flex flex-col px-1 overflow-visible">
-          {/* Month Headers - Optimized Layout */}
+        <div className="h-[340px] flex flex-col px-1 overflow-visible">
+          {/* Month Headers - Dynamic Layout */}
           <div className="flex mb-3">
             <div className="w-10"></div> {/* Space for day labels */}
-            <div className="flex-1 grid grid-cols-12 gap-1.5">
+            <div className={`flex-1 grid gap-1.5`} style={{ gridTemplateColumns: `repeat(${weeks.length}, 1fr)` }}>
               {monthHeaders.map(({ month, startWeek, weekCount }) => (
                 <div
                   key={month}
@@ -183,7 +214,7 @@ export function ProgressTrackerHeatmap({
               {/* Day Labels */}
               <div className="space-y-1">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName) => (
-                  <div key={dayName} className="h-4 flex items-center">
+                  <div key={dayName} className="h-7 flex items-center">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {dayName}
                     </span>
@@ -192,7 +223,7 @@ export function ProgressTrackerHeatmap({
               </div>
               
               {/* Calendar Grid */}
-              <div className="grid grid-cols-12 gap-1.5">
+              <div className={`grid gap-1.5`} style={{ gridTemplateColumns: `repeat(${weeks.length}, 1fr)` }}>
                 {weeks.map((startOfWeek, weekIndex) => (
                   <div key={weekIndex} className="space-y-1">
                     {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
@@ -202,12 +233,18 @@ export function ProgressTrackerHeatmap({
                       const entry = historyWithToday[key]
                       const score = entry?.score ?? 0
                       const title = `${cellDate.toDateString()} — ${entry ? `${entry.completed}/${entry.total} (${score}%)` : 'No data'}`
-                      const intensity = entry ? getIntensity(score) : 'bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                      
+                      // Only show cells with data
+                      if (!entry || entry.total === 0) {
+                        return null
+                      }
+                      
+                      const intensity = getIntensity(score)
 
                       return (
                         <div
                           key={dayIndex}
-                          className={`w-4 h-4 rounded-sm ${intensity} transition-colors hover:ring-1 hover:ring-blue-300`}
+                          className={`w-7 h-7 ${intensity} transition-colors hover:ring-1 hover:ring-blue-300`}
                           title={title}
                         />
                       )
@@ -218,24 +255,13 @@ export function ProgressTrackerHeatmap({
             </div>
           </div>
           
-          {/* Legend */}
-          <div className="flex items-center justify-center space-x-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
-            <span>Less</span>
-            <div className="flex space-x-1">
-              <div className="w-3 h-3 bg-gray-100 dark:bg-gray-700"></div>
-              <div className="w-3 h-3 bg-blue-200 dark:bg-blue-900/60"></div>
-              <div className="w-3 h-3 bg-blue-300 dark:bg-blue-800/70"></div>
-              <div className="w-3 h-3 bg-blue-400 dark:bg-blue-700/80"></div>
-              <div className="w-3 h-3 bg-blue-500 dark:bg-blue-600/90"></div>
-              <div className="w-3 h-3 bg-blue-600 dark:bg-blue-500"></div>
-            </div>
-            <span>More</span>
-          </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 my-3" />
+          <div className="flex-1"></div>
+          
+          <div className="border-t border-gray-200 dark:border-gray-700 mb-4" />
           
           {/* Bottom Section */}
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between">
             {/* Today's Score */}
             <div className="flex-1 pr-4">
               <div className="flex items-center gap-2 mb-2">

@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { Palette, HelpCircle, CreditCard } from 'lucide-react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { Palette, HelpCircle, CreditCard, Upload } from 'lucide-react'
+import { userProfileService, UserProfile } from '@/services/user-profile.service'
 
 // Custom SVG Icons
 const ProfileIcon = ({ className }: { className?: string }) => (
@@ -59,8 +60,112 @@ export default function SettingsPage() {
   const [tradeAlerts, setTradeAlerts] = useState(true)
   const [performanceReports, setPerformanceReports] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
+  
+  // Profile state
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    tradingExperience: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'professional'
+  })
+  
+  // Load user profile on component mount
+  useEffect(() => {
+    const profile = userProfileService.getUserProfile()
+    setUserProfile(profile)
+    setFormData({
+      fullName: profile.fullName,
+      email: profile.email,
+      tradingExperience: profile.tradingExperience
+    })
+  }, [])
 
   const isDarkMode = theme === 'dark'
+  
+  // Handle profile picture upload
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    setIsLoading(true)
+    setErrors({})
+    
+    try {
+      const base64Image = await userProfileService.uploadProfilePicture(file)
+      const updatedProfile = userProfileService.updateUserProfile({ profilePicture: base64Image })
+      setUserProfile(updatedProfile)
+      setSaveMessage('Profile picture updated successfully!')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } catch (error) {
+      setErrors({ profilePicture: error instanceof Error ? error.message : 'Failed to upload image' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  // Handle form field changes
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
+  
+  // Validate and save profile changes
+  const handleSaveChanges = () => {
+    const newErrors: Record<string, string> = {}
+    
+    // Validate full name
+    if (!userProfileService.validateFullName(formData.fullName)) {
+      newErrors.fullName = 'Name must be between 2 and 50 characters'
+    }
+    
+    // Validate email
+    if (!userProfileService.validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address'
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      const updatedProfile = userProfileService.updateUserProfile({
+        fullName: formData.fullName,
+        email: formData.email,
+        tradingExperience: formData.tradingExperience
+      })
+      setUserProfile(updatedProfile)
+      setSaveMessage('Profile updated successfully!')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } catch (error) {
+      setErrors({ general: 'Failed to save changes. Please try again.' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  // Reset form to original values
+  const handleCancel = () => {
+    if (userProfile) {
+      setFormData({
+        fullName: userProfile.fullName,
+        email: userProfile.email,
+        tradingExperience: userProfile.tradingExperience
+      })
+    }
+    setErrors({})
+    setSaveMessage('')
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -155,20 +260,51 @@ export default function SettingsPage() {
                         {/* Profile Picture */}
                         <div className="flex items-center gap-4">
                           <Avatar.Root size="80">
-                            <Avatar.Image src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" />
+                            <Avatar.Image src={userProfile?.profilePicture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"} />
                             <Avatar.Fallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-xl">
-                              AC
+                              {userProfile?.fullName.split(' ').map(n => n[0]).join('').toUpperCase() || 'AC'}
                             </Avatar.Fallback>
                           </Avatar.Root>
                           <div>
-                            <Button variant="outline" size="sm">Change Photo</Button>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleProfilePictureUpload}
+                              className="hidden"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isLoading}
+                              className="flex items-center gap-2"
+                            >
+                              <Upload className="w-4 h-4" />
+                              {isLoading ? 'Uploading...' : 'Change Photo'}
+                            </Button>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                               JPG, PNG or GIF (max. 5MB)
                             </p>
+                            {errors.profilePicture && (
+                              <p className="text-xs text-red-500 mt-1">{errors.profilePicture}</p>
+                            )}
                           </div>
                         </div>
 
                         <Separator.Root className="h-px bg-gray-200 dark:bg-gray-700" />
+
+                        {/* Success/Error Messages */}
+                        {saveMessage && (
+                          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <p className="text-sm text-green-700 dark:text-green-300">{saveMessage}</p>
+                          </div>
+                        )}
+                        {errors.general && (
+                          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p className="text-sm text-red-700 dark:text-red-300">{errors.general}</p>
+                          </div>
+                        )}
 
                         {/* Form Fields */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -178,9 +314,18 @@ export default function SettingsPage() {
                             </label>
                             <input
                               type="text"
-                              defaultValue="Alex Chen"
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                              value={formData.fullName}
+                              onChange={(e) => handleInputChange('fullName', e.target.value)}
+                              className={cn(
+                                "w-full px-3 py-2 border rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-0",
+                                errors.fullName 
+                                  ? "border-red-300 dark:border-red-600 focus:border-red-300 dark:focus:border-red-600"
+                                  : "border-gray-300 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-600"
+                              )}
                             />
+                            {errors.fullName && (
+                              <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -188,15 +333,24 @@ export default function SettingsPage() {
                             </label>
                             <input
                               type="email"
-                              defaultValue="alex@tradestial.com"
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600"
+                              value={formData.email}
+                              onChange={(e) => handleInputChange('email', e.target.value)}
+                              className={cn(
+                                "w-full px-3 py-2 border rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-0",
+                                errors.email 
+                                  ? "border-red-300 dark:border-red-600 focus:border-red-300 dark:focus:border-red-600"
+                                  : "border-gray-300 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-600"
+                              )}
                             />
+                            {errors.email && (
+                              <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               Trading Experience
                             </label>
-                            <Select.Root defaultValue="intermediate">
+                            <Select.Root value={formData.tradingExperience} onValueChange={(value) => handleInputChange('tradingExperience', value)}>
                               <Select.Trigger className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white flex items-center justify-between focus:outline-none focus:ring-0">
                                 <Select.Value />
                                 <Select.Icon />
@@ -224,9 +378,16 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="flex justify-end gap-3 pt-4">
-                          <Button variant="outline">Cancel</Button>
-                          <FancyButton.Root variant="primary" size="medium">
-                            Save Changes
+                          <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
+                            Cancel
+                          </Button>
+                          <FancyButton.Root 
+                            variant="primary" 
+                            size="medium" 
+                            onClick={handleSaveChanges}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? 'Saving...' : 'Save Changes'}
                           </FancyButton.Root>
                         </div>
                       </div>
