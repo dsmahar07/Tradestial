@@ -404,7 +404,7 @@ const processChartData = (data: TradeData[]) => {
       time: item.time,
       value,
       positiveValue: value > 0 ? value : 0,
-      negativeValue: value < 0 ? Math.abs(value) : 0
+      negativeValue: value < 0 ? value : 0
     }
   })
 }
@@ -588,7 +588,15 @@ export function DailyJournalContent() {
           grossPnl: Math.round(totalPnL),
           volume: dayTrades.reduce((sum, t) => sum + (t.contractsTraded || 1), 0),
           commissions: dayTrades.reduce((sum, t) => sum + (t.commissions || 0), 0),
-          profitFactor: losers > 0 ? parseFloat(Math.abs(dayTrades.filter(t => t.netPnl > 0).reduce((sum, t) => sum + t.netPnl, 0) / dayTrades.filter(t => t.netPnl < 0).reduce((sum, t) => sum + t.netPnl, 0)).toFixed(2)) : 0
+          profitFactor: (() => {
+            const avgWin = winners > 0 ? dayTrades.filter(t => t.netPnl > 0).reduce((sum, t) => sum + t.netPnl, 0) / winners : 0
+            const avgLoss = losers > 0 ? Math.abs(dayTrades.filter(t => t.netPnl < 0).reduce((sum, t) => sum + t.netPnl, 0)) / losers : 0
+            return avgLoss > 0 ? parseFloat((avgWin / avgLoss).toFixed(2)) : 0
+          })(),
+          roi: (() => {
+            const commissions = dayTrades.reduce((sum, t) => sum + (t.commissions || 0), 0)
+            return commissions > 0 ? parseFloat(((totalPnL / commissions) * 100).toFixed(2)) : 0
+          })()
         }
       })
     })
@@ -706,12 +714,12 @@ export function DailyJournalContent() {
                 {/* Chart and Stats Section */}
                   <div className="flex flex-row gap-8">
                     {/* Chart */}
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 ml-4">
                       <div className="w-full sm:w-[380px] h-[150px] [--grid:#e5e7eb] dark:[--grid:#262626]">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart
                             data={processChartData(card.chartData)}
-                            margin={{ top: 20, right: 5, left: -10, bottom: 20 }}
+                            margin={{ top: 20, right: 5, left: -1, bottom: 20 }}
                           >
                             {/* Disable default grid entirely */}
                             <CartesianGrid stroke="none" vertical={false} horizontal={false} />

@@ -74,8 +74,20 @@ export default function NotesPage() {
     { id: 'sessions-recap', name: 'Sessions Recap', order: 3, color: '#8b5cf6' },
     { id: 'my-notes', name: 'My notes', order: 4, color: '#ec4899' },
   ])
-  const [notes, setNotes] = useState<Note[]>([
-    {
+  const [notes, setNotes] = useState<Note[]>(() => {
+    // Load notes from localStorage on initialization
+    if (typeof window !== 'undefined') {
+      const savedNotes = localStorage.getItem('tradestial_notes')
+      if (savedNotes) {
+        try {
+          return JSON.parse(savedNotes)
+        } catch (error) {
+          console.error('Error loading notes from localStorage:', error)
+        }
+      }
+    }
+    // Default note if no saved notes
+    return [{
       id: '1',
       title: new Date().toLocaleDateString('en-US', {
         weekday: 'long',
@@ -89,8 +101,8 @@ export default function NotesPage() {
       folder: 'All notes',
       tags: [],
       color: '#3b82f6' // Default blue color
-    }
-  ])
+    }]
+  })
   const [templates, setTemplates] = useState<TradeJournalingTemplate[]>(defaultTemplates)
   // Tag filter state
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
@@ -119,6 +131,13 @@ export default function NotesPage() {
     const toYMD = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
     return { startYMD: toYMD(start), endYMD: toYMD(end) }
   })
+
+  // Save notes to localStorage whenever notes change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tradestial_notes', JSON.stringify(notes))
+    }
+  }, [notes])
 
   // Refresh trigger when DataStore updates
   const [dataTick, setDataTick] = useState(0)
@@ -307,9 +326,9 @@ export default function NotesPage() {
               <p><em>Click here to add your analysis, lessons learned, and trade review...</em></p>`,
             createdAt: now.toISOString(),
             updatedAt: now.toISOString(),
-            folder: 'Trade Notes',
+            folder: 'Daily Journal',
             tags: ['trade-analysis', 'daily-journal'],
-            color: '#10b981', // Trade Notes color
+            color: '#f59e0b', // Daily Journal color
             // Attach structured trading data to enable PnL header rendering
             tradingData: {
               netPnl: tradeData.netPnl,
@@ -323,6 +342,16 @@ export default function NotesPage() {
           
           setNotes(prev => [tradeNote, ...prev])
           setSelectedNote(tradeNote)
+          // Ensure header stats use the selected card's date (YYYY-MM-DD)
+          if (tradeData?.date) {
+            const parsed = new Date(tradeData.date)
+            if (!isNaN(parsed.getTime())) {
+              const y = parsed.getFullYear()
+              const m = String(parsed.getMonth() + 1).padStart(2, '0')
+              const d = String(parsed.getDate()).padStart(2, '0')
+              setSelectedYMD(`${y}-${m}-${d}`)
+            }
+          }
           
           // Clean up localStorage
           localStorage.removeItem('selectedTradeForNote')
@@ -549,7 +578,18 @@ export default function NotesPage() {
   const handleNoteSelect = (note: Note) => {
     console.log('Selecting note:', note.title)
     setSelectedNote(note)
-    // Try to keep selectedYMD in sync if title looks like a date
+    // Prefer explicit trading date when available
+    if (note?.tradingData?.date) {
+      const dt = new Date(note.tradingData.date)
+      if (!isNaN(dt.getTime())) {
+        const y = dt.getFullYear()
+        const m = String(dt.getMonth() + 1).padStart(2, '0')
+        const d = String(dt.getDate()).padStart(2, '0')
+        setSelectedYMD(`${y}-${m}-${d}`)
+        return
+      }
+    }
+    // Fallback: try to keep selectedYMD in sync if title looks like a date
     const parsed = Date.parse(note.title)
     if (!isNaN(parsed)) {
       const dt = new Date(parsed)

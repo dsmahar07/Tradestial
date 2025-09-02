@@ -162,7 +162,7 @@ export function PnlOverviewChart() {
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm h-6 px-2 text-xs"
+                  className="bg-white dark:bg-[#0f0f0f] border-0 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm !h-5 !min-h-0 px-2 text-xs"
                 >
                   <span>{selectedPeriod}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />
@@ -238,26 +238,40 @@ export function PnlOverviewChart() {
                 }}
               />
               <Tooltip
-                formatter={(value: number, name) => {
-                  let formattedValue: string
-                  if (value === 0) {
-                    formattedValue = '$0'
-                  } else if (Math.abs(value) >= 1000) {
-                    formattedValue = `$${(value / 1000).toFixed(1)}k`
-                  } else {
-                    formattedValue = `$${value.toLocaleString()}`
-                  }
-                  return [formattedValue, name]
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null
+                  
+                  return (
+                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
+                      <div className="font-medium text-gray-900 dark:text-white mb-1">
+                        {label}
+                      </div>
+                      {payload.map((entry, index) => {
+                        let formattedValue: string
+                        const value = entry.value as number
+                        if (value === 0) {
+                          formattedValue = '$0'
+                        } else if (Math.abs(value) >= 1000) {
+                          formattedValue = `$${(value / 1000).toFixed(1)}k`
+                        } else {
+                          formattedValue = `$${value.toLocaleString()}`
+                        }
+                        
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            <div 
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {entry.name}: {formattedValue}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
                 }}
-                contentStyle={{
-                  backgroundColor: 'var(--tooltip-bg, white)',
-                  border: '1px solid var(--tooltip-border, #e5e7eb)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  fontSize: '12px',
-                  color: 'var(--tooltip-text, #374151)'
-                }}
-                labelStyle={{ color: 'var(--tooltip-text, #374151)', fontWeight: '500' }}
               />
               <Bar 
                 dataKey="peakProfit" 

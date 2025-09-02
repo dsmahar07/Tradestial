@@ -287,8 +287,7 @@ export function CumulativePnlBar() {
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  size="sm"
-                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
+                  className="bg-white dark:bg-[#0f0f0f] border-0 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 !h-5 !min-h-0 text-xs"
                 >
                   <span className="text-xs">{selectedMetric.split(' ')[0]}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />
@@ -311,8 +310,7 @@ export function CumulativePnlBar() {
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  size="sm"
-                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 h-7"
+                  className="bg-white dark:bg-[#0f0f0f] border-0 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 !h-5 !min-h-0 text-xs"
                 >
                   <span className="text-xs">{selectedTimeRange.replace('Last ', '').replace(' Days', 'D').replace('This ', '').replace('All ', '')}</span>
                   <ChevronDown className="ml-1 h-3 w-3" />

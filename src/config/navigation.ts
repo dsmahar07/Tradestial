@@ -49,10 +49,10 @@ export const navigationConfig: NavigationSection[] = [
         isEnabled: true
       },
       {
-        id: 'progress-tracker',
+        id: 'activity-journal',
         icon: ProgressIcon,
-        label: 'Progress Tracker',
-        href: '/progress-tracker',
+        label: 'Activity Journal',
+        href: '/activity-journal',
         tooltip: 'Track your trading progress',
         isEnabled: true
       },

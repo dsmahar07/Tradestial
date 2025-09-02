@@ -12,12 +12,14 @@ interface ProgressData {
   total: number
 }
 
-interface ProgressTrackerHeatmapProps {
+interface ActivityJournalHeatmapProps {
   todayScore?: number
   todayCompleted?: number
   todayTotal?: number
   history?: Record<string, { completed: number; total: number; score: number }>
   onOpenDailyChecklist?: () => void
+  // Optional explicit height for the widget (outer card). Defaults to 432px to preserve existing layouts.
+  height?: number
 }
 
 const toKey = (d: Date) => {
@@ -44,13 +46,14 @@ const getIntensity = (score: number): string => {
   return 'bg-blue-600 dark:bg-blue-500'
 }
 
-export function ProgressTrackerHeatmap({ 
+export function ActivityJournalHeatmap({ 
   todayScore = 0, 
   todayCompleted = 0, 
   todayTotal = 0,
   history = {},
-  onOpenDailyChecklist
-}: ProgressTrackerHeatmapProps = {}) {
+  onOpenDailyChecklist,
+  height = 432,
+}: ActivityJournalHeatmapProps = {}) {
   const gridAreaRef = useRef<HTMLDivElement | null>(null)
   const firstRowCellsRef = useRef<HTMLDivElement | null>(null)
   const [cellSize, setCellSize] = useState<number>(16)
@@ -155,6 +158,11 @@ export function ProgressTrackerHeatmap({
     return monthRanges.filter(({ weekCount }) => weekCount >= 2)
   }, [weeks])
 
+  // Compute heights based on provided height. Historically outer=432 and inner content area=340 (difference 92).
+  const OUTER_INNER_OFFSET = 92
+  const outerHeight = Math.max(0, height)
+  const innerContentHeight = Math.max(0, height - OUTER_INNER_OFFSET)
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -162,12 +170,12 @@ export function ProgressTrackerHeatmap({
       transition={{ duration: 0.3, delay: 0 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '464px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: `${outerHeight}px` }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Progress tracker
+              Activity Journal
             </h3>
             <Info className="w-4 h-4 text-gray-400" />
           </div>
@@ -189,7 +197,7 @@ export function ProgressTrackerHeatmap({
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         
         {/* Fixed Height Content Area */}
-        <div className="h-[372px] flex flex-col px-1 overflow-visible">
+        <div className="flex flex-col px-1 overflow-visible" style={{ height: `${innerContentHeight}px` }}>
           {/* Month Headers - Dynamic Layout */}
           <div className="flex mb-3">
             <div className="w-10"></div> {/* Space for day labels */}
@@ -258,7 +266,7 @@ export function ProgressTrackerHeatmap({
 
           <div className="flex-1"></div>
           
-          <div className="border-t border-gray-200 dark:border-gray-700 mb-4" />
+          <div className="border-t border-gray-200 dark:border-[#2a2a2a] mb-4" />
           
           {/* Bottom Section */}
           <div className="flex items-center justify-between">
@@ -286,7 +294,7 @@ export function ProgressTrackerHeatmap({
               variant="outline"
               size="sm"
               onClick={onOpenDailyChecklist}
-              className="text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:text-gray-900 dark:hover:text-white text-sm"
+              className="bg-white dark:bg-[#0f0f0f] text-gray-600 dark:text-gray-400 border-gray-300 dark:border-[#2a2a2a] hover:text-gray-900 dark:hover:text-white text-sm"
             >
               Daily checklist
             </Button>

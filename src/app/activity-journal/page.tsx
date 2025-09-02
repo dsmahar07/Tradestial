@@ -2,18 +2,18 @@
 
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
-import { ProgressTrackerContent } from '@/components/features/progress-tracker-content'
+import { ActivityJournalContent } from '@/components/features/activity-journal-content'
 import { usePageTitle } from '@/hooks/use-page-title'
 
-export default function ProgressTrackerPage() {
-  usePageTitle('Progress Tracker')
+export default function ActivityJournalPage() {
+  usePageTitle('Activity Journal')
   return (
     <div className="flex min-h-screen">
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <ProgressTrackerContent />
+        <ActivityJournalContent />
       </div>
     </div>
   )

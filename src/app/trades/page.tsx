@@ -16,6 +16,7 @@ import { chartColorPalette } from '@/config/theme'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Checkbox from '@radix-ui/react-checkbox'
 import * as Dialog from '@radix-ui/react-dialog'
+import { modelStatsService } from '@/services/model-stats.service'
 
 export default function TradesPage() {
   usePageTitle('Trades')
@@ -64,11 +65,11 @@ export default function TradesPage() {
   })
 
   const [modelForm, setModelForm] = useState({
-    selectedModel: ''
+    selectedModelId: ''
   })
 
   // Available models - fetch from localStorage
-  const [models, setModels] = useState<string[]>([])
+  const [models, setModels] = useState<Array<{ id: string; name: string }>>([])
   
   // Load models from localStorage
   useEffect(() => {
@@ -77,8 +78,10 @@ export default function TradesPage() {
         const strategiesRaw = localStorage.getItem('tradestial:strategies')
         if (strategiesRaw) {
           const strategies = JSON.parse(strategiesRaw)
-          const modelNames = strategies.map((strategy: any) => strategy.name)
-          setModels(modelNames)
+          const list = Array.isArray(strategies)
+            ? strategies.map((strategy: any) => ({ id: String(strategy.id), name: String(strategy.name || 'Untitled') }))
+            : []
+          setModels(list)
         } else {
           setModels([])
         }
@@ -161,6 +164,7 @@ export default function TradesPage() {
     if (action === 'add-tags') {
       setShowTagModal(true)
     } else if (action === 'add-to-model') {
+      setModelForm({ selectedModelId: '' }) // Reset form when opening modal
       setShowModelModal(true)
     } else if (action === 'mark-reviewed') {
       console.log('Marking as reviewed:', selectedTrades)
@@ -225,17 +229,26 @@ export default function TradesPage() {
   }
 
   const handleModelFormSubmit = () => {
-    const model = modelForm.selectedModel
-    if (!model) return
+    const modelId = modelForm.selectedModelId
+    if (!modelId) {
+      alert('Please select a model before assigning')
+      return
+    }
 
-    // Assign model to all selected trades using metadata service
+    const modelName = models.find(m => m.id === modelId)?.name || modelId
+
+    // Assign model to all selected trades using the central model stats service
     selectedTrades.forEach(tradeId => {
-      setTradeMetadata(tradeId, { model })
+      try { modelStatsService.assignTradeToModel(tradeId, modelId) } catch {}
+      // Also persist the human-readable model name in trade metadata for compatibility
+      try { setTradeMetadata(tradeId, { model: modelName }) } catch {}
     })
+    try { window.dispatchEvent(new CustomEvent('tradestial:model-stats-updated')) } catch {}
     
-    alert(`Assigned "${model}" model to ${selectedTrades.length} trades`)
+    alert(`Assigned "${modelName}" model to ${selectedTrades.length} trades`)
     
     setShowModelModal(false)
+    setModelForm({ selectedModelId: '' }) // Reset form
     setSelectedTrades([])
   }
 
@@ -1110,7 +1123,10 @@ export default function TradesPage() {
                     <DropdownMenu.Trigger asChild>
                       <button className="w-full inline-flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
                         <span className="text-gray-700 dark:text-gray-300">
-                          {modelForm.selectedModel || 'Select a model...'}
+                          {(() => {
+                            const current = models.find(m => m.id === modelForm.selectedModelId)
+                            return current?.name || 'Select a model...'
+                          })()}
                         </span>
                         <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                       </button>
@@ -1118,15 +1134,15 @@ export default function TradesPage() {
                     <DropdownMenu.Portal>
                       <DropdownMenu.Content className="min-w-[300px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
                         {models.length > 0 ? (
-                          models.map((model) => (
+                          models.map((m) => (
                             <DropdownMenu.Item 
-                              key={model}
+                              key={m.id}
                               className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 flex items-center gap-2"
-                              onClick={() => setModelForm({ selectedModel: model })}
+                              onClick={() => setModelForm({ selectedModelId: m.id })}
                             >
                               <div className="w-3 h-3 rounded-full bg-blue-500" />
-                              {model}
-                              {modelForm.selectedModel === model && (
+                              {m.name}
+                              {modelForm.selectedModelId === m.id && (
                                 <CheckCircleIcon className="w-4 h-4 text-blue-500 ml-auto" />
                               )}
                             </DropdownMenu.Item>
@@ -1150,7 +1166,8 @@ export default function TradesPage() {
                 </Dialog.Close>
                 <button 
                   onClick={handleModelFormSubmit}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={!modelForm.selectedModelId}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   Assign Model
                 </button>

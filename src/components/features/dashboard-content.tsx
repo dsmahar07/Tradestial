@@ -22,7 +22,7 @@ const RecentTradesTable = lazy(() => import('@/components/ui/recent-trades-table
 const SymbolPerformanceChart = lazy(() => import('@/components/ui/symbol-performance-chart').then(m => ({ default: m.SymbolPerformanceChart })))
 const CumulativePnlBar = lazy(() => import('@/components/ui/cumulative-pnl-bar').then(m => ({ default: m.CumulativePnlBar })))
 const TradingStreakHeatmap = lazy(() => import('@/components/ui/trading-streak-heatmap').then(m => ({ default: m.TradingStreakHeatmap })))
-const ProgressTrackerHeatmap = lazy(() => import('@/components/ui/progress-tracker-heatmap').then(m => ({ default: m.ProgressTrackerHeatmap })))
+const ActivityJournalHeatmap = lazy(() => import('@/components/ui/activity-journal-heatmap').then(m => ({ default: m.ActivityJournalHeatmap })))
 const DrawdownChart = lazy(() => import('@/components/ui/drawdown-chart').then(m => ({ default: m.DrawdownChart })))
 const TradeTimePerformance = lazy(() => import('@/components/ui/trade-time-performance').then(m => ({ default: m.TradeTimePerformance })))
 const YearlyCalendar = lazy(() => import('@/components/ui/yearly-calendar').then(m => ({ default: m.YearlyCalendar })))
@@ -156,7 +156,7 @@ export function DashboardContent() {
             </Suspense>
           </div>
           
-          {/* Third Row: CumulativePnlBar + ReportChart + ProgressTrackerHeatmap */}
+          {/* Third Row: CumulativePnlBar + ReportChart + ActivityJournalHeatmap */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             <Suspense fallback={<ChartSkeleton />}>
               <CumulativePnlBar />
@@ -165,7 +165,7 @@ export function DashboardContent() {
               <ReportChart />
             </Suspense>
             <Suspense fallback={<ChartSkeleton />}>
-              <ProgressTrackerHeatmap onOpenDailyChecklist={() => setIsDailyChecklistOpen(true)} />
+              <ActivityJournalHeatmap onOpenDailyChecklist={() => setIsDailyChecklistOpen(true)} />
             </Suspense>
           </div>
 

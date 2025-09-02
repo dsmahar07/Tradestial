@@ -40,6 +40,7 @@ interface PerformanceChartProps {
     subTab?: string // e.g., "days", "months", "symbols", "volumes"
     periodLabels?: string[] // e.g., ["Sunday", "Monday", ...] or ["January", "February", ...]
     getPeriodLabel?: (date: string, index: number) => string // Custom function to get period label
+    modelName?: string // Optional model name to show in tooltip context
   }
 }
 
@@ -482,6 +483,11 @@ export function PerformanceChart({
           <div className="font-medium text-gray-900 dark:text-gray-100 mb-2 text-xs">
             {periodLabel}
           </div>
+          {contextInfo?.modelName && (
+            <div className="text-[10px] text-gray-600 dark:text-gray-400 mb-2">
+              Model: <span className="font-medium text-gray-800 dark:text-gray-200">{contextInfo.modelName}</span>
+            </div>
+          )}
           {validPayload.map((entry, index) => {
             const metricName = String(entry.dataKey || '')
             const value = Number(entry.value)
@@ -510,7 +516,7 @@ export function PerformanceChart({
       )
     }
     return null
-  }, [getContextualPeriodLabel, getDisplayMetricName, formatValue, chartData, isRMultipleMetric])
+  }, [getContextualPeriodLabel, getDisplayMetricName, formatValue, chartData, isRMultipleMetric, contextInfo])
 
   // Calculate dynamic Y-axis domains for left and right axes with smart scaling
   const yAxisDomains = useMemo(() => {

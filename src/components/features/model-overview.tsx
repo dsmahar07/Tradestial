@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { modelStatsService } from '@/services/model-stats.service'
 import { DataStore } from '@/services/data-store.service'
+import TradeMetadataService from '@/services/trade-metadata.service'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Button } from '@/components/ui/button'
 import { ModelModelsTable } from '@/components/features/model-models-table'
 import { ModelMaker } from '@/components/features/model-maker'
 import { StrategyMarketplace } from '@/components/features/strategy-marketplace'
-import { Plus, TrendingUp, TrendingDown, Target, Activity, Store } from 'lucide-react'
+import { Plus, Store, TrendingUp, TrendingDown } from 'lucide-react'
+import { BestPerformingIcon, LeastPerformingIcon, BestActiveIcon, BestWinRateIcon } from '@/components/ui/custom-icons'
 import { cn } from '@/lib/utils'
 
 // Overview stats component
@@ -25,14 +27,16 @@ const OverviewStatsCard = ({
   subtitle: string
   trend?: 'up' | 'down' | 'neutral'
   icon: any
-  color?: 'blue' | 'green' | 'purple' | 'orange'
+  color?: 'blue' | 'green' | 'orange' | 'purple'
 }) => {
-  const colors = {
-    blue: 'from-blue-500 to-blue-600',
-    green: 'from-green-500 to-green-600', 
-    purple: 'from-purple-500 to-purple-600',
-    orange: 'from-orange-500 to-orange-600'
+  const colorConfigs = {
+    blue: { color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.12)' },
+    green: { color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.12)' },
+    orange: { color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.12)' },
+    purple: { color: '#693EE0', bgColor: 'rgba(105, 62, 224, 0.12)' }
   }
+
+  const config = colorConfigs[color]
 
   const getTrendIcon = () => {
     if (trend === 'up') return <TrendingUp className="w-3 h-3 text-green-500" />
@@ -43,8 +47,11 @@ const OverviewStatsCard = ({
   return (
     <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4 min-h-32">
       <div className="flex items-start justify-between mb-3">
-        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center`}>
-          <Icon className="w-4 h-4 text-white" />
+        <div 
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: config.bgColor }}
+        >
+          <Icon className="w-6 h-6" />
         </div>
         {getTrendIcon()}
       </div>
@@ -84,39 +91,93 @@ export function ModelOverview() {
 
   // Load summary stats
   useEffect(() => {
-    console.log('ModelOverview useEffect triggered')
-    
-    const loadStats = () => {
-      console.log('=== ModelOverview Loading Stats ===')
-      const trades = DataStore.getAllTrades()
-      console.log('ModelOverview: Loading stats with trades:', trades.length)
-      if (trades.length > 0) {
-        console.log('First trade sample:', trades[0])
+    const loadStats = async () => {
+      try {
+        // Get all trades and map model assignments from TradeMetadataService
+        const allTrades = await DataStore.getAllTrades()
+        const metaMap = TradeMetadataService.getAllTradeMetadata()
+        
+        // Map model assignments to trades
+        const tradesWithModels = allTrades.map(trade => ({
+          ...trade,
+          model: metaMap?.[trade.id]?.model || trade.model
+        }))
+
+        // Get available models from strategies
+        const strategiesRaw = localStorage.getItem('tradestial:strategies')
+        const strategies = strategiesRaw ? JSON.parse(strategiesRaw) : []
+        
+        // Calculate stats for each model
+        const modelStats: Array<{ modelId: string; name: string; stats: any }> = []
+        
+        for (const strategy of strategies) {
+          const modelTrades = tradesWithModels.filter(trade => trade.model === strategy.name)
+          
+          const total = modelTrades.length
+          let wins = 0
+          let losses = 0
+          let netPnL = 0
+
+          for (const trade of modelTrades) {
+            const pnl = typeof trade.netPnl === 'number' ? trade.netPnl : 
+                        parseFloat(String(trade.netPnl || 0).replace(/[$,]/g, '')) || 0
+            
+            netPnL += pnl
+            if (pnl > 0) wins++
+            else if (pnl < 0) losses++
+          }
+
+          const winRate = total ? (wins / total) * 100 : 0
+
+          modelStats.push({
+            modelId: strategy.id,
+            name: strategy.name,
+            stats: { total, wins, losses, winRate, netPnL }
+          })
+        }
+
+        // Find best performing, least performing, most active, and best win rate
+        let bestPerforming = null
+        let leastPerforming = null
+        let mostActive = null
+        let bestWinRate = null
+
+        for (const model of modelStats) {
+          if (!bestPerforming || model.stats.netPnL > bestPerforming.stats.netPnL) {
+            bestPerforming = model
+          }
+          if (!leastPerforming || model.stats.netPnL < leastPerforming.stats.netPnL) {
+            leastPerforming = model
+          }
+          if (!mostActive || model.stats.total > mostActive.stats.total) {
+            mostActive = model
+          }
+          if (model.stats.total > 0 && (!bestWinRate || model.stats.winRate > bestWinRate.stats.winRate)) {
+            bestWinRate = model
+          }
+        }
+
+        setSummaryStats({
+          bestPerforming,
+          leastPerforming,
+          mostActive,
+          bestWinRate
+        })
+      } catch (error) {
+        console.error('Error loading model stats:', error)
       }
-      const summary = modelStatsService.getSummaryStats(trades)
-      console.log('ModelOverview: Summary stats result:', summary)
-      setSummaryStats(summary)
-      console.log('=== End ModelOverview Loading Stats ===')
     }
 
-    // Add a small delay to ensure all services are ready
-    setTimeout(() => {
-      console.log('ModelOverview: Starting delayed stats load...')
-      // Also run debug function to see state
-      if ((window as any).debugModelStats) {
-        (window as any).debugModelStats()
-      }
-      loadStats()
-    }, 100)
+    loadStats()
 
-    // Listen for stats updates
-    const handleStatsUpdate = () => loadStats()
-    window.addEventListener('tradestial:model-stats-updated', handleStatsUpdate)
-    window.addEventListener('tradestial:strategies-updated', handleStatsUpdate)
+    // Listen for metadata updates
+    const handleMetadataUpdate = () => loadStats()
+    window.addEventListener('tradestial:trade-metadata-updated', handleMetadataUpdate)
+    window.addEventListener('tradestial:strategies-updated', handleMetadataUpdate)
 
     return () => {
-      window.removeEventListener('tradestial:model-stats-updated', handleStatsUpdate)
-      window.removeEventListener('tradestial:strategies-updated', handleStatsUpdate)
+      window.removeEventListener('tradestial:trade-metadata-updated', handleMetadataUpdate)
+      window.removeEventListener('tradestial:strategies-updated', handleMetadataUpdate)
     }
   }, [])
 
@@ -155,7 +216,7 @@ export function ModelOverview() {
             : "No models with trades"
           }
           trend={summaryStats.bestPerforming?.stats.netPnL > 0 ? "up" : summaryStats.bestPerforming?.stats.netPnL < 0 ? "down" : "neutral"}
-          icon={TrendingUp}
+          icon={BestPerformingIcon}
           color="green"
         />
         <OverviewStatsCard
@@ -166,7 +227,7 @@ export function ModelOverview() {
             : "No models with trades"
           }
           trend={summaryStats.leastPerforming?.stats.netPnL > 0 ? "up" : summaryStats.leastPerforming?.stats.netPnL < 0 ? "down" : "neutral"}
-          icon={TrendingDown}
+          icon={LeastPerformingIcon}
           color="blue"
         />
         <OverviewStatsCard
@@ -176,7 +237,7 @@ export function ModelOverview() {
             ? `${summaryStats.mostActive.stats.total} trade${summaryStats.mostActive.stats.total !== 1 ? 's' : ''}`
             : "No models with trades"
           }
-          icon={Activity}
+          icon={BestActiveIcon}
           color="orange"
         />
         <OverviewStatsCard
@@ -186,7 +247,7 @@ export function ModelOverview() {
             ? `${summaryStats.bestWinRate.stats.winRate.toFixed(0)}% / ${summaryStats.bestWinRate.stats.total} trade${summaryStats.bestWinRate.stats.total !== 1 ? 's' : ''}`
             : "No models with trades"
           }
-          icon={Target}
+          icon={BestWinRateIcon}
           color="purple"
         />
       </div>

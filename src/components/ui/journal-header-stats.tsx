@@ -109,8 +109,8 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
       processed.push({
         time: curr.time,
         value,
-        positiveValue: value > 0 ? value : null,
-        negativeValue: value < 0 ? value : null,
+        positiveValue: value > 0 ? value : 0,  // Always include 0 for proper fill
+        negativeValue: value < 0 ? value : 0,  // Always include 0 for proper fill
         index: runningIndex++
       })
       prevValue = value
@@ -127,7 +127,7 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
     return processed
   }, [chartData])
 
-  // Compute dynamic Y-axis ticks across data values
+  // Simplified Y-axis ticks for cleaner display
   const yTicks = useMemo(() => {
     if (!processedData || processedData.length === 0) return [0]
     const values: number[] = []
@@ -139,32 +139,36 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
     const min = Math.min(...values)
     const max = Math.max(...values)
 
-    // Guard single-value or flat series
+    // For flat or single-value series
     if (min === max) {
-      const pad = Math.max(1, Math.abs(min) * 0.1)
-      return [min - 2 * pad, min - pad, min, min + pad, min + 2 * pad]
+      if (min === 0) return [-100, 0, 100]
+      const pad = Math.abs(min) * 0.5
+      return [min - pad, min, min + pad]
     }
 
-    // Nice step calculation for ~6 segments
+    // Simple 3-5 tick approach for cleaner display
     const range = max - min
-    const rawStep = range / 6
-    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, Math.abs(rawStep)))))
-    const niceStep = Math.ceil(rawStep / magnitude) * magnitude
-
-    // Expand to nice bounds
-    const niceMin = Math.floor(min / niceStep) * niceStep
-    const niceMax = Math.ceil(max / niceStep) * niceStep
-
-    const ticks: number[] = []
-    for (let v = niceMin; v <= niceMax + 1e-9; v += niceStep) {
-      // Round to avoid floating point precision issues
-      const roundedTick = Math.round(Number(v.toFixed(10)))
-      // Avoid duplicate ticks
-      if (!ticks.includes(roundedTick)) {
-        ticks.push(roundedTick)
-      }
+    const step = range / 3
+    
+    // Round to nice numbers
+    const magnitude = Math.pow(10, Math.floor(Math.log10(step)))
+    const niceStep = Math.ceil(step / magnitude) * magnitude
+    
+    const ticks = []
+    const start = Math.floor(min / niceStep) * niceStep
+    const end = Math.ceil(max / niceStep) * niceStep
+    
+    for (let v = start; v <= end; v += niceStep) {
+      ticks.push(Math.round(v))
     }
-    return ticks
+    
+    // Ensure we always include 0 if it's in range
+    if (min <= 0 && max >= 0 && !ticks.includes(0)) {
+      ticks.push(0)
+      ticks.sort((a, b) => a - b)
+    }
+    
+    return ticks.slice(0, 5) // Limit to max 5 ticks
   }, [processedData])
 
   return (
@@ -187,12 +191,20 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
               dataKey="index" 
               type="number"
               domain={["dataMin", "dataMax"]}
-              allowDecimals={false}
-              scale="linear"
               axisLine={false} 
               tickLine={false} 
-              tick={false}
-              padding={{ left: 0, right: 0 }}
+              tick={{ 
+                fontSize: 10, 
+                fill: '#9ca3af' 
+              }}
+              className="dark:fill-gray-400"
+              height={20}
+              tickCount={5}
+              tickFormatter={(value, index) => {
+                // Map index back to time for display
+                const dataPoint = processedData[Math.round(value)]
+                return dataPoint?.time ? String(dataPoint.time).slice(0, 5) : ''
+              }}
             />
             <YAxis
               axisLine={false}
@@ -229,7 +241,14 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
             ))}
             <Tooltip
               content={<CustomTooltip />}
-              cursor={false}
+              cursor={{
+                stroke: '#5B2CC9',
+                strokeWidth: 1,
+                strokeDasharray: '4 4'
+              }}
+              animationDuration={0}
+              isAnimationActive={false}
+              allowEscapeViewBox={{ x: false, y: true }}
             />
             <defs>
               <linearGradient id="greenGradientHeader" x1="0" y1="0" x2="0" y2="1">
@@ -251,6 +270,8 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
               connectNulls={false}
               isAnimationActive={false}
               baseValue={0}
+              dot={false}
+              activeDot={false}
             />
             
             {/* Negative area - clip to line using split series */}
@@ -263,9 +284,11 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
               connectNulls={false}
               isAnimationActive={false}
               baseValue={0}
+              dot={false}
+              activeDot={false}
             />
             
-            {/* Main line stroke */}
+            {/* Main line stroke - this handles all hover interactions */}
             <Area
               type="linear"
               dataKey="value"
@@ -276,11 +299,11 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
               isAnimationActive={false}
               dot={false}
               activeDot={{
-                r: 5,
+                r: 4,
                 fill: "#5B2CC9",
                 stroke: "#fff",
-                strokeWidth: 3,
-                filter: "drop-shadow(0 2px 4px rgba(91, 44, 201, 0.3))"
+                strokeWidth: 2,
+                style: { transition: 'all 0.1s ease' }
               }}
             />
             <ReferenceLine y={0} stroke="var(--grid)" strokeDasharray="2 2" strokeWidth={1} shapeRendering="crispEdges" />
@@ -322,7 +345,9 @@ export default function JournalHeaderStats({ chartData, stats, size = 'normal' }
           </div>
           <div className="pl-4">
             <div className={size === 'large' ? 'text-base text-gray-500 dark:text-gray-400 mb-1' : 'text-sm text-gray-500 dark:text-gray-400 mb-1'}>Profit factor</div>
-            <div className={size === 'large' ? 'text-xl font-semibold text-gray-900 dark:text-white' : 'text-lg font-semibold text-gray-900 dark:text-white'}>{stats.profitFactor}</div>
+            <div className={size === 'large' ? 'text-xl font-semibold text-gray-900 dark:text-white' : 'text-lg font-semibold text-gray-900 dark:text-white'}>
+              {typeof stats.profitFactor === 'number' ? stats.profitFactor.toFixed(2) : stats.profitFactor || '0.00'}
+            </div>
           </div>
         </div>
       </div>

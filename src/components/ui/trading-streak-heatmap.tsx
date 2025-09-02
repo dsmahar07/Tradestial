@@ -196,7 +196,7 @@ export function TradingStreakHeatmap() {
                   <span className={`text-xs ${day.isToday ? "font-normal" : "font-medium"}`}>{day.date}</span>
                   
                   {/* Inline tooltip positioned relative to cell */}
-                  <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] whitespace-nowrap border border-gray-200 dark:border-gray-600">
+                  <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] whitespace-nowrap border border-gray-200 dark:border-[#2a2a2a]">
                     {viewDate.toLocaleDateString('en-US', { month: 'short' })} {day.date}
                     {day.trades > 0 ? (
                       <><br/>{day.trades} trade{day.trades > 1 ? 's' : ''}<br/>

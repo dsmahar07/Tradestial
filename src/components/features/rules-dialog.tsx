@@ -556,7 +556,7 @@ export function RulesDialog({
 
               {/* Reset Progress */}
               <div className="space-y-2 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Reset your progress tracker</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Reset your Activity Journal</h3>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   Start over with new rules, streak and habit building.
                 </p>

@@ -831,7 +831,7 @@ export class DataStore {
       RuleTrackingService.trackStopLossRule(dateStr)
       
       // Note: Max loss rules would need their configured amounts from trading rules
-      // These are handled by the progress tracker when it gets the rule configuration
+      // These are handled by the Activity Journal when it gets the rule configuration
     })
   }
 }

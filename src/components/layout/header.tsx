@@ -14,9 +14,9 @@ export function DashboardHeader() {
           title: 'Note',
           description: 'Your trading journal and notes'
         }
-      case '/progress-tracker':
+      case '/activity-journal':
         return {
-          title: 'Progress Tracker',
+          title: 'Activity Journal',
           description: 'Track your trading progress and milestones'
         }
       case '/daily-journal':

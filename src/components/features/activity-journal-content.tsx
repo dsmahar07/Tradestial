@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Edit, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ProgressTrackerHeatmap } from '@/components/ui/progress-tracker-heatmap'
+import { ActivityJournalHeatmap } from '@/components/ui/activity-journal-heatmap'
 import { RulesDialog } from '@/components/features/rules-dialog'
 import { DailyCheckListDialog } from '@/components/features/daily-checklist-dialog'
 import { RuleTrackingService } from '@/services/rule-tracking.service'
@@ -34,7 +34,7 @@ interface Rule {
   completed?: boolean
 }
 
-export function ProgressTrackerContent() {
+export function ActivityJournalContent() {
   
   // State for rules from modal
   const [tradingDays, setTradingDays] = useState(['Mo', 'Tu', 'We', 'Th', 'Fr'])
@@ -552,14 +552,15 @@ export function ProgressTrackerContent() {
         {/* Top Section */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          {/* Left Progress Tracker Heatmap */}
+          {/* Left Activity Journal Heatmap */}
           <div className="lg:col-span-3">
-            <ProgressTrackerHeatmap 
+            <ActivityJournalHeatmap 
               todayScore={progressMetrics.percentage}
               todayCompleted={progressMetrics.completed}
               todayTotal={progressMetrics.total}
               history={history}
               onOpenDailyChecklist={() => setIsDailyCheckListDialogOpen(true)}
+              height={464}
             />
           </div>
           
@@ -641,37 +642,6 @@ export function ProgressTrackerContent() {
         </div>
         
         
-        {/* Daily Check List Section */}
-        {isTradingDay && progressMetrics.hasActiveRules && (
-          <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-3">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Check List</h2>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {progressMetrics.completed} of {progressMetrics.total} completed
-                </span>
-              </div>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={() => setIsDailyCheckListDialogOpen(true)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                >
-                  Daily Check List
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={finishMyDay}
-                  className="bg-green-500 hover:bg-green-600 text-white"
-                >
-                  Finish My Day
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
         
         {/* Current Rules Table */}
         <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">

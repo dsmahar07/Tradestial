@@ -89,6 +89,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showRangePicker, setShowRangePicker] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [calendarDate, setCalendarDate] = useState(new Date())
   // Template editor state
   const [selectedTemplate, setSelectedTemplate] = useState<TradeJournalingTemplate | null>(null)
   const [showTemplateEditor, setShowTemplateEditor] = useState(false)
@@ -317,9 +318,8 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
   // Generate calendar for date picker
   const generateCalendarDays = () => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = today.getMonth()
+    const year = calendarDate.getFullYear()
+    const month = calendarDate.getMonth()
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
     const daysInMonth = lastDay.getDate()
@@ -359,6 +359,23 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     }
     
     return days
+  }
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newDate = new Date(calendarDate)
+    if (direction === 'prev') {
+      newDate.setMonth(newDate.getMonth() - 1)
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1)
+    }
+    setCalendarDate(newDate)
+  }
+
+  const getMonthYearDisplay = () => {
+    return calendarDate.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    })
   }
 
   const handleTitleSave = () => {
@@ -868,9 +885,32 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                     />
                     
                     {/* Date Picker */}
-                    <div className="absolute top-full left-0 mt-2 z-20 bg-white dark:bg-[#2A2A2A] border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-4 min-w-[320px] animate-in fade-in-0 zoom-in-95 duration-200">
+                    <div className="absolute top-full left-0 mt-2 z-20 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] rounded-lg shadow-xl p-4 min-w-[320px] animate-in fade-in-0 zoom-in-95 duration-200">
                       <div className="mb-4">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Select Date</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-white">Select Date</h3>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateMonth('prev')}
+                              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-[#2a2a2a]"
+                            >
+                              <ChevronDown className="h-4 w-4 rotate-90" />
+                            </Button>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[120px] text-center">
+                              {getMonthYearDisplay()}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateMonth('next')}
+                              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-[#2a2a2a]"
+                            >
+                              <ChevronDown className="h-4 w-4 -rotate-90" />
+                            </Button>
+                          </div>
+                        </div>
                         <div className="grid grid-cols-7 gap-1 mb-2">
                           {/* Calendar Headers */}
                           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (

@@ -208,15 +208,11 @@ export function RecentTradesTable() {
   // Helper functions
   function formatTimestamp(dateStr: string): string {
     const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / (1000 * 60))
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffMins < 60) return `${diffMins} mins ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    return `${diffDays}d ago`
+    return date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    })
   }
 
 
@@ -253,9 +249,8 @@ export function RecentTradesTable() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm"
+                  variant="outline"
+                  className="bg-white dark:bg-[#0f0f0f] border-0 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm !h-5 !min-h-0 px-2 text-xs"
                 >
                   <span>{selectedTimeRange}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -291,10 +286,7 @@ export function RecentTradesTable() {
                   Qty
                 </th>
                 <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Entry
-                </th>
-                <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Exit
+                  Close Date
                 </th>
                 <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   P&L
@@ -304,14 +296,14 @@ export function RecentTradesTable() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody>
               {recentTrades.map((trade, index) => (
                 <motion.tr
                   key={trade.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-200 dark:border-[#2a2a2a]"
                 >
                   <td className="py-4 px-2">
                     <div className="flex items-center space-x-2">
@@ -335,13 +327,10 @@ export function RecentTradesTable() {
                     </span>
                   </td>
                   <td className="py-4 px-2 text-right text-sm text-gray-600 dark:text-gray-300">
-                    {trade.quantity}
+                    <span className="font-medium">{trade.quantity}</span>
                   </td>
                   <td className="py-4 px-2 text-right text-sm text-gray-600 dark:text-gray-300">
-                    ${trade.entryPrice.toFixed(2)}
-                  </td>
-                  <td className="py-4 px-2 text-right text-sm text-gray-600 dark:text-gray-300">
-                    ${trade.exitPrice.toFixed(2)}
+                    <span className="font-medium">{trade.timestamp}</span>
                   </td>
                   <td className="py-4 px-2 text-right">
                     <div className="flex flex-col items-end">

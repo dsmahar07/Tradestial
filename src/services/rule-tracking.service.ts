@@ -340,7 +340,7 @@ export class RuleTrackingService {
 
   // Auto-check Step into day rule when conditions are met
   private static autoCheckStepIntoDayRule(date: string): void {
-    // Get the actual rule configuration from progress tracker
+    // Get the actual rule configuration from Activity Journal
     try {
       const storedRules = localStorage.getItem('progress:tradingRules')
       if (storedRules) {

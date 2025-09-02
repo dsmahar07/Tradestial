@@ -822,3 +822,367 @@ export const ExpectancyIcon = ({ className = "", size = 24 }: IconProps) => (
     />
   </svg>
 )
+
+export const BestPerformingIcon = ({ className = "", size = 24 }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <defs>
+      <linearGradient id="bestPerfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#10B981" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+      <linearGradient id="bestPerfGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
+        <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+      </linearGradient>
+    </defs>
+    
+    {/* Trophy base */}
+    <rect
+      x="8"
+      y="18"
+      width="8"
+      height="3"
+      rx="1.5"
+      fill="url(#bestPerfGrad)"
+      fillOpacity="0.3"
+    />
+    
+    {/* Trophy stem */}
+    <rect
+      x="11"
+      y="15"
+      width="2"
+      height="4"
+      fill="url(#bestPerfGrad)"
+      fillOpacity="0.4"
+    />
+    
+    {/* Main trophy cup */}
+    <path
+      d="M7 6C7 4.89543 7.89543 4 9 4H15C16.1046 4 17 4.89543 17 6V10C17 12.7614 14.7614 15 12 15C9.23858 15 7 12.7614 7 10V6Z"
+      fill="url(#bestPerfGrad)"
+      fillOpacity="0.15"
+      stroke="url(#bestPerfGrad)"
+      strokeWidth="2"
+    />
+    
+    {/* Glass effect on cup */}
+    <path
+      d="M7 6C7 4.89543 7.89543 4 9 4H15C16.1046 4 17 4.89543 17 6V8C17 9.5 15.5 10 12 10C8.5 10 7 9.5 7 8V6Z"
+      fill="url(#bestPerfGlass)"
+    />
+    
+    {/* Trophy handles */}
+    <path
+      d="M6 8C4.89543 8 4 8.89543 4 10C4 11.1046 4.89543 12 6 12H7V10C7 9.5 6.5 8.5 6 8Z"
+      fill="url(#bestPerfGrad)"
+      fillOpacity="0.2"
+      stroke="url(#bestPerfGrad)"
+      strokeWidth="1.5"
+    />
+    <path
+      d="M18 8C19.1046 8 20 8.89543 20 10C20 11.1046 19.1046 12 18 12H17V10C17 9.5 17.5 8.5 18 8Z"
+      fill="url(#bestPerfGrad)"
+      fillOpacity="0.2"
+      stroke="url(#bestPerfGrad)"
+      strokeWidth="1.5"
+    />
+    
+    {/* Crown on top */}
+    <path
+      d="M9 4L10 2L12 3L14 2L15 4"
+      stroke="url(#bestPerfGrad)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    
+    {/* Star in center */}
+    <path
+      d="M12 7L12.5 8.5L14 8.5L12.75 9.5L13.25 11L12 10L10.75 11L11.25 9.5L10 8.5L11.5 8.5L12 7Z"
+      fill="url(#bestPerfGrad)"
+      fillOpacity="0.8"
+    />
+  </svg>
+)
+
+export const LeastPerformingIcon = ({ className = "", size = 24 }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <defs>
+      <linearGradient id="leastPerfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FB3748" />
+        <stop offset="100%" stopColor="#DC2626" />
+      </linearGradient>
+      <linearGradient id="leastPerfGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.2)" />
+        <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+      </linearGradient>
+    </defs>
+    
+    {/* Warning triangle background */}
+    <path
+      d="M12 2L22 20H2L12 2Z"
+      fill="url(#leastPerfGrad)"
+      fillOpacity="0.1"
+      stroke="url(#leastPerfGrad)"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    
+    {/* Glass effect on upper part */}
+    <path
+      d="M12 2L18 12H6L12 2Z"
+      fill="url(#leastPerfGlass)"
+    />
+    
+    {/* Downward trend arrow */}
+    <path
+      d="M8 8L12 16L16 12"
+      stroke="url(#leastPerfGrad)"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    
+    {/* Arrow head pointing down */}
+    <path
+      d="M10 16L12 18L14 16"
+      stroke="url(#leastPerfGrad)"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    
+    {/* Warning exclamation */}
+    <circle
+      cx="12"
+      cy="17"
+      r="1"
+      fill="url(#leastPerfGrad)"
+    />
+    
+    {/* Dollar sign with minus */}
+    <circle
+      cx="6"
+      cy="6"
+      r="2.5"
+      fill="url(#leastPerfGrad)"
+      fillOpacity="0.2"
+    />
+    <text
+      x="6"
+      y="7"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fill="url(#leastPerfGrad)"
+      fontSize="5"
+      fontWeight="bold"
+    >
+      -$
+    </text>
+  </svg>
+)
+
+export const BestActiveIcon = ({ className = "", size = 24 }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <defs>
+      <linearGradient id="bestActiveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#693EE0" />
+        <stop offset="100%" stopColor="#5B21B6" />
+      </linearGradient>
+      <linearGradient id="bestActiveGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.2)" />
+        <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+      </linearGradient>
+    </defs>
+    
+    {/* Activity monitor background */}
+    <rect
+      x="2"
+      y="6"
+      width="20"
+      height="12"
+      rx="2"
+      fill="url(#bestActiveGrad)"
+      fillOpacity="0.1"
+      stroke="url(#bestActiveGrad)"
+      strokeWidth="2"
+    />
+    
+    {/* Glass effect */}
+    <rect
+      x="2"
+      y="6"
+      width="20"
+      height="6"
+      rx="2"
+      fill="url(#bestActiveGlass)"
+    />
+    
+    {/* Activity heartbeat line */}
+    <path
+      d="M4 12H7L8 8L10 16L12 10L14 14L16 12H20"
+      stroke="url(#bestActiveGrad)"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+    
+    {/* Pulse dots */}
+    <circle cx="8" cy="8" r="1.5" fill="url(#bestActiveGrad)" fillOpacity="0.8" />
+    <circle cx="12" cy="10" r="1.5" fill="url(#bestActiveGrad)" fillOpacity="0.6" />
+    <circle cx="14" cy="14" r="1.5" fill="url(#bestActiveGrad)" fillOpacity="0.7" />
+    
+    {/* Activity indicator */}
+    <circle
+      cx="19"
+      cy="5"
+      r="2"
+      fill="url(#bestActiveGrad)"
+      fillOpacity="0.3"
+    />
+    <circle
+      cx="19"
+      cy="5"
+      r="1"
+      fill="url(#bestActiveGrad)"
+    />
+    
+    {/* Trade count indicator */}
+    <rect x="4" y="15" width="2" height="1" rx="0.5" fill="url(#bestActiveGrad)" fillOpacity="0.6" />
+    <rect x="7" y="15" width="3" height="1" rx="0.5" fill="url(#bestActiveGrad)" fillOpacity="0.6" />
+    <rect x="11" y="15" width="2" height="1" rx="0.5" fill="url(#bestActiveGrad)" fillOpacity="0.6" />
+    <rect x="14" y="15" width="4" height="1" rx="0.5" fill="url(#bestActiveGrad)" fillOpacity="0.6" />
+  </svg>
+)
+
+export const BestWinRateIcon = ({ className = "", size = 24 }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+  >
+    <defs>
+      <linearGradient id="bestWinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F59E0B" />
+        <stop offset="100%" stopColor="#D97706" />
+      </linearGradient>
+      <linearGradient id="bestWinGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
+        <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+      </linearGradient>
+    </defs>
+    
+    {/* Target background */}
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      fill="url(#bestWinGrad)"
+      fillOpacity="0.1"
+      stroke="url(#bestWinGrad)"
+      strokeWidth="2"
+    />
+    
+    {/* Outer ring */}
+    <circle
+      cx="12"
+      cy="12"
+      r="7"
+      fill="none"
+      stroke="url(#bestWinGrad)"
+      strokeWidth="1.5"
+      strokeOpacity="0.4"
+    />
+    
+    {/* Inner target */}
+    <circle
+      cx="12"
+      cy="12"
+      r="4"
+      fill="url(#bestWinGrad)"
+      fillOpacity="0.2"
+      stroke="url(#bestWinGrad)"
+      strokeWidth="2"
+    />
+    
+    {/* Bullseye center */}
+    <circle
+      cx="12"
+      cy="12"
+      r="2"
+      fill="url(#bestWinGrad)"
+      fillOpacity="0.4"
+    />
+    
+    {/* Glass effect */}
+    <circle
+      cx="12"
+      cy="8"
+      r="6"
+      fill="url(#bestWinGlass)"
+    />
+    
+    {/* Percentage symbol */}
+    <text
+      x="12"
+      y="12"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fill="url(#bestWinGrad)"
+      fontSize="6"
+      fontWeight="bold"
+      fontFamily="Arial, sans-serif"
+    >
+      %
+    </text>
+    
+    {/* Winning arrows around target */}
+    <path
+      d="M4 8L6 6L8 8"
+      stroke="url(#bestWinGrad)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeOpacity="0.7"
+    />
+    <path
+      d="M6 6V9"
+      stroke="url(#bestWinGrad)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeOpacity="0.7"
+    />
+    
+    {/* Success checkmark */}
+    <path
+      d="M8 16L10 18L16 12"
+      stroke="url(#bestWinGrad)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeOpacity="0.6"
+    />
+  </svg>
+)
