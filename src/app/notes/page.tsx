@@ -33,6 +33,13 @@ export interface Note {
     customFields?: any[]
     fieldValues: Record<string, any>
   }
+  // Sharing configuration
+  sharing?: {
+    isShared: boolean
+    shareToken?: string
+    isAnonymous: boolean
+    sharedAt?: string
+  }
   // Optional trading data for trade/daily journal notes to power PnL header
   tradingData?: {
     netPnl?: number
@@ -477,7 +484,7 @@ export default function NotesPage() {
     success('Template applied!', `${template.name} template applied instantly - ready to edit!`)
   }
 
-  const handleUpdateNote = (id: string, content: string, title?: string, color?: string, tags?: string[]) => {
+  const handleUpdateNote = (id: string, content: string, title?: string, color?: string, tags?: string[], sharing?: { isShared: boolean; shareToken?: string; isAnonymous: boolean; sharedAt?: string }) => {
     console.log('Updating note:', id, 'with content length:', content.length)
     setNotes(prev => prev.map(note => 
       note.id === id 
@@ -490,7 +497,9 @@ export default function NotesPage() {
             // Only update color if explicitly provided
             ...(color !== undefined && { color }),
             // Only update tags if explicitly provided
-            ...(tags !== undefined && { tags })
+            ...(tags !== undefined && { tags }),
+            // Only update sharing if explicitly provided
+            ...(sharing !== undefined && { sharing })
           }
         : note
     ))
@@ -505,7 +514,9 @@ export default function NotesPage() {
         // Only update color if explicitly provided
         ...(color !== undefined && { color }),
         // Only update tags if explicitly provided
-        ...(tags !== undefined && { tags })
+        ...(tags !== undefined && { tags }),
+        // Only update sharing if explicitly provided
+        ...(sharing !== undefined && { sharing })
       } : null)
     }
   }

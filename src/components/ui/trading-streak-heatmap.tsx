@@ -184,8 +184,8 @@ export function TradingStreakHeatmap() {
               const baseCell = 'relative h-full w-full rounded-md border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center p-2'
               const colorCell = traded
                 ? positive
-                  ? 'shadow-[inset_0_0_20px_-8px_rgba(31,193,107,0.8)] text-gray-900 dark:text-white'
-                  : 'shadow-[inset_0_0_20px_-8px_rgba(255,77,59,0.7)] text-gray-900 dark:text-white'
+                  ? 'shadow-[inset_0_0_20px_-8px_rgba(6,214,160,0.9)] text-gray-900 dark:text-white'
+                  : 'shadow-[inset_0_0_20px_-8px_rgba(255,71,87,0.9)] text-gray-900 dark:text-white'
                 : 'bg-white text-gray-700 dark:bg-[#0f0f0f] dark:text-gray-300'
 
               return (

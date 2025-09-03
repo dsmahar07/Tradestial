@@ -326,13 +326,13 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
             <defs>
               {/* Green gradient for positive areas */}
               <linearGradient id="positiveGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4}/>
-                <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
+                <stop offset="0%" stopColor="#06d6a0" stopOpacity={0.6}/>
+                <stop offset="100%" stopColor="#06d6a0" stopOpacity={0.15}/>
               </linearGradient>
               {/* Red gradient for negative areas */}
               <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.05}/>
-                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
+                <stop offset="0%" stopColor="#FF4757" stopOpacity={0.15}/>
+                <stop offset="100%" stopColor="#FF4757" stopOpacity={0.6}/>
               </linearGradient>
             </defs>
             

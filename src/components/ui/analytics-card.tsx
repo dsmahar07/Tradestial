@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { SemicircularGauge } from './semicircular-gauge'
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import { useState, useEffect } from 'react'
+import { useHydrated } from '@/hooks/use-hydrated'
 import { DataStore } from '@/services/data-store.service'
 
 interface GaugeData {
@@ -69,20 +70,16 @@ export function AnalyticsCard({
   showCustomContent = false,
   customContent
 }: AnalyticsCardProps) {
-  const [localTradeCount, setLocalTradeCount] = useState(() => {
-    // Prevent hydration mismatch by using 0 on server-side
-    if (typeof window === 'undefined') {
-      return 0
-    }
-    return DataStore.getAllTrades().length
-  })
+  // Always start at 0 to match server-rendered HTML, then update after mount
+  const [localTradeCount, setLocalTradeCount] = useState(0)
+  const hydrated = useHydrated()
   
   // Subscribe to data changes to update trade count
   useEffect(() => {
     if (title === "NET PNL") {
-      // Update immediately after hydration
+      // Update after mount only to avoid SSR/CSR mismatch
       setLocalTradeCount(DataStore.getAllTrades().length)
-      
+
       const unsubscribe = DataStore.subscribe(() => {
         setLocalTradeCount(DataStore.getAllTrades().length)
       })
@@ -116,10 +113,10 @@ export function AnalyticsCard({
       transition={{ duration: 0.5, delay }}
     >
       <div className={cn(
-        "bg-white dark:bg-[#0f0f0f] rounded-xl p-5 text-gray-900 dark:text-white relative",
+        "bg-white dark:bg-[#0f0f0f] rounded-xl p-4 text-gray-900 dark:text-white relative overflow-visible",
         className
       )}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-start justify-between w-full">
             <div className="flex items-center space-x-3">
               {Icon && (
@@ -133,13 +130,6 @@ export function AnalyticsCard({
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</span>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-6 w-6 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
         </div>
         
         <div className="space-y-3 relative">
@@ -153,25 +143,25 @@ export function AnalyticsCard({
           </div>
           
           {showSemicircularIndicator && gaugeData.length > 0 && (
-            <div className="absolute -top-8 right-0 scale-105 origin-top-right">
+            <div className="absolute -top-8 right-1 scale-105 origin-top-right">
               <div className="relative">
                 <div className="relative group">
-                  <ResponsiveContainer width={120} height={100}>
+                  <ResponsiveContainer width={140} height={120}>
                     <PieChart>
                     <Pie
                       data={gaugeData}
-                      cx={60}
-                      cy={50}
+                      cx={70}
+                      cy={60}
                       startAngle={180}
                       endAngle={0}
-                      innerRadius={30}
-                      outerRadius={40}
+                      innerRadius={38}
+                      outerRadius={50}
                       fill="#8884d8"
                       paddingAngle={2}
                       dataKey="value"
                       stroke="none"
                       strokeWidth={0}
-                      cornerRadius={4}
+                      cornerRadius={0}
                       isAnimationActive={true}
                       animationBegin={delay * 1000 + 300}
                       animationDuration={1200}
@@ -193,11 +183,11 @@ export function AnalyticsCard({
                 </div>
                 </div>
                 {/* Trade count labels */}
-                <div className="absolute bottom-0 left-8 right-4 flex justify-between items-center">
-                  <div className="text-center relative group" style={{ transform: 'translateX(-10px)' }}>
+                <div className="absolute bottom-7 left-6 right-4 flex justify-between items-center">
+                  <div className="text-center relative group">
                     <div 
                       className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
-                      style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.15)', padding: '2px 5px', fontSize: '10px', lineHeight: '1' }}
+                      style={{ color: '#10B981', backgroundColor: 'rgba(18, 217, 154, 0.32)', padding: '3px 6px', fontSize: '8px', lineHeight: '1' }}
                     >
                       {gaugeData[0]?.value || 0}
                     </div>
@@ -205,10 +195,10 @@ export function AnalyticsCard({
                       Winning Trades
                     </div>
                   </div>
-                  <div className="text-center relative group" style={{ transform: 'translateX(-4px)' }}>
+                  <div className="text-center relative group">
                     <div 
                       className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
-                      style={{ color: '#693EE0', backgroundColor: 'rgba(105, 62, 224, 0.15)', padding: '2px 5px', fontSize: '10px', lineHeight: '1' }}
+                      style={{ color: '#693EE0', backgroundColor: 'rgba(68, 0, 255, 0.33)', padding: '3px 6px', fontSize: '8px', lineHeight: '1' }}
                     >
                       {gaugeData[1]?.value || 0}
                     </div>
@@ -219,7 +209,7 @@ export function AnalyticsCard({
                   <div className="text-center relative group">
                     <div 
                       className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
-                      style={{ color: '#FB3748', backgroundColor: 'rgba(251, 55, 72, 0.15)', padding: '2px 5px', fontSize: '10px', lineHeight: '1' }}
+                      style={{ color: '#FB3748', backgroundColor: 'rgba(254, 0, 21, 0.27)', padding: '3px 6px', fontSize: '8px', lineHeight: '1' }}
                     >
                       {gaugeData[2]?.value || 0}
                     </div>
@@ -233,22 +223,22 @@ export function AnalyticsCard({
           )}
           
           {showDonutIndicator && donutData.length > 0 && (
-            <div className="absolute -top-6 right-0 scale-90 origin-top-right">
+            <div className="absolute -top-10 right-2 scale-90 origin-top-right">
               <div className="relative group">
-                <ResponsiveContainer width={100} height={100}>
+                <ResponsiveContainer width={110} height={110}>
                   <PieChart>
                     <Pie
                       data={donutData}
-                      cx={50}
-                      cy={50}
-                      innerRadius={32}
-                      outerRadius={42}
+                      cx={55}
+                      cy={55}
+                      innerRadius={36}
+                      outerRadius={48}
                       fill="#8884d8"
                       paddingAngle={2}
                       dataKey="value"
                       stroke="none"
                       strokeWidth={0}
-                      cornerRadius={4}
+                      cornerRadius={0}
                       isAnimationActive={true}
                       animationBegin={delay * 1000 + 300}
                       animationDuration={1200}
@@ -260,7 +250,7 @@ export function AnalyticsCard({
                   </PieChart>
                 </ResponsiveContainer>
                 {/* Custom tooltip */}
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                <div className="absolute -top-100 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                   {donutData.map((entry, index) => (
                     <div key={index} className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
@@ -273,35 +263,58 @@ export function AnalyticsCard({
           )}
 
           {showHorizontalBars && horizontalBarsData.length > 0 && (
-            <div className="absolute -top-2 right-0 scale-100 origin-top-right">
-              <div className="flex flex-col space-y-3 w-32">
-                {horizontalBarsData.map((bar, index) => {
-                  const maxValue = Math.max(...horizontalBarsData.map(b => b.value));
-                  const barWidth = (bar.value / maxValue) * 80;
-                  return (
-                    <div key={bar.name} className="flex flex-col space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                          {bar.name}
-                        </span>
-                        <span className="text-xs font-bold" style={{ color: bar.color }}>
-                          {horizontalBarsFormatter 
-                            ? horizontalBarsFormatter(bar.value, bar.name) 
-                            : `$${bar.value}`}
-                        </span>
-                      </div>
-                      <div className="relative h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <motion.div 
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: bar.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${barWidth}px` }}
-                          transition={{ duration: 1.2, delay: delay + 0.3 + (index * 0.2), ease: "easeOut" }}
-                        />
+            <div className="absolute -top-2 right-0 scale-100 origin-top-right overflow-visible">
+              <div className="flex flex-col space-y-2 w-40">
+                {/* Combined bar showing both win and loss */}
+                <div className="flex flex-col space-y-1">
+                  <div className="relative h-4 bg-gray-100 dark:bg-gray-800 rounded-full">
+                    {/* Win portion (left side) with hover tooltip */}
+                    <div className="absolute left-0 top-0 w-1/2 h-full group cursor-pointer overflow-visible">
+                      <motion.div 
+                        className="h-full rounded-l-full"
+                        style={{ backgroundColor: horizontalBarsData[0]?.color || '#10b981' }}
+                        initial={{ width: 0 }}
+                        animate={{ width: '100%' }}
+                        transition={{ duration: 1.2, delay: delay + 0.3, ease: "easeOut" }}
+                      />
+                      {/* Win hover tooltip */}
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[9999]">
+                        Avg Win: {horizontalBarsFormatter 
+                          ? horizontalBarsFormatter(horizontalBarsData[0]?.value || 0, horizontalBarsData[0]?.name || 'Win') 
+                          : `$${horizontalBarsData[0]?.value || 0}`}
                       </div>
                     </div>
-                  );
-                })}
+                    {/* Loss portion (right side) with hover tooltip */}
+                    <div className="absolute right-0 top-0 w-1/2 h-full group cursor-pointer overflow-visible">
+                      <motion.div 
+                        className="h-full rounded-r-full"
+                        style={{ backgroundColor: horizontalBarsData[1]?.color || '#ef4444' }}
+                        initial={{ width: 0 }}
+                        animate={{ width: '100%' }}
+                        transition={{ duration: 1.2, delay: delay + 0.5, ease: "easeOut" }}
+                      />
+                      {/* Loss hover tooltip */}
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[9999]">
+                        Avg Loss: {horizontalBarsFormatter 
+                          ? horizontalBarsFormatter(horizontalBarsData[1]?.value || 0, horizontalBarsData[1]?.name || 'Loss') 
+                          : `$${horizontalBarsData[1]?.value || 0}`}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Labels below the bar without dots */}
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-xs font-bold" style={{ color: horizontalBarsData[0]?.color || '#10b981' }}>
+                      {horizontalBarsFormatter 
+                        ? horizontalBarsFormatter(horizontalBarsData[0]?.value || 0, horizontalBarsData[0]?.name || 'Win') 
+                        : `$${horizontalBarsData[0]?.value || 0}`}
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: horizontalBarsData[1]?.color || '#ef4444' }}>
+                      {horizontalBarsFormatter 
+                        ? horizontalBarsFormatter(horizontalBarsData[1]?.value || 0, horizontalBarsData[1]?.name || 'Loss') 
+                        : `$${horizontalBarsData[1]?.value || 0}`}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -408,8 +421,8 @@ export function AnalyticsCard({
           </>
         )}
         
-        {/* Trade Count - Only show for NET PNL card */}
-        {title === "NET PNL" && (
+        {/* Trade Count - Only show for NET PNL card after hydration */}
+        {hydrated && title === "NET PNL" && (
           <div className="absolute bottom-2 right-2 z-10">
             <div 
               className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity relative group" 

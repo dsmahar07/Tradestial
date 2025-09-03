@@ -164,6 +164,12 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     return `$${Math.round(value).toLocaleString()}`
   }
 
+  // Full price formatter for entry/exit prices (no abbreviations)
+  const formatPrice = (value: number): string => {
+    if (!isFinite(value) || isNaN(value)) return '$0.00'
+    return `$${value.toFixed(2)}`
+  }
+
   // Note editor state
   const [isNoteMode, setIsNoteMode] = useState<boolean>(false)
   const [noteContent, setNoteContent] = useState<string>('')
@@ -544,13 +550,13 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                     <defs>
                       {/* Green gradient for positive areas */}
                       <linearGradient id={`${gradientId}-positive`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.4}/>
-                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
+                        <stop offset="0%" stopColor="#06d6a0" stopOpacity={0.6}/>
+                        <stop offset="100%" stopColor="#06d6a0" stopOpacity={0.15}/>
                       </linearGradient>
                       {/* Red gradient for negative areas */}
                       <linearGradient id={`${gradientId}-negative`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.05}/>
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
+                        <stop offset="0%" stopColor="#FF4757" stopOpacity={0.15}/>
+                        <stop offset="100%" stopColor="#FF4757" stopOpacity={0.6}/>
                       </linearGradient>
                     </defs>
                     
@@ -792,10 +798,10 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                               })}
                             </td>
                             <td className="px-4 py-4 text-right text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
-                              {formatCurrency(avgEntry || 0)}
+                              {formatPrice(avgEntry || 0)}
                             </td>
                             <td className="px-4 py-4 text-right text-sm text-gray-900 dark:text-gray-100 min-w-[100px] whitespace-nowrap">
-                              {formatCurrency(avgExit || 0)}
+                              {formatPrice(avgExit || 0)}
                             </td>
                             <td className="px-4 py-4 text-right text-sm font-medium min-w-[120px] whitespace-nowrap">
                               <span className={`${trade.netPnl >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'} font-semibold`}>

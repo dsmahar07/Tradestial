@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import * as echarts from 'echarts';
 import { DataStore } from '@/services/data-store.service'
 import { formatCurrencyValue } from '@/lib/utils'
+import { useHydrated } from '@/hooks/use-hydrated'
 
 type EChartsOption = echarts.EChartsOption;
 
@@ -12,7 +13,9 @@ const AdvanceRadar: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [dataVersion, setDataVersion] = useState(0)
-  const [hasData, setHasData] = useState(() => DataStore.getAllTrades().length > 0)
+  // Start with a stable default for SSR; update after mount to avoid mismatch
+  const [hasData, setHasData] = useState(false)
+  const hydrated = useHydrated()
 
   const calculateOverallScore = () => {
     const trades = DataStore.getAllTrades()
@@ -77,7 +80,7 @@ const AdvanceRadar: React.FC = () => {
 
   useEffect(() => {
     if (!chartRef.current) return;
-    if (!hasData) return; // no data => do not init chart
+    if (!(hydrated && hasData)) return; // wait until hydrated & data present
     
     // Use SVG renderer for sharper text/lines and better scaling behavior
     var myChart = echarts.init(chartRef.current, null, {
@@ -330,16 +333,19 @@ const AdvanceRadar: React.FC = () => {
       ro.disconnect();
       myChart.dispose();
     };
-  }, [isDarkMode, dataVersion, hasData]);
+  }, [isDarkMode, dataVersion, hasData, hydrated]);
 
-  // Subscribe to data changes so chart updates when imports occur
+  // After mount, set initial data presence and subscribe to updates
   useEffect(() => {
+    if (!hydrated) return
+    // Set current data presence
+    setHasData(DataStore.getAllTrades().length > 0)
     const unsubscribe = DataStore.subscribe(() => {
       setDataVersion(v => v + 1)
       setHasData(DataStore.getAllTrades().length > 0)
     })
     return () => unsubscribe()
-  }, [])
+  }, [hydrated])
 
   return (
     <motion.div
@@ -348,7 +354,7 @@ const AdvanceRadar: React.FC = () => {
       transition={{ duration: 0.5, delay: 0.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '432px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-2 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '432px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -361,10 +367,10 @@ const AdvanceRadar: React.FC = () => {
         {/* Header Divider */}
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
-      {hasData ? (
-        <div className="h-80 flex flex-col">
+      {hydrated && hasData ? (
+        <div className="flex flex-col" style={{ height: 'calc(100% - 60px)' }}>
           {/* ECharts Radar Chart */}
-          <div className="flex-1 mb-2">
+          <div className="flex-1" style={{ maxHeight: '295px' }}>
             <div ref={chartRef} style={{ width: "100%", height: "100%" }} />
           </div>
           {/* Score + Progress (single row) */}

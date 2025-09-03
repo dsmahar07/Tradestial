@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Plus, MoreHorizontal, Edit3, Trash2, GripVertical, Palette, ChevronLeft } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Share2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -259,9 +259,29 @@ export function NotebookMiddlePanel({
                   className="flex-1 cursor-pointer"
                   onClick={() => onNoteSelect(note)}
                 >
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white leading-tight break-words">{note.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white leading-tight break-words">{note.title}</h3>
+                    {note.sharing?.isShared && (
+                      <div className="flex items-center gap-1">
+                        {note.sharing.isAnonymous ? (
+                          <div title="Shared anonymously">
+                            <Users className="w-4 h-4 text-blue-500" />
+                          </div>
+                        ) : (
+                          <div title="Shared publicly">
+                            <Share2 className="w-4 h-4 text-blue-500" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {formatDate(note.createdAt)}
+                    {note.sharing?.isShared && (
+                      <span className="ml-2 text-blue-500 text-xs">
+                        • {note.sharing.isAnonymous ? 'Anonymous' : 'Public'} share
+                      </span>
+                    )}
                   </p>
                 </div>
 

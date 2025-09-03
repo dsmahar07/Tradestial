@@ -5,6 +5,18 @@ import SharedNoteWidget from '@/components/share/SharedNoteWidget'
 // Conservative HTML sanitizer for server rendering
 function sanitizeHtml(input: string): string {
   let html = String(input || '')
+  
+  // First, preserve line breaks by converting \n to <br> if content doesn't already have HTML tags
+  if (!html.includes('<') || html.trim().split('\n').length > 1) {
+    // Convert line breaks to <br> tags, but preserve existing HTML structure
+    html = html.replace(/\n\s*\n/g, '</p><p>').replace(/\n/g, '<br>')
+    
+    // Wrap in paragraphs if not already wrapped
+    if (!html.trim().startsWith('<')) {
+      html = `<p>${html}</p>`
+    }
+  }
+  
   // Remove dangerous tags entirely
   html = html.replace(/<\/(script|style|iframe|object|embed|link|meta)[^>]*>/gi, '')
   html = html.replace(/<(script|style|iframe|object|embed|link|meta)[^>]*>[\s\S]*?<\/(script|style|iframe|object|embed|link|meta)>/gi, '')
@@ -29,22 +41,22 @@ export default function ShareNotePage({ params }: { params: { token: string } })
     <div className="h-screen flex flex-col overflow-hidden bg-[#F5F5F5] dark:bg-[#171717] font-inter">
       {/* Header with branding */}
       <header className="bg-transparent dark:bg-transparent px-0 py-4">
-        <div className="w-full max-w-none mx-auto flex items-center justify-between px-4 sm:px-6 md:px-10">
+        <div className="w-full max-w-none mx-auto flex items-center justify-between px-4 sm:px-6 md:px-8 lg:px-10">
           <div className="flex items-center space-x-3">
-            <div className="text-xl font-bold">
+            <div className="text-lg sm:text-xl font-bold">
               <span className="text-blue-600">TRADE</span>
               <span className="text-gray-400">STIAL</span>
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors">
               My Dashboard
             </button>
           </div>
         </div>
       </header>
 
-      <main className="w-full px-10 py-10 flex-1 overflow-hidden">
+      <main className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 md:py-10 flex-1 min-h-0 overflow-hidden">
         <div className="h-full">
           <SharedNoteWidget
           note={{
@@ -61,7 +73,7 @@ export default function ShareNotePage({ params }: { params: { token: string } })
           />
         </div>
 
-        <footer className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">View-only share. Editing is disabled.</footer>
+        <footer className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">View-only share. Editing is disabled.</footer>
       </main>
     </div>
   )

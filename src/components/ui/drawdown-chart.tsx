@@ -211,8 +211,8 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               ))}
               <defs>
                 <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E93544" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#E93544" stopOpacity={0.1} />
+                  <stop offset="0%" stopColor="#FF4757" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#FF4757" stopOpacity={0.15} />
                 </linearGradient>
               </defs>
               

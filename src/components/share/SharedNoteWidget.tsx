@@ -60,7 +60,7 @@ export default function SharedNoteWidget({ note }: { note: SharedNoteInput }) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#0f0f0f] relative h-full max-h-full w-full rounded-xl overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-[#0f0f0f] relative h-full w-full rounded-xl overflow-hidden flex flex-col">
       {/* Shared by tag */}
       {note.sharedBy && (
         <div className="absolute top-4 right-4 flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
@@ -75,16 +75,13 @@ export default function SharedNoteWidget({ note }: { note: SharedNoteInput }) {
       )}
 
       {/* Header */}
-      <div className="px-10 py-8 border-b border-gray-100 dark:border-[#2A2A2A] flex-shrink-0">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">{formatMaybeDateTitle(note.title)}</h1>
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 border-b border-gray-100 dark:border-[#2A2A2A] flex-shrink-0">
+        <h1 className="text-base sm:text-lg md:text-xl font-medium text-gray-900 dark:text-white mb-3">{formatMaybeDateTitle(note.title)}</h1>
 
         {typeof td?.netPnl === 'number' && (
-          <p className="mb-2 text-base md:text-lg">
-            <span className={(td?.isProfit ? 'text-[#10B981]' : 'text-red-600 dark:text-red-400') + ' font-medium'}>Net P&L: </span>
-            <span className={(td?.isProfit ? 'text-[#10B981]' : 'text-red-600 dark:text-red-400') + ' font-medium text-lg md:text-xl tabular-nums'}>
-              {td.netPnl >= 0 ? '+' : ''}${Math.abs(td.netPnl).toLocaleString('en-US')}
-            </span>
-          </p>
+          <div className="text-base sm:text-lg md:text-xl font-semibold" style={{ color: td?.isProfit ? '#10b981' : '#ef4444' }}>
+            Net P&L ${td.netPnl >= 0 ? td.netPnl : td.netPnl}
+          </div>
         )}
 
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -122,14 +119,14 @@ export default function SharedNoteWidget({ note }: { note: SharedNoteInput }) {
 
       {/* Analytics */}
       {td?.stats && td?.chartData && (
-        <div className="px-10 py-8 border-b border-gray-100 dark:border-[#2A2A2A] flex-shrink-0">
+        <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 border-b border-gray-100 dark:border-[#2A2A2A] flex-shrink-0">
           <JournalHeaderStats chartData={td.chartData as any} stats={td.stats as any} size="large" />
         </div>
       )}
 
       {/* Content */}
-      <div className="px-10 py-8 flex-1 overflow-auto">
-        <div className="prose prose-gray dark:prose-invert max-w-none font-inter" dangerouslySetInnerHTML={{ __html: note.contentHtml }} />
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 flex-1 min-h-0 overflow-auto">
+        <div className="prose prose-sm sm:prose md:prose-lg prose-gray dark:prose-invert max-w-none font-inter" dangerouslySetInnerHTML={{ __html: note.contentHtml }} />
       </div>
     </div>
   )

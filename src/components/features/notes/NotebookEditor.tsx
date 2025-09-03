@@ -44,7 +44,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Note } from '@/app/notes/page'
 import type { TradeJournalingTemplate } from '@/lib/templates'
 import type { TemplateInstance } from '@/types/templates'
@@ -57,7 +60,7 @@ import { accountService } from '@/services/account.service'
 
 interface NotebookEditorProps {
   note: Note | null
-  onUpdateNote?: (id: string, content: string, title?: string, color?: string, tags?: string[]) => void
+  onUpdateNote?: (id: string, content: string, title?: string, color?: string, tags?: string[], sharing?: { isShared: boolean; shareToken?: string; isAnonymous: boolean; sharedAt?: string }) => void
   onDeleteNote?: (id: string, noteTitle: string) => void
   useDatePicker?: boolean
   onDateChange?: (selectedDate: Date) => void
@@ -86,6 +89,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [shareUrl, setShareUrl] = useState<string>('')
+  const [isAnonymousShare, setIsAnonymousShare] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showRangePicker, setShowRangePicker] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
@@ -1068,73 +1072,37 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                     Create from template
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  className="text-blue-600 dark:text-blue-400 dark:hover:bg-[#2A2A2A]"
-                  onClick={() => {
-                    if (note) {
-                      // Ensure latest edits are persisted
-                      onUpdateNote?.(note.id, content)
-                      const active = accountService.getActiveAccount()
-                      const sharerName = active?.name || 'Anonymous'
-                      const initials = sharerName
-                        .split(/\s+/)
-                        .map(s => s[0])
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .join('')
-                        .toUpperCase()
-                      const token = encodeNoteToToken({
-                        title: note.title,
-                        content: content,
-                        tags: note.tags,
-                        tradingData: (note as any).tradingData || computeTradingDataForShare(note),
-                        color: note.color,
-                        createdAt: note.createdAt,
-                        updatedAt: note.updatedAt,
-                        sharedBy: { name: sharerName, initials },
-                      })
-                      const url = `${window.location.origin}/notes/share/${token}`
-                      setShareUrl(url)
-                      setShowShareModal(true)
-                    }
-                  }}
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (note) {
-                      // Ensure latest edits are persisted
-                      onUpdateNote?.(note.id, content)
-                      const active = accountService.getActiveAccount()
-                      const sharerName = active?.name || 'Anonymous'
-                      const initials = sharerName
-                        .split(/\s+/)
-                        .map(s => s[0])
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .join('')
-                        .toUpperCase()
-                      const token = encodeNoteToToken({
-                        title: note.title,
-                        content: content,
-                        tags: note.tags,
-                        tradingData: (note as any).tradingData || computeTradingDataForShare(note),
-                        color: note.color,
-                        createdAt: typeof (note as any).createdAt === 'string' ? (note as any).createdAt : new Date((note as any).createdAt).toISOString(),
-                        updatedAt: typeof (note as any).updatedAt === 'string' ? (note as any).updatedAt : new Date((note as any).updatedAt).toISOString(),
-                        sharedBy: { name: sharerName, initials },
-                      })
-                      const url = `${window.location.origin}/notes/share/${token}`
-                      safeCopyToClipboard(url)
-                      console.log('View-only link copied to clipboard!')
-                    }
-                  }}
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy Link
-                </DropdownMenuItem>
+                {note?.sharing?.isShared ? (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (note && onUpdateNote) {
+                        onUpdateNote(note.id, content, undefined, undefined, undefined, {
+                          isShared: false,
+                          shareToken: undefined,
+                          isAnonymous: false,
+                          sharedAt: undefined
+                        })
+                      }
+                    }}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Stop Sharing
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (note) {
+                        // Ensure latest edits are persisted
+                        onUpdateNote?.(note.id, content)
+                        setIsAnonymousShare(false)
+                        setShowShareModal(true)
+                      }
+                    }}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => {
@@ -1315,12 +1283,12 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                   >
                     <defs>
                       <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6ee7b7" stopOpacity={1}/>
-                        <stop offset="100%" stopColor="#86efac" stopOpacity={0.6}/>
+                        <stop offset="0%" stopColor="#06d6a0" stopOpacity={0.6}/>
+                        <stop offset="100%" stopColor="#06d6a0" stopOpacity={0.15}/>
                       </linearGradient>
                       <linearGradient id="negativeAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#fca5a5" stopOpacity={0.6}/>
-                        <stop offset="100%" stopColor="#f87171" stopOpacity={1}/>
+                        <stop offset="0%" stopColor="#FF4757" stopOpacity={0.15}/>
+                        <stop offset="100%" stopColor="#FF4757" stopOpacity={0.6}/>
                       </linearGradient>
                     </defs>
                     <XAxis 
@@ -1847,37 +1815,148 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
       {/* Share Dialog */}
       <Dialog open={showShareModal} onClose={() => setShowShareModal(false)}>
-        <DialogContent className="max-w-lg bg-white dark:bg-[#0f0f0f]">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Share note</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Anyone with this link can view this note. Editing is disabled.</p>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                readOnly
-                value={shareUrl}
-                className="flex-1 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-[#404040] bg-white dark:bg-[#1E1E1E] text-gray-900 dark:text-white"
-                onFocus={(e) => e.currentTarget.select()}
-              />
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (shareUrl) safeCopyToClipboard(shareUrl)
-                }}
-              >
-                Copy
-              </Button>
-              <Button
-                onClick={() => {
-                  if (shareUrl) window.open(shareUrl, '_blank')
-                }}
-              >
-                Open
-              </Button>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5" />
+              Share Note
+            </DialogTitle>
+            <DialogDescription>
+              Create a shareable link for "{note?.title}". Anyone with this link can view the note.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Privacy Settings */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="anonymous-mode" className="text-sm font-medium">
+                    Anonymous sharing
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Hide your identity from viewers
+                  </p>
+                </div>
+                <Switch
+                  checked={isAnonymousShare}
+                  onCheckedChange={setIsAnonymousShare}
+                />
+              </div>
             </div>
-            <div className="flex justify-end">
-              <Button variant="ghost" onClick={() => setShowShareModal(false)}>Close</Button>
-            </div>
+
+            {shareUrl ? (
+              <>
+                <Separator />
+                
+                {/* Share URL Section */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Share Link</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shareUrl}
+                      className="flex-1 px-3 py-2 text-sm bg-muted rounded-md border border-input font-mono"
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (shareUrl) {
+                          safeCopyToClipboard(shareUrl)
+                        }
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      if (shareUrl) window.open(shareUrl, '_blank')
+                    }}
+                  >
+                    Preview
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      setShowShareModal(false)
+                      setShareUrl('')
+                      setIsAnonymousShare(false)
+                    }}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center space-y-4">
+                <Button
+                  onClick={() => {
+                    if (note) {
+                      // Ensure latest edits are persisted
+                      onUpdateNote?.(note.id, content)
+                      const active = accountService.getActiveAccount()
+                      const sharerName = isAnonymousShare ? undefined : (active?.name || 'Anonymous')
+                      const initials = sharerName
+                        ? sharerName
+                            .split(/\s+/)
+                            .map(s => s[0])
+                            .filter(Boolean)
+                            .join('')
+                            .toUpperCase()
+                            .slice(0, 2)
+                        : undefined
+                      
+                      const token = encodeNoteToToken({
+                        title: note.title,
+                        content: content,
+                        tags: note.tags,
+                        tradingData: (note as any).tradingData || computeTradingDataForShare(note),
+                        color: note.color,
+                        createdAt: note.createdAt,
+                        updatedAt: note.updatedAt,
+                        sharedBy: sharerName ? { name: sharerName, initials } : undefined,
+                      })
+                      
+                      const url = `${window.location.origin}/notes/share/${token}`
+                      setShareUrl(url)
+                      
+                      // Update note with sharing info
+                      onUpdateNote?.(note.id, content, undefined, undefined, undefined, {
+                        isShared: true,
+                        shareToken: token,
+                        isAnonymous: isAnonymousShare,
+                        sharedAt: new Date().toISOString()
+                      })
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Create Share Link
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowShareModal(false)
+                    setIsAnonymousShare(false)
+                  }}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

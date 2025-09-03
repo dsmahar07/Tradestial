@@ -33,6 +33,12 @@ const formatCurrency = (value: number): string => {
   return `$${Math.round(value).toLocaleString()}`
 }
 
+// Full price formatter for entry/exit prices (no abbreviations)
+const formatPrice = (value: number): string => {
+  if (!isFinite(value) || isNaN(value)) return '$0.00'
+  return `$${value.toFixed(2)}`
+}
+
 const getAvatarColor = (symbol: string) => {
   const colors = [
     'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
@@ -120,10 +126,10 @@ export default function JournalTradesTable({ trades }: JournalTradesTableProps) 
                     }) : timePart(t.exitTime || t.closeTime)}
                   </td>
                   <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[120px]">
-                    {formatCurrency(t.entryPrice)}
+                    {formatPrice(t.entryPrice)}
                   </td>
                   <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[120px]">
-                    {formatCurrency(t.exitPrice)}
+                    {formatPrice(t.exitPrice)}
                   </td>
                   <td className="px-4 py-4 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[130px]">
                     <span 

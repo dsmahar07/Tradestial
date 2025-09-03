@@ -592,10 +592,6 @@ export function DailyJournalContent() {
             const avgWin = winners > 0 ? dayTrades.filter(t => t.netPnl > 0).reduce((sum, t) => sum + t.netPnl, 0) / winners : 0
             const avgLoss = losers > 0 ? Math.abs(dayTrades.filter(t => t.netPnl < 0).reduce((sum, t) => sum + t.netPnl, 0)) / losers : 0
             return avgLoss > 0 ? parseFloat((avgWin / avgLoss).toFixed(2)) : 0
-          })(),
-          roi: (() => {
-            const commissions = dayTrades.reduce((sum, t) => sum + (t.commissions || 0), 0)
-            return commissions > 0 ? parseFloat(((totalPnL / commissions) * 100).toFixed(2)) : 0
           })()
         }
       })
@@ -726,12 +722,12 @@ export function DailyJournalContent() {
                             
                             <defs>
                               <linearGradient id="positiveGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4}/>
-                                <stop offset="100%" stopColor="#10b981" stopOpacity={0.05}/>
+                                <stop offset="0%" stopColor="#06d6a0" stopOpacity={0.6}/>
+                                <stop offset="100%" stopColor="#06d6a0" stopOpacity={0.15}/>
                               </linearGradient>
                               <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.05}/>
-                                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
+                                <stop offset="0%" stopColor="#FF4757" stopOpacity={0.15}/>
+                                <stop offset="100%" stopColor="#FF4757" stopOpacity={0.6}/>
                               </linearGradient>
                             </defs>
                             

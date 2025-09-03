@@ -201,7 +201,6 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   // Settings state (placeholder; can be lifted to context if needed)
   const [settings, setSettings] = useState({
     rMultiple: false,
-    dailyPl: false,
     ticks: false,
     pips: false,
     points: false,
@@ -309,7 +308,6 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 <div className="flex flex-col gap-1">
                   {[
                     { key: 'rMultiple', label: 'R Multiple' },
-                    { key: 'dailyPl', label: 'Daily P/L' },
                     { key: 'ticks', label: 'Ticks' },
                     { key: 'pips', label: 'Pips' },
                     { key: 'points', label: 'Points' },
@@ -388,42 +386,36 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 <span className={cn('text-[11px] font-medium self-start', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
                 {typeof pnl === 'number' && (
                   <div className="flex-grow flex flex-col items-center justify-center -mt-2">
-                    {/* Primary metric - Daily P&L (centered) */}
-                    {settings.dailyPl && (
-                      <div className={cn(useCompact ? 'text-center text-sm font-bold mb-0.5' : 'text-center text-base font-bold mb-1', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                        {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
+                    {/* P&L display - always at top */}
+                    <div className={cn(useCompact ? 'text-center text-sm font-bold mb-1' : 'text-center text-base font-bold mb-1', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
+                      {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
+                    </div>
+                    {/* Secondary metrics in organized grid */}
+                    {(settings.rMultiple || settings.ticks || settings.pips || settings.points) && (
+                      <div className={cn('grid text-center w-full', useCompact ? 'grid-cols-2 gap-x-1 gap-y-0.5 text-[9px]' : 'grid-cols-2 gap-x-1 gap-y-0.5 text-[10px]')}>
+                        {settings.rMultiple && (
+                          <span className="text-gray-600 dark:text-gray-400">R {(pnl / 100).toFixed(1)}</span>
+                        )}
+                        {settings.ticks && (
+                          <span className="text-gray-600 dark:text-gray-400">T {Math.abs(Math.round(pnl / 12.5))}</span>
+                        )}
+                        {settings.pips && (
+                          <span className="text-gray-600 dark:text-gray-400">P {Math.abs(Math.round(pnl / 10))}</span>
+                        )}
+                        {settings.points && (
+                          <span className="text-gray-600 dark:text-gray-400">{Math.abs(Math.round(pnl / 25))} pt</span>
+                        )}
                       </div>
                     )}
-                    {/* Secondary metrics in grid */}
-                    <div className={cn('grid text-center', useCompact ? 'grid-cols-3 gap-x-1 gap-y-0.5 text-[10px]' : 'grid-cols-2 gap-x-1.5 gap-y-0.5 text-xs')}>
-                      {settings.rMultiple && (
-                        <span className="text-gray-600 dark:text-gray-400">R {(pnl / 100).toFixed(1)}</span>
-                      )}
-                      {settings.ticks && (
-                        <span className="text-gray-600 dark:text-gray-400">T {Math.abs(Math.round(pnl / 12.5))}</span>
-                      )}
-                      {settings.pips && (
-                        <span className="text-gray-600 dark:text-gray-400">P {Math.abs(Math.round(pnl / 10))}</span>
-                      )}
-                      {settings.points && (
-                        <span className="text-gray-600 dark:text-gray-400">{Math.abs(Math.round(pnl / 25))} pt</span>
-                      )}
-                    </div>
                     {/* Bottom info - trade count and winrate */}
                     {(settings.tradesCount || settings.dayWinrate) && (
-                      <div className={cn('flex justify-center mt-1', useCompact ? 'gap-1 text-[10px]' : 'gap-2 text-xs')}>
+                      <div className={cn('flex justify-center mt-0.5', useCompact ? 'gap-1 text-[9px]' : 'gap-1 text-[10px]')}>
                         {settings.tradesCount && (
-                          <span className="text-gray-500 dark:text-gray-400">{c.tradesCount || 1} trade{(c.tradesCount || 1) > 1 ? 's' : ''}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{c.tradesCount || 1}T</span>
                         )}
                         {settings.dayWinrate && (
-                          <span className="text-gray-500 dark:text-gray-400">WR: {isPositive ? '100%' : '0%'}</span>
+                          <span className="text-gray-500 dark:text-gray-400">WR:{isPositive ? '100' : '0'}%</span>
                         )}
-                      </div>
-                    )}
-                    {/* Default P&L when no metrics selected */}
-                    {!settings.dailyPl && !settings.rMultiple && !settings.ticks && !settings.pips && !settings.points && (
-                      <div className={cn(useCompact ? 'text-center text-sm font-bold' : 'text-center text-base font-bold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                        {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
                       </div>
                     )}
                   </div>
@@ -467,60 +459,37 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 >
                   <span className={cn('text-sm font-medium self-start', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
                   {typeof pnl === 'number' && (
-                    <div className="flex-grow flex flex-col items-center justify-center -mt-3">
-                      {/* Primary metric - Daily P&L (centered, larger) */}
-                      {settings.dailyPl && (
-                        <div className={cn(useCompact ? 'text-center text-base font-bold mb-1' : 'text-center text-lg font-bold mb-2', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
+                    <div className="flex-grow flex flex-col gap-0.5 mt-1">
+                      {/* Row 1: R 2.1 | 10 pts | +$250 */}
+                      <div className="flex items-center text-xs">
+                        <span className="text-gray-600 dark:text-gray-400 w-12">
+                          {settings.rMultiple ? `R ${(pnl / 100).toFixed(1)}` : ''}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400 w-16 -ml-2">
+                          {settings.points ? `${Math.abs(Math.round(pnl / 25))} pts` : ''}
+                        </span>
+                        <span className={cn('font-bold text-xl font-inter ml-auto mr-2 mt-3', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                           {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
-                        </div>
-                      )}
-                      
-                      {/* Secondary metrics in 2 rows x 2 columns for desktop */}
-                      <div className={cn('grid text-center', useCompact ? 'grid-cols-3 gap-x-1 gap-y-1 text-xs' : 'grid-cols-2 gap-x-2 gap-y-1 text-sm')}>
-                        {settings.rMultiple && (
-                          <span className="text-gray-600 dark:text-gray-400">
-                            R {(pnl / 100).toFixed(1)}
-                          </span>
-                        )}
-                        {settings.ticks && (
-                          <span className="text-gray-600 dark:text-gray-400">
-                            T {Math.abs(Math.round(pnl / 12.5))}
-                          </span>
-                        )}
-                        {settings.pips && (
-                          <span className="text-gray-600 dark:text-gray-400">
-                            P {Math.abs(Math.round(pnl / 10))}
-                          </span>
-                        )}
-                        {settings.points && (
-                          <span className="text-gray-600 dark:text-gray-400">
-                            {Math.abs(Math.round(pnl / 25))} pts
-                          </span>
-                        )}
+                        </span>
                       </div>
-                      
-                      {/* Bottom info - trade count and winrate with more space */}
-                      {(settings.tradesCount || settings.dayWinrate) && (
-                        <div className={cn('flex justify-center', useCompact ? 'gap-2 mt-1 text-xs' : 'gap-3 mt-2 text-sm')}>
-                          {settings.tradesCount && (
-                            <span className="text-gray-500 dark:text-gray-400">
-                              {c.tradesCount || 1} trade{(c.tradesCount || 1) > 1 ? 's' : ''}
-                            </span>
-                          )}
-                          {settings.dayWinrate && (
-                            <span className="text-gray-500 dark:text-gray-400">
-                              WR: {isPositive ? '100%' : '0%'}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Default P&L when no metrics selected */}
-                      {!settings.dailyPl && !settings.rMultiple && !settings.ticks && !settings.pips && !settings.points && (
-                        <div className={cn(useCompact ? 'text-center text-lg font-bold' : 'text-center text-xl font-bold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                          {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
-                        </div>
-                      )}
+                      {/* Row 2: T 20 | 5 trades | */}
+                      <div className="flex items-center text-xs">
+                        <span className="text-gray-600 dark:text-gray-400 w-12">
+                          {settings.ticks ? `T ${Math.abs(Math.round(pnl / 12.5))}` : ''}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 w-16 -ml-2">
+                          {settings.tradesCount ? `${c.tradesCount || 1} trades` : ''}
+                        </span>
+                      </div>
+                      {/* Row 3: P 25 | WR: 100% | */}
+                      <div className="flex items-center text-xs">
+                        <span className="text-gray-600 dark:text-gray-400 w-12">
+                          {settings.pips ? `P ${Math.abs(Math.round(pnl / 10))}` : ''}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 w-16 -ml-2">
+                          {settings.dayWinrate ? `WR: ${isPositive ? '100%' : '0%'}` : ''}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -528,7 +497,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               )
             })}
             {/* Week summary cell */}
-            <div className="rounded-xl h-24 px-3 py-2 flex items-center justify-between">
+            <div className="rounded-xl h-28 px-3 py-2 flex items-center justify-between">
               <div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Week {i + 1}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{weeklyStats[i]?.days ?? 0} {(weeklyStats[i]?.days ?? 0) === 1 ? 'day' : 'days'}</div>
