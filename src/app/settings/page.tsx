@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useState, useEffect, useRef } from 'react'
-import { Palette, HelpCircle, CreditCard, Upload } from 'lucide-react'
+import { Palette, HelpCircle, CreditCard, Upload, HardDrive } from 'lucide-react'
 import { userProfileService, UserProfile } from '@/services/user-profile.service'
 
 // Custom SVG Icons
@@ -60,6 +60,7 @@ export default function SettingsPage() {
   const [tradeAlerts, setTradeAlerts] = useState(true)
   const [performanceReports, setPerformanceReports] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
+  const [storageUsage, setStorageUsage] = useState({ used: 0, total: 5 * 1024 * 1024 }) // 5MB default limit
   
   // Profile state
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -75,7 +76,21 @@ export default function SettingsPage() {
     tradingExperience: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'professional'
   })
   
-  // Load user profile on component mount
+  // Calculate localStorage usage
+  const calculateStorageUsage = () => {
+    let totalSize = 0
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        const value = localStorage.getItem(key)
+        if (value) {
+          totalSize += key.length + value.length
+        }
+      }
+    }
+    return totalSize
+  }
+
+  // Load user profile and calculate storage on component mount
   useEffect(() => {
     const profile = userProfileService.getUserProfile()
     setUserProfile(profile)
@@ -84,6 +99,10 @@ export default function SettingsPage() {
       email: profile.email,
       tradingExperience: profile.tradingExperience
     })
+    
+    // Calculate storage usage
+    const usedBytes = calculateStorageUsage()
+    setStorageUsage(prev => ({ ...prev, used: usedBytes }))
   }, [])
 
   const isDarkMode = theme === 'dark'
@@ -643,6 +662,28 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
+                          <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
+                            <h3 className="font-medium text-gray-900 dark:text-white mb-3">Storage Usage</h3>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600 dark:text-gray-400">Local Storage</span>
+                                <span className="font-medium text-gray-900 dark:text-white">
+                                  {(storageUsage.used / 1024).toFixed(1)} KB / {(storageUsage.total / 1024 / 1024).toFixed(1)} MB
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min((storageUsage.used / storageUsage.total) * 100, 100)}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <HardDrive className="w-3 h-3" />
+                                <span>{((storageUsage.used / storageUsage.total) * 100).toFixed(1)}% used</span>
+                              </div>
+                            </div>
+                          </div>
+
                           <div className="p-4 bg-white dark:bg-[#0f0f0f] rounded-lg">
                             <h3 className="font-medium text-gray-900 dark:text-white mb-3">Data Export</h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
