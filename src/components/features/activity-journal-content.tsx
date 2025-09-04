@@ -624,24 +624,52 @@ export function ActivityJournalContent() {
                 <span className="text-sm text-gray-600 dark:text-gray-400">Today's progress</span>
                 <Info className="w-4 h-4 text-gray-400" />
               </div>
-              <div className="mb-2">
+              <div className="mb-3">
                 <span className="text-2xl font-bold text-gray-900 dark:text-white">
                   {progressMetrics.completed}/{progressMetrics.total}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${progressMetrics.percentage}%` }}
-                ></div>
+              {/* Performance Radar style progress bar */}
+              <div className="relative">
+                {/* Track */}
+                <div className="relative h-2 rounded-full bg-gray-200 dark:bg-neutral-800">
+                  {/* Dynamic gradient fill up to score */}
+                  <div
+                    className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] transition-all duration-300"
+                    style={{ width: `${Math.min(99, Math.max(1, progressMetrics.percentage))}%` }}
+                  />
+                  {/* Checkpoint dividers */}
+                  {[20, 40, 60, 80].map(checkpoint => (
+                    <div
+                      key={checkpoint}
+                      className="absolute top-0 h-2 w-px bg-white dark:bg-gray-700 z-20"
+                      style={{ left: `calc(${checkpoint}% - 0.5px)` }}
+                    />
+                  ))}
+                  {/* Marker */}
+                  <span
+                    className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                    style={{ 
+                      left: `${Math.min(99, Math.max(1, progressMetrics.percentage))}%`, 
+                      borderColor: '#693EE0' 
+                    }}
+                  />
+                </div>
+                {/* Ticks */}
+                <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                  <span>0</span>
+                  <span>20</span>
+                  <span>40</span>
+                  <span>60</span>
+                  <span>80</span>
+                  <span>100</span>
+                </div>
               </div>
             </div>
             
           </div>
           
         </div>
-        
-        
         
         {/* Current Rules Table */}
         <div className="bg-white dark:bg-[#0f0f0f] rounded-lg">

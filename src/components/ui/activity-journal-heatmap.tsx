@@ -277,14 +277,41 @@ export function ActivityJournalHeatmap({
                 <Info className="w-3 h-3 text-gray-400" />
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-2xl font-bold text-gray-900 dark:text-white min-w-[56px]">
-                  {todayData.completed}/{todayData.total}
-                </span>
-                <div className="flex-1 max-w-md bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-[#3559E9] h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${todayData.total > 0 ? (todayData.completed / todayData.total) * 100 : 0}%` }}
-                  />
+                {/* Performance Radar style progress bar */}
+                <div className="flex-1 max-w-md relative">
+                  {/* Track */}
+                  <div className="relative h-2 rounded-full bg-gray-200 dark:bg-neutral-800">
+                    {/* Dynamic gradient fill up to score */}
+                    <div
+                      className="absolute left-0 top-0 h-2 rounded-full bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] transition-all duration-300"
+                      style={{ width: `${Math.min(99, Math.max(1, todayData.total > 0 ? (todayData.completed / todayData.total) * 100 : 0))}%` }}
+                    />
+                    {/* Checkpoint dividers */}
+                    {[20, 40, 60, 80].map(checkpoint => (
+                      <div
+                        key={checkpoint}
+                        className="absolute top-0 h-2 w-px bg-white dark:bg-gray-700 z-20"
+                        style={{ left: `calc(${checkpoint}% - 0.5px)` }}
+                      />
+                    ))}
+                    {/* Marker */}
+                    <span
+                      className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 block h-3 w-3 rounded-full border-2 bg-white"
+                      style={{ 
+                        left: `${Math.min(99, Math.max(1, todayData.total > 0 ? (todayData.completed / todayData.total) * 100 : 0))}%`, 
+                        borderColor: '#693EE0' 
+                      }}
+                    />
+                  </div>
+                  {/* Ticks */}
+                  <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                    <span>0</span>
+                    <span>20</span>
+                    <span>40</span>
+                    <span>60</span>
+                    <span>80</span>
+                    <span>100</span>
+                  </div>
                 </div>
               </div>
             </div>
