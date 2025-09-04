@@ -225,16 +225,29 @@ export default function UploadPage() {
             </div>
 
             {/* Warning */}
-            <div className="flex items-start space-x-2 p-3 bg-orange-50 rounded">
-              <div className="w-5 h-5 rounded bg-orange-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-xs">!</span>
+            {selectedBroker.id === 'tradingview' ? (
+              <div className="flex items-start space-x-2 p-3 bg-orange-50 rounded">
+                <div className="w-5 h-5 rounded bg-orange-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">!</span>
+                </div>
+                <p className="text-sm text-orange-800">
+                  <strong>Duration Limitation:</strong> Sorry for the inconvenience - TradingView CSV imports have limited trade duration data 
+                  as the CSV format doesn't contain proper entry/exit time columns. Only trade close times 
+                  are available, which may affect duration-based analytics.
+                </p>
               </div>
-              <p className="text-sm text-orange-800">
-                This import has limitations. Please review the details by clicking on 
-                this message. You'll find crucial information that may impact your 
-                import.
-              </p>
-            </div>
+            ) : (
+              <div className="flex items-start space-x-2 p-3 bg-orange-50 rounded">
+                <div className="w-5 h-5 rounded bg-orange-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">!</span>
+                </div>
+                <p className="text-sm text-orange-800">
+                  This import has limitations. Please review the details by clicking on 
+                  this message. You'll find crucial information that may impact your 
+                  import.
+                </p>
+              </div>
+            )}
 
             {/* Upload Area */}
             <div
@@ -322,11 +335,76 @@ export default function UploadPage() {
             {/* Supported Asset Types */}
             <div>
               <h4 className="text-sm font-medium text-gray-900 mb-3">Supported Asset Types:</h4>
-              <div className="flex items-center gap-1">
-                <Check className="w-4 h-4 text-green-600" />
-                <span className="text-sm text-gray-700 font-medium">
-                  Futures
-                </span>
+              <div className="flex items-center gap-4 flex-wrap">
+                {(() => {
+                  const getAssetTypes = (brokerId: string) => {
+                    switch (brokerId) {
+                      case 'tradingview':
+                        return ['Futures', 'Forex']
+                      case 'binance':
+                        return ['Crypto', 'Futures']
+                      case 'coinbase':
+                        return ['Crypto']
+                      case 'kraken':
+                        return ['Crypto']
+                      case 'bybit':
+                        return ['Crypto', 'Derivatives']
+                      case 'deribit':
+                        return ['Crypto', 'Options', 'Futures']
+                      case 'tradovate':
+                        return ['Futures']
+                      case 'ninjatrader':
+                        return ['Futures', 'Forex', 'Stocks']
+                      case 'interactivebrokers':
+                        return ['Stocks', 'Options', 'Futures', 'Forex']
+                      case 'thinkorswim':
+                        return ['Stocks', 'Options', 'Futures', 'Forex']
+                      case 'tdameritrade':
+                        return ['Stocks', 'Options', 'Futures', 'Forex']
+                      case 'webull':
+                        return ['Stocks', 'Options', 'Crypto']
+                      case 'robinhood':
+                        return ['Stocks', 'Options', 'Crypto']
+                      case 'etrade':
+                        return ['Stocks', 'Options', 'Futures']
+                      case 'schwab':
+                        return ['Stocks', 'Options', 'Futures', 'Forex']
+                      case 'fidelity':
+                        return ['Stocks', 'Options', 'Futures']
+                      case 'tastyworks':
+                        return ['Stocks', 'Options']
+                      case 'tradestation':
+                        return ['Stocks', 'Options', 'Futures', 'Forex']
+                      case 'alpaca':
+                        return ['Stocks', 'Crypto']
+                      case 'oanda':
+                        return ['Forex']
+                      case 'forex':
+                        return ['Forex']
+                      case 'mt4':
+                        return ['Forex', 'CFDs']
+                      case 'mt5':
+                        return ['Forex', 'CFDs', 'Stocks']
+                      case 'ampfutures':
+                        return ['Futures']
+                      case 'plus500':
+                        return ['CFDs', 'Forex']
+                      case 'xtb':
+                        return ['Forex', 'CFDs', 'Stocks']
+                      case 'quantconnect':
+                        return ['Stocks', 'Futures', 'Forex', 'Crypto']
+                      default:
+                        return ['Futures']
+                    }
+                  }
+                  
+                  return getAssetTypes(selectedBroker.id).map((assetType, index) => (
+                    <div key={index} className="flex items-center gap-1">
+                      <Check className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-gray-700 font-medium">{assetType}</span>
+                    </div>
+                  ))
+                })()}
               </div>
             </div>
 

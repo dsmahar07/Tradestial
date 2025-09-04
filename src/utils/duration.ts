@@ -42,31 +42,16 @@ export function calculateTradeDuration(
   }
 
   // Enhanced fallback: Try parsing dates even if they don't contain spaces
-  if (closeDate) {
-    console.debug('📊 Duration calc: Attempting date parsing fallback')
+  // Only if dates contain actual timestamps, not just date-only data
+  if (closeDate && (openDate.includes(' ') || closeDate.includes(' ') || openDate.includes('T') || closeDate.includes('T'))) {
+    console.debug('📊 Duration calc: Attempting date parsing fallback with timestamps')
     const result = calculateEnhancedDateDuration(openDate, closeDate)
     if (result) return validateDurationResult(result)
   }
 
-  // If it's a same-day trade without time info, return a reasonable estimate
-  if (!closeDate || openDate === closeDate) {
-    console.debug('📊 Duration calc: Same-day trade, using default duration')
-    return {
-      hours: 0,
-      minutes: 30, // More reasonable default than 1 minute
-      totalMinutes: 30,
-      formatted: '~30m'
-    }
-  }
-
-  // Final fallback: if we have different dates but can't parse them properly
-  console.debug('📊 Duration calc: Using final fallback')
-  return {
-    hours: 2,
-    minutes: 0,
-    totalMinutes: 120,
-    formatted: '~2h'
-  }
+  // If we can't calculate duration due to missing time data, return null
+  console.debug('📊 Duration calc: No time data available, returning null for NA display')
+  return null
 }
 
 /**

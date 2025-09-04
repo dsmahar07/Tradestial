@@ -72,16 +72,19 @@ const generateReportData = (trades: Trade[], period: TimePeriod): ReportDataPoin
     
     switch (period) {
       case 'Day':
-        displayDate = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+        displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         break
       case 'Week':
-        displayDate = `W${Math.ceil(date.getDate() / 7)} ${date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}`
+        // Calculate proper week number of the year
+        const startOfYear = new Date(date.getFullYear(), 0, 1)
+        const weekNumber = Math.ceil(((date.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7)
+        displayDate = `W${weekNumber} ${date.toLocaleDateString('en-US', { month: 'short' })}`
         break
       case 'Month':
         displayDate = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
         break
       default:
-        displayDate = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+        displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }
 
     reportData.push({
@@ -92,7 +95,7 @@ const generateReportData = (trades: Trade[], period: TimePeriod): ReportDataPoin
     })
   })
 
-  return reportData.slice(-18) // Show last 18 data points
+  return reportData.slice(-12) // Show last 12 data points for better spacing
 }
 
 // Custom Tooltip
@@ -179,7 +182,7 @@ export const ReportChart = React.memo(function ReportChart() {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={reportData}
-            margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
+            margin={{ top: 20, right: 15, left: -10, bottom: 80 }}
           >
             {/* Left Y-Axis for percentage */}
             <YAxis 
@@ -217,15 +220,17 @@ export const ReportChart = React.memo(function ReportChart() {
               axisLine={false}
               tickLine={false}
               tick={{ 
-                fontSize: 12, 
+                fontSize: 11, 
                 fill: '#9ca3af',
-                fontWeight: 600
+                fontWeight: 500
               }}
               className="dark:fill-gray-400"
-              padding={{ left: 0, right: 0 }}
-              height={25}
-              tickMargin={5}
-              interval="preserveStartEnd"
+              padding={{ left: 10, right: 10 }}
+              height={30}
+              tickMargin={8}
+              interval={0}
+              angle={-45}
+              textAnchor="end"
             />
             
             <Tooltip content={<CustomTooltip />} cursor={false} />

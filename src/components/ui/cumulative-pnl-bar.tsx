@@ -95,12 +95,10 @@ const generatePnlDataFromTrades = (trades: Trade[]): PnlPeriod[] => {
   return data
 }
 
-const timeRanges = ['Last 14 Days', 'Last 7 Days', 'This Month', 'All Time']
 const metrics = ['Cumulative P&L', 'Daily P&L', 'Trade Count']
 
 export function CumulativePnlBar() {
-  const [selectedTimeRange, setSelectedTimeRange] = useState('Last 14 Days')
-  const [selectedMetric, setSelectedMetric] = useState('Cumulative P&L')
+  const [selectedMetric, setSelectedMetric] = useState('Daily P&L')
   const [trades, setTrades] = useState<Trade[]>([])
 
   // Load trades and subscribe to changes
@@ -210,7 +208,7 @@ export function CumulativePnlBar() {
         <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Cumulative P&L
+              {selectedMetric}
             </h3>
           </div>
           {/* Header Divider */}
@@ -279,7 +277,7 @@ export function CumulativePnlBar() {
         <div className="flex items-center justify-between mb-2">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Cumulative P&L
+              {selectedMetric}
             </h3>
           </div>
           <div className="flex items-center space-x-1">
@@ -301,29 +299,6 @@ export function CumulativePnlBar() {
                     className={selectedMetric === metric ? 'bg-gray-100 dark:bg-gray-800' : ''}
                   >
                     <span className="text-xs">{metric}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="bg-white dark:bg-[#0f0f0f] border-0 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm px-2 py-1 !h-5 !min-h-0 text-xs"
-                >
-                  <span className="text-xs">{selectedTimeRange.replace('Last ', '').replace(' Days', 'D').replace('This ', '').replace('All ', '')}</span>
-                  <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-28">
-                {timeRanges.map((range) => (
-                  <DropdownMenuItem
-                    key={range}
-                    onClick={() => setSelectedTimeRange(range)}
-                    className={selectedTimeRange === range ? 'bg-gray-100 dark:bg-gray-800' : ''}
-                  >
-                    <span className="text-xs">{range}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

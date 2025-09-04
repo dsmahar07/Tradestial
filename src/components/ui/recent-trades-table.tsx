@@ -180,7 +180,7 @@ export function RecentTradesTable() {
           if (trade.duration && typeof trade.duration === 'string') return trade.duration
 
           const durationResult = calculateTradeDuration(trade.entryTime, trade.exitTime, trade.openDate, trade.closeDate)
-          const formatted = durationResult?.formatted || '—'
+          const formatted = durationResult?.formatted || 'N/A'
 
           // Debug only when clearly excessive
           if (durationResult && durationResult.totalMinutes > 12 * 60) {
