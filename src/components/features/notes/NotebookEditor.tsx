@@ -30,10 +30,12 @@ import {
   Plus,
   X,
   Save,
-  MoreVertical
+  MoreVertical,
+  Palette
 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { Button } from '@/components/ui/button'
+import * as FancyButton from '@/components/ui/fancy-button'
 import { TemplateSelector } from '@/components/features/notes/TemplateSelector'
 import { SimpleTemplateEditor } from '@/components/features/notes/SimpleTemplateEditor'
 import { DateRangePicker } from '@/components/ui/DateRangePicker'
@@ -53,6 +55,7 @@ import type { TradeJournalingTemplate } from '@/lib/templates'
 import type { TemplateInstance } from '@/types/templates'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
+import { ImageMentionPicker, MediaItem } from '@/components/features/notes/ImageMentionPicker'
 import { cn } from '@/lib/utils'
 import { encodeNoteToToken } from '@/lib/note-share'
 import { DataStore } from '@/services/data-store.service'
@@ -96,6 +99,11 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const [calendarDate, setCalendarDate] = useState(new Date())
   // Template editor state
   const [selectedTemplate, setSelectedTemplate] = useState<TradeJournalingTemplate | null>(null)
+  // Image mention state
+  const [showImagePicker, setShowImagePicker] = useState(false)
+  const [imagePickerPosition, setImagePickerPosition] = useState({ top: 0, left: 0 })
+  const [imageSearchQuery, setImageSearchQuery] = useState('')
+  const [mentionStartPos, setMentionStartPos] = useState<number | null>(null)
   const [showTemplateEditor, setShowTemplateEditor] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
 
@@ -606,6 +614,33 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   }
 
   const handleEditorKeyDown = (e: React.KeyboardEvent) => {
+    // Handle @ key for image mentions
+    if (e.key === '@' && !showImagePicker) {
+      e.preventDefault()
+      // Get cursor position for picker placement
+      const selection = window.getSelection()
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+        setImagePickerPosition({
+          top: rect.bottom + window.scrollY + 5,
+          left: rect.left + window.scrollX
+        })
+        setMentionStartPos(range.startOffset)
+        setShowImagePicker(true)
+        setImageSearchQuery('')
+      }
+      return
+    }
+
+    // Handle escape to close image picker
+    if (e.key === 'Escape' && showImagePicker) {
+      setShowImagePicker(false)
+      setImageSearchQuery('')
+      setMentionStartPos(null)
+      return
+    }
+
     // Handle keyboard shortcuts
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
@@ -659,6 +694,190 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
     } catch (error) {
       console.error(`Error executing command ${command}:`, error)
+    }
+  }, [note, sanitizeHtml])
+
+  const handleImageSelect = useCallback((image: MediaItem) => {
+    if (!editorRef.current || !note) return
+
+    try {
+      editorRef.current.focus()
+      
+      // Create a draggable image mention chip
+      const mentionChip = document.createElement('span')
+      mentionChip.className = 'image-mention inline-flex items-center gap-1 mx-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-sm border border-blue-200 dark:border-blue-700/50 cursor-grab hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors'
+      mentionChip.style.display = 'inline'
+      mentionChip.style.verticalAlign = 'baseline'
+      mentionChip.setAttribute('contenteditable', 'false')
+      mentionChip.setAttribute('draggable', 'true')
+      mentionChip.setAttribute('data-image-id', image.id)
+      mentionChip.setAttribute('data-image-name', image.name)
+      mentionChip.setAttribute('data-image-url', image.url)
+      mentionChip.setAttribute('title', `Drag to move or click to view: ${image.name}`)
+      
+      // Create drag handle
+      const dragHandle = document.createElement('span')
+      dragHandle.innerHTML = '⋮⋮'
+      dragHandle.className = 'text-xs opacity-50 cursor-grab'
+      dragHandle.style.fontSize = '10px'
+      
+      // Create icon
+      const icon = document.createElement('span')
+      icon.innerHTML = '🖼️'
+      icon.className = 'text-xs'
+      
+      // Create text
+      const text = document.createElement('span')
+      text.textContent = image.name.length > 20 ? image.name.substring(0, 20) + '...' : image.name
+      text.className = 'font-medium'
+      
+      mentionChip.appendChild(dragHandle)
+      mentionChip.appendChild(icon)
+      mentionChip.appendChild(text)
+      
+      // Add drag and drop functionality
+      let isDragging = false
+      let dragStartTime = 0
+      
+      mentionChip.addEventListener('dragstart', (e) => {
+        isDragging = true
+        dragStartTime = Date.now()
+        mentionChip.style.opacity = '0.5'
+        mentionChip.style.cursor = 'grabbing'
+        e.dataTransfer?.setData('text/html', mentionChip.outerHTML)
+        e.dataTransfer!.effectAllowed = 'move'
+      })
+      
+      mentionChip.addEventListener('dragend', (e) => {
+        mentionChip.style.opacity = '1'
+        mentionChip.style.cursor = 'grab'
+        setTimeout(() => { isDragging = false }, 100)
+      })
+      
+      // Add click handler for preview (only if not dragging)
+      mentionChip.addEventListener('click', (e) => {
+        // Prevent click if we just finished dragging
+        if (isDragging || (Date.now() - dragStartTime) < 200) {
+          return
+        }
+        
+        e.preventDefault()
+        // Create a simple preview modal
+        const modal = document.createElement('div')
+        modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50'
+        modal.onclick = () => modal.remove()
+        
+        const img = document.createElement('img')
+        img.src = image.url
+        img.className = 'max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl'
+        img.onclick = (e) => e.stopPropagation()
+        
+        modal.appendChild(img)
+        document.body.appendChild(modal)
+      })
+      
+      // Insert at current cursor position without forcing position
+      const selection = window.getSelection()
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0)
+        
+        // Simply insert the mention chip at cursor position
+        range.insertNode(mentionChip)
+        
+        // Move cursor to after the mention chip
+        range.setStartAfter(mentionChip)
+        range.setEndAfter(mentionChip)
+        
+        // Clear selection and set new range
+        selection.removeAllRanges()
+        selection.addRange(range)
+      }
+      
+      // Update content
+      setTimeout(() => {
+        if (editorRef.current) {
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
+          setContent(newContent)
+          setIsEditing(true)
+        }
+      }, 10)
+    } catch (error) {
+      console.error('Error inserting image:', error)
+    }
+    
+    // Close picker
+    setShowImagePicker(false)
+    setImageSearchQuery('')
+    setMentionStartPos(null)
+  }, [note, sanitizeHtml])
+
+  const handleImagePickerClose = useCallback(() => {
+    setShowImagePicker(false)
+    setImageSearchQuery('')
+    setMentionStartPos(null)
+    if (editorRef.current) {
+      editorRef.current.focus()
+    }
+  }, [])
+
+  const setHighlight = useCallback((color: string) => {
+    if (!editorRef.current || !note) return
+
+    try {
+      editorRef.current.focus()
+      // hiliteColor works in most modern browsers; fallback to backColor
+      document.execCommand('hiliteColor', false, color)
+      document.execCommand('backColor', false, color)
+
+      setTimeout(() => {
+        if (editorRef.current) {
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
+          setContent(newContent)
+          setIsEditing(true)
+        }
+      }, 10)
+    } catch (error) {
+      console.error('Error setting highlight:', error)
+    }
+  }, [note, sanitizeHtml])
+
+  const toggleQuote = useCallback(() => {
+    if (!editorRef.current || !note) return
+
+    try {
+      editorRef.current.focus()
+      const selection = window.getSelection()
+      if (!selection || selection.rangeCount === 0) return
+
+      const range = selection.getRangeAt(0)
+      const container = range.commonAncestorContainer
+      
+      // Find if we're inside a blockquote
+      let blockquote = container.nodeType === Node.ELEMENT_NODE ? 
+        container as Element : container.parentElement
+      
+      while (blockquote && blockquote !== editorRef.current) {
+        if (blockquote.tagName === 'BLOCKQUOTE') break
+        blockquote = blockquote.parentElement
+      }
+
+      if (blockquote && blockquote.tagName === 'BLOCKQUOTE') {
+        // Remove blockquote - replace with paragraph
+        document.execCommand('formatBlock', false, 'p')
+      } else {
+        // Add blockquote
+        document.execCommand('formatBlock', false, 'blockquote')
+      }
+
+      setTimeout(() => {
+        if (editorRef.current) {
+          const newContent = sanitizeHtml(editorRef.current.innerHTML)
+          setContent(newContent)
+          setIsEditing(true)
+        }
+      }, 10)
+    } catch (error) {
+      console.error('Error toggling quote:', error)
     }
   }, [note, sanitizeHtml])
 
@@ -791,7 +1010,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         const reader = new FileReader()
         reader.onload = (e) => {
           const imageUrl = e.target?.result as string
-          const imageHtml = `<div><img src="${imageUrl}" style="max-width: 100%; height: auto; margin: 10px 0; border-radius: 8px;" alt="Uploaded image" /></div><p><br></p>`
+          const imageHtml = `<p>&nbsp;</p><p>&nbsp;</p><div style="margin:16px 0;"><img src="${imageUrl}" style="width:500px;max-width:none;height:auto;border-radius:8px;display:block;" alt="Uploaded image" /></div><p>&nbsp;</p><p>&nbsp;</p>`
 
           // Use the safer insertContent method
           insertContent(imageHtml)
@@ -1061,11 +1280,11 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white">
+                <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0">
                   <MoreHorizontal className="w-4 h-4" />
-                </Button>
+                </FancyButton.Root>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
+              <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg p-1">
                 {templates && templates.length > 0 && (
                   <DropdownMenuItem onClick={() => setShowTemplatePicker(true)}>
                     <FileText className="w-4 h-4 mr-2" />
@@ -1103,7 +1322,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                     Share
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#2a2a2a]" />
                 <DropdownMenuItem
                   onClick={() => {
                     if (note) {
@@ -1153,7 +1372,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                   <FileText className="w-4 h-4 mr-2" />
                   Export as Lexical
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-gray-200 dark:bg-[#2a2a2a]" />
                 <DropdownMenuItem
                   className="text-red-600"
                   onClick={() => {
@@ -1431,43 +1650,43 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]">
         <div className="flex items-center space-x-4">
           {/* Simple Undo/Redo */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('undo')}
             title="Undo"
             disabled={!note}
           >
             <Undo className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('redo')}
             title="Redo"
             disabled={!note}
           >
             <Redo className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Font Family Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[100px] justify-between"
+              <FancyButton.Root
+                variant="basic"
+                size="xsmall"
+                className="h-8 px-3 text-sm min-w-[100px] justify-between"
                 disabled={!note}
               >
                 {fontFamily}
                 <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
+              </FancyButton.Root>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg p-1">
               {[
                 'Inter',
                 'SF Pro',
@@ -1516,17 +1735,17 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           {/* Font Size Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[70px] justify-between ml-2"
+              <FancyButton.Root
+                variant="basic"
+                size="xsmall"
+                className="h-8 px-3 text-sm min-w-[70px] justify-between"
                 disabled={!note}
               >
                 {fontSize}
                 <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
+              </FancyButton.Root>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
+            <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg p-1">
               {['10px', '12px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px'].map((size) => (
                 <DropdownMenuItem
                   key={size}
@@ -1534,10 +1753,12 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                     setFontSize(size)
                     if (editorRef.current) {
                       editorRef.current.style.fontSize = size
-                      editorRef.current.focus()
+                      const newContent = sanitizeHtml(editorRef.current.innerHTML)
+                      setContent(newContent)
+                      setIsEditing(true)
                     }
                   }}
-                  className={fontSize === size ? "bg-blue-50 dark:bg-blue-900/50 dark:text-white" : "dark:text-white"}
+                  className={`rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-[#1a1a1a] ${fontSize === size ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}
                 >
                   {size}
                 </DropdownMenuItem>
@@ -1548,134 +1769,154 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Text Formatting */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('bold')}
-            title="Bold (Ctrl+B)"
+            title="Bold"
             disabled={!note}
           >
             <Bold className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('italic')}
-            title="Italic (Ctrl+I)"
+            title="Italic"
             disabled={!note}
           >
             <Italic className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('underline')}
-            title="Underline (Ctrl+U)"
+            title="Underline"
             disabled={!note}
           >
             <Underline className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
+
+          {/* Highlight color */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <FancyButton.Root
+                variant="basic"
+                size="xsmall"
+                className="h-8 w-8 p-0"
+                title="Highlight Text"
+                disabled={!note}
+              >
+                <Palette className="w-4 h-4" />
+              </FancyButton.Root>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 grid grid-cols-4 gap-2 w-40 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg">
+              {['#335CFF','#FB3748','#F6B51E','#7D52F4','#47C2FF','#FB4BA3','#22D3BB'].map(c => (
+                <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} />
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Links */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={handleLinkInsert}
             title="Insert Link"
             disabled={!note}
           >
             <Link className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Text Alignment */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('justifyLeft')}
             title="Align Left"
             disabled={!note}
           >
             <AlignLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('justifyCenter')}
             title="Align Center"
             disabled={!note}
           >
             <AlignCenter className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('justifyRight')}
             title="Align Right"
             disabled={!note}
           >
             <AlignRight className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Lists */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('insertUnorderedList')}
             title="Bullet List"
             disabled={!note}
           >
             <List className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('insertOrderedList')}
             title="Numbered List"
             disabled={!note}
           >
             <ListOrdered className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Media & Special */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={handleImageUpload}
             title="Insert Image"
             disabled={!note}
           >
             <Camera className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
 
           <div className="relative">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+            <FancyButton.Root
+              variant="basic"
+              size="xsmall"
+              className="h-8 w-8 p-0"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               title="Insert Emoji"
               disabled={!note}
             >
               <Smile className="w-4 h-4" />
-            </Button>
+            </FancyButton.Root>
             
             <EmojiPicker
               isOpen={showEmojiPicker}
@@ -1690,37 +1931,37 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
-          {/* Special Formatting */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          {/* Special Elements */}
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => insertContent('<input type="checkbox" style="margin-right: 8px;" /> ')}
             title="Insert Checkbox"
             disabled={!note}
           >
             <CheckSquare className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
-            onClick={() => formatText('formatBlock', 'blockquote')}
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
+            onClick={toggleQuote}
             title="Quote"
             disabled={!note}
           >
             <Quote className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton.Root>
+          <FancyButton.Root
+            variant="basic"
+            size="xsmall"
+            className="h-8 w-8 p-0"
             onClick={() => formatText('formatBlock', 'pre')}
             title="Code Block"
             disabled={!note}
           >
             <Code className="w-4 h-4" />
-          </Button>
+          </FancyButton.Root>
         </div>
       </div>
 
@@ -1775,13 +2016,53 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
               }}
               onPaste={handleEditorPaste}
               onBlur={handleEditorBlur}
-              onClick={handleEditorClick}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                const html = e.dataTransfer.getData('text/html')
+                if (html && html.includes('image-mention')) {
+                  // Get drop position
+                  const range = document.caretRangeFromPoint(e.clientX, e.clientY)
+                  if (range) {
+                    const selection = window.getSelection()
+                    selection?.removeAllRanges()
+                    selection?.addRange(range)
+                    
+                    // Insert the dragged mention at drop position
+                    const tempDiv = document.createElement('div')
+                    tempDiv.innerHTML = html
+                    const mentionElement = tempDiv.firstChild as HTMLElement
+                    
+                    if (mentionElement) {
+                      range.insertNode(mentionElement)
+                      range.setStartAfter(mentionElement)
+                      range.collapse(true)
+                      selection?.removeAllRanges()
+                      selection?.addRange(range)
+                      
+                      // Update content
+                      setTimeout(() => {
+                        if (editorRef.current) {
+                          const newContent = sanitizeHtml(editorRef.current.innerHTML)
+                          setContent(newContent)
+                          setIsEditing(true)
+                        }
+                      }, 10)
+                    }
+                  }
+                }
+              }}
+              onClick={() => {
+                if (showImagePicker) {
+                  setShowImagePicker(false)
+                  setImageSearchQuery('')
+                  setMentionStartPos(null)
+                }
+              }}
             />
-            {note && (!content || content === '<p><br></p>' || content === '<p>Start typing...</p>' || content.trim() === '') && !isEditing && (
-              <div className="absolute inset-0 pointer-events-none flex items-start justify-start">
-                <p className="text-gray-400 dark:text-gray-500 text-base">Enter some text...</p>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -1960,6 +2241,16 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Mention Picker */}
+      <ImageMentionPicker
+        isOpen={showImagePicker}
+        onClose={handleImagePickerClose}
+        onSelectImage={handleImageSelect}
+        searchQuery={imageSearchQuery}
+        onSearchChange={setImageSearchQuery}
+        position={imagePickerPosition}
+      />
 
       {/* Bottom status bar removed to let the editor use the full area */}
     </div>

@@ -6,6 +6,7 @@ import { DashboardHeader } from '@/components/layout/header'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon, EllipsisHorizontalIcon, ArrowPathIcon, Cog6ToothIcon, InformationCircleIcon, CheckCircleIcon, XCircleIcon, TagIcon, TrashIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { TradeDataService, Trade, TradeMetrics } from '@/services/trade-data.service'
 import { useTagData } from '@/hooks/use-tag-data'
@@ -292,15 +293,21 @@ export default function TradesPage() {
               </div>
               
               <div className="flex items-center gap-3">
-                <button 
+                <FancyButton 
                   onClick={() => setShowColumnSelector(true)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  variant="basic"
+                  size="xsmall"
+                  className="!w-8 !h-8 !p-0 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-200"
                 >
                   <Cog6ToothIcon className="w-5 h-5" />
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                </FancyButton>
+                <FancyButton 
+                  variant="basic"
+                  size="xsmall"
+                  className="!w-8 !h-8 !p-0 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-200"
+                >
                   <ArrowPathIcon className="w-5 h-5" />
-                </button>
+                </FancyButton>
               </div>
             </div>
 
@@ -495,10 +502,14 @@ export default function TradesPage() {
                 
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger asChild>
-                    <button className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                    <FancyButton 
+                      variant="basic" 
+                      size="small" 
+                      className="!inline-flex !items-center !gap-2 !text-gray-700 dark:!text-gray-300 !bg-white dark:!bg-[#0f0f0f] !border-gray-300 dark:!border-[#2a2a2a] hover:!bg-gray-50 dark:hover:!bg-[#2a2a2a]"
+                    >
                       {dateRange}
                       <ChevronDownIcon className="w-4 h-4" />
-                    </button>
+                    </FancyButton>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal>
                     <DropdownMenu.Content className="min-w-[140px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
@@ -526,10 +537,14 @@ export default function TradesPage() {
 
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger asChild>
-                    <button className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                    <FancyButton 
+                      variant="basic" 
+                      size="small" 
+                      className="!inline-flex !items-center !gap-2 !text-gray-700 dark:!text-gray-300 !bg-white dark:!bg-[#0f0f0f] !border-gray-300 dark:!border-[#2a2a2a] hover:!bg-gray-50 dark:hover:!bg-[#2a2a2a]"
+                    >
                       {statusFilter}
                       <ChevronDownIcon className="w-4 h-4" />
-                    </button>
+                    </FancyButton>
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Portal>
                     <DropdownMenu.Content className="min-w-[120px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
@@ -557,21 +572,32 @@ export default function TradesPage() {
               </div>
 
               <div className="flex items-center gap-4">
-                <button className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 transition-colors">
+                <FancyButton 
+                  variant="basic" 
+                  size="small" 
+                  className="!text-gray-700 dark:!text-gray-300 hover:!text-gray-900"
+                >
                   <FunnelIcon className="w-4 h-4 inline mr-1" />
                   Filter
-                </button>
-                <button className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 transition-colors">
+                </FancyButton>
+                <FancyButton 
+                  variant="basic" 
+                  size="small" 
+                  className="!text-gray-700 dark:!text-gray-300 hover:!text-gray-900"
+                >
                   Export
-                </button>
+                </FancyButton>
                 
                 {selectedTrades.length > 0 && (
                   <DropdownMenu.Root open={showBulkDropdown} onOpenChange={setShowBulkDropdown}>
                     <DropdownMenu.Trigger asChild>
-                      <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#2a2a2a] border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-200 dark:hover:bg-[#3a3a3a] transition-colors">
+                      <FancyButton 
+                        variant="basic" 
+                        size="small"
+                      >
                         Actions ({selectedTrades.length})
                         <ChevronDownIcon className="w-4 h-4" />
-                      </button>
+                      </FancyButton>
                     </DropdownMenu.Trigger>
                     <DropdownMenu.Portal>
                       <DropdownMenu.Content className="min-w-[160px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
@@ -893,67 +919,70 @@ export default function TradesPage() {
                     </tr>
                   ))}
                 </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* Pagination */}
-            <div className="flex items-center justify-between py-6">
-              <div className="text-sm text-gray-600 dark:text-gray-300">
-                Page {currentPage} of {totalPages}
-              </div>
-              <div className="flex items-center gap-1">
-                <button 
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
-                  let pageNumber
-                  if (totalPages <= 7) {
-                    pageNumber = i + 1
-                  } else if (currentPage <= 4) {
-                    pageNumber = i + 1
-                  } else if (currentPage >= totalPages - 3) {
-                    pageNumber = totalPages - 6 + i
-                  } else {
-                    pageNumber = currentPage - 3 + i
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => setCurrentPage(pageNumber)}
-                      className={`px-3 py-1 text-sm rounded transition-colors ${
-                        pageNumber === currentPage 
-                          ? 'bg-blue-600 text-white' 
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100'
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  )
-                })}
-                <button 
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">
-                {tradesPerPage} / page
-              </div>
+              </table>
             </div>
           </div>
-        </main>
+          
+          {/* Pagination */}
+          <div className="flex items-center justify-between py-6">
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center gap-1">
+              <FancyButton 
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                variant="basic"
+                size="xsmall"
+                className="!p-2 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-200 disabled:!opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </FancyButton>
+              {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                let pageNumber
+                if (totalPages <= 7) {
+                  pageNumber = i + 1
+                } else if (currentPage <= 4) {
+                  pageNumber = i + 1
+                } else if (currentPage >= totalPages - 3) {
+                  pageNumber = totalPages - 6 + i
+                } else {
+                  pageNumber = currentPage - 3 + i
+                }
+                
+                return (
+                  <FancyButton
+                    key={pageNumber}
+                    onClick={() => setCurrentPage(pageNumber)}
+                    variant={pageNumber === currentPage ? 'primary' : 'basic'}
+                    size="xsmall"
+className={pageNumber === currentPage ? '' : ''}
+                  >
+                    {pageNumber}
+                  </FancyButton>
+                )
+              })}
+              <FancyButton 
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                variant="basic"
+                size="xsmall"
+                className="!p-2 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-200 disabled:!opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </FancyButton>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              {tradesPerPage} / page
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
 
       {/* Tag Modal */}
       <Dialog.Root open={showTagModal} onOpenChange={setShowTagModal}>
@@ -964,59 +993,204 @@ export default function TradesPage() {
               <div className="flex items-center justify-between mb-4">
                 <Dialog.Title className="text-lg font-semibold text-gray-900">Add Tags</Dialog.Title>
                 <Dialog.Close asChild>
-                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <FancyButton 
+                    variant="basic" 
+                    size="xsmall" 
+                    className="!text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-200 !p-1"
+                  >
                     <XMarkIcon className="w-5 h-5" />
-                  </button>
-                </Dialog.Close>
+                  </FancyButton>
+              </Dialog.Close>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tag Name</label>
+                <input
+                  type="text"
+                  value={tagForm.name}
+                  onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
+                  placeholder="Enter tag name"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tag Name</label>
-                  <input
-                    type="text"
-                    value={tagForm.name}
-                    onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
-                    placeholder="Enter tag name"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                  <DropdownMenu.Root>
-                    <DropdownMenu.Trigger asChild>
-                      <button className="w-full inline-flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
-                        {getCategory(tagForm.selectedCategory)?.name || 'Select Category'}
-                        <ChevronDownIcon className="w-4 h-4" />
-                      </button>
-                    </DropdownMenu.Trigger>
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Content className="min-w-[200px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
-                        {categories.map((category) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <FancyButton 
+                      variant="basic" 
+                      size="small"
+                    >
+                      {getCategory(tagForm.selectedCategory)?.name || 'Select Category'}
+                      <ChevronDownIcon className="w-4 h-4" />
+                    </FancyButton>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content className="min-w-[200px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                      {categories.map((category) => (
+                        <DropdownMenu.Item 
+                          key={category.id}
+                          className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 flex items-center gap-2"
+                          onClick={() => setTagForm({ ...tagForm, selectedCategory: category.id })}
+                        >
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {category.name}
+                          {tagForm.selectedCategory === category.id && (
+                            <CheckCircleIcon className="w-4 h-4 text-blue-500 ml-auto" />
+                          )}
+                        </DropdownMenu.Item>
+                      ))}
+                      <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-[#2a2a2a]" />
+                      <DropdownMenu.Item 
+                        className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 text-blue-600"
+                        onClick={() => setShowNewCategoryModal(true)}
+                      >
+                        <PlusIcon className="w-4 h-4 mr-2" />
+                        Add New Category
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <Dialog.Close asChild>
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                  Cancel
+                </button>
+              </Dialog.Close>
+              <button 
+                onClick={handleTagFormSubmit}
+                disabled={!tagForm.name.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                Add Tag
+              </button>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+
+    {/* New Category Modal */}
+    <Dialog.Root open={showNewCategoryModal} onOpenChange={setShowNewCategoryModal}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl shadow-xl w-full max-w-md z-50">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Dialog.Title className="text-lg font-semibold text-gray-900">Create New Category</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </Dialog.Close>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category Name</label>
+                <input
+                  type="text"
+                  value={newCategoryForm.name}
+                  onChange={(e) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
+                  placeholder="Enter category name"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color</label>
+                <input
+                  type="color"
+                  value={newCategoryForm.color}
+                  onChange={(e) => setNewCategoryForm({ ...newCategoryForm, color: e.target.value })}
+                  className="w-full h-10 border border-gray-300 dark:border-[#2a2a2a] rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <Dialog.Close asChild>
+                <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-[#2a2a2a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-colors">
+                  Cancel
+                </button>
+              </Dialog.Close>
+              <button 
+                onClick={handleNewCategorySubmit}
+                disabled={!newCategoryForm.name.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                Create Category
+              </button>
+            </div>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+
+    {/* Model Modal */}
+    <Dialog.Root open={showModelModal} onOpenChange={setShowModelModal}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl shadow-xl w-full max-w-md z-50">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">Assign Model</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </Dialog.Close>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select Model for {selectedTrades.length} trades
+                </label>
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <FancyButton 
+                      variant="basic" 
+                      size="small"
+                    >
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {(() => {
+                          const current = models.find(m => m.id === modelForm.selectedModelId)
+                          return current?.name || 'Select a model...'
+                        })()}
+                      </span>
+                      <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                    </FancyButton>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content className="min-w-[300px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg z-50 p-1">
+                      {models.length > 0 ? (
+                        models.map((m) => (
                           <DropdownMenu.Item 
-                            key={category.id}
+                            key={m.id}
                             className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 flex items-center gap-2"
-                            onClick={() => setTagForm({ ...tagForm, selectedCategory: category.id })}
+                            onClick={() => setModelForm({ selectedModelId: m.id })}
                           >
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: category.color }}
-                            />
-                            {category.name}
-                            {tagForm.selectedCategory === category.id && (
+                            <div className="w-3 h-3 rounded-full bg-blue-500" />
+                            {m.name}
+                            {modelForm.selectedModelId === m.id && (
                               <CheckCircleIcon className="w-4 h-4 text-blue-500 ml-auto" />
                             )}
                           </DropdownMenu.Item>
-                        ))}
-                        <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-[#2a2a2a]" />
-                        <DropdownMenu.Item 
-                          className="text-sm px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none text-gray-900 dark:text-gray-100 text-blue-600"
-                          onClick={() => setShowNewCategoryModal(true)}
-                        >
-                          <PlusIcon className="w-4 h-4 mr-2" />
-                          Add New Category
-                        </DropdownMenu.Item>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          No models available. Create models in the Model page first.
+                        </div>
+                      )}
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
                   </DropdownMenu.Root>
@@ -1431,7 +1605,6 @@ export default function TradesPage() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      </div>
     </div>
   )
 }

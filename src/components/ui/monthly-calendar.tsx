@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Settings, Calendar } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 
@@ -160,55 +160,38 @@ export function MonthlyCalendar({ className, onDateSelect, tradingDays = [] }: M
       {/* Calendar Header with Navigation */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="sm"
+          <FancyButton
+            variant="basic"
+            size="small"
             onClick={handlePrevMonth}
-            className="h-10 w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="!h-10 !w-10 !p-0"
           >
             <ChevronLeft className="h-5 w-5" />
-          </Button>
+          </FancyButton>
           
           <h2 className="text-xl font-bold text-gray-900 dark:text-white min-w-[160px]">
             {monthNames[currentMonth]} {currentYear}
           </h2>
           
-          <Button
-            variant="ghost"
-            size="sm"
+          <FancyButton
+            variant="basic"
+            size="small"
             onClick={handleNextMonth}
-            className="h-10 w-10 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="!h-10 !w-10 !p-0"
           >
             <ChevronRight className="h-5 w-5" />
-          </Button>
+          </FancyButton>
         </div>
         
         <div className="flex items-center space-x-3">
-          <Button
-            variant="outline"
-            size="sm"
+          <FancyButton
+            variant="basic"
+            size="small"
             onClick={handleTodayClick}
-            className="text-xs font-medium bg-white dark:bg-[#0f0f0f] border-gray-300 dark:border-[#2a2a2a] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2a2a2a]"
+            className="!text-xs !font-medium !bg-white dark:!bg-[#0f0f0f] !border-gray-300 dark:!border-[#2a2a2a] !text-gray-600 dark:!text-gray-300 hover:!bg-gray-50 dark:hover:!bg-[#2a2a2a]"
           >
             TODAY
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          >
-            <Calendar className="h-4 w-4 mr-1" />
-            View Full Calendar
-          </Button>
+          </FancyButton>
         </div>
       </div>
 

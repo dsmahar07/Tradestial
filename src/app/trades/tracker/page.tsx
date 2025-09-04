@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { StarIcon } from '@heroicons/react/24/solid'
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
 import { RichTextEditor } from '@/components/trade/rich-text-editor'
@@ -455,20 +455,22 @@ export default function TrackerPage() {
       <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-6 shadow-xl max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">Choose Color</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <FancyButton onClick={onClose} variant="basic" size="xsmall" className="!p-1 !w-8 !h-8 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-300">
             <span className="text-xl">×</span>
-          </button>
+          </FancyButton>
         </div>
         <div className="grid grid-cols-6 gap-3 mb-4">
           {colorPalette.map((color) => (
-            <button
+            <FancyButton
               key={color}
               onClick={() => {
                 onColorSelect(color)
                 onClose()
               }}
-              className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${
-                currentColor === color ? 'border-gray-800 dark:border-white scale-110' : 'border-gray-200 dark:border-[#2a2a2a]'
+              variant="basic"
+              size="xsmall"
+              className={`!w-10 !h-10 !p-0 !rounded-full !border-2 transition-all hover:scale-110 ${
+                currentColor === color ? '!border-gray-800 dark:!border-white scale-110' : '!border-gray-200 dark:!border-[#2a2a2a]'
               }`}
               style={{ backgroundColor: color }}
             />
@@ -539,20 +541,22 @@ export default function TrackerPage() {
           <div className="flex items-center justify-between">
             {/* Left side */}
             <div className="flex items-center space-x-4">
-              <button
+              <FancyButton
                 onClick={handleBack}
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                variant="basic"
+                size="xsmall"
+                className="!w-8 !h-8 !p-0"
               >
                 ☰
-              </button>
+              </FancyButton>
               
               <div className="flex items-center space-x-2">
-                <button className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                <FancyButton variant="basic" size="xsmall" className="!w-8 !h-8 !p-0">
                   <ChevronLeftIcon className="w-4 h-4" />
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center border border-gray-300 dark:border-[#2a2a2a] rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                </FancyButton>
+                <FancyButton variant="basic" size="xsmall" className="!w-8 !h-8 !p-0">
                   <ChevronRightIcon className="w-4 h-4" />
-                </button>
+                </FancyButton>
               </div>
 
               <div className="flex items-center space-x-3">
@@ -565,18 +569,18 @@ export default function TrackerPage() {
 
             {/* Right side */}
             <div className="flex items-center space-x-3">
-              <Button size="sm" className="bg-[#6366f1] hover:bg-[#5856eb] text-white">
+              <FancyButton variant="primary" size="small">
                 Replay
-              </Button>
+              </FancyButton>
 
-              <Button variant="outline" size="sm">
+              <FancyButton variant="basic" size="small">
                 <ShareIcon className="w-4 h-4 mr-1" />
                 Share
-              </Button>
+              </FancyButton>
 
-              <Button variant="ghost" size="sm">
+              <FancyButton variant="basic" size="small">
                 <EllipsisVerticalIcon className="w-4 h-4" />
-              </Button>
+              </FancyButton>
             </div>
           </div>
         </div>
@@ -682,22 +686,24 @@ export default function TrackerPage() {
                                 
                                 {/* Action buttons overlay */}
                                 <div className="absolute top-5 right-5 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  <button className="w-8 h-8 bg-white dark:bg-[#0f0f0f] rounded-full shadow-sm border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                                  <FancyButton variant="basic" size="xsmall" className="!w-8 !h-8 !p-0 !rounded-full !shadow-sm">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
-                                  </button>
-                                  <button 
-                                    onClick={(e) => {
+                                  </FancyButton>
+                                  <FancyButton 
+                                    onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation()
                                       removeAttachment(attachment.id)
                                     }}
-                                    className="w-8 h-8 bg-white dark:bg-[#0f0f0f] rounded-full shadow-sm border border-gray-200 dark:border-[#2a2a2a] flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
+                                    variant="basic"
+                                    size="xsmall"
+                                    className="!w-8 !h-8 !p-0 !rounded-full !shadow-sm hover:!text-red-500"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                  </button>
+                                  </FancyButton>
                                 </div>
                               </div>
                             ) : (
@@ -726,19 +732,21 @@ export default function TrackerPage() {
                                   <p className="text-xs text-gray-500 dark:text-gray-400">{formatFileSize(attachment.size)}</p>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                                  <FancyButton variant="basic" size="xsmall" className="!p-1 !w-8 !h-8">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
-                                  </button>
-                                  <button 
+                                  </FancyButton>
+                                  <FancyButton 
                                     onClick={() => removeAttachment(attachment.id)}
-                                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                    variant="basic"
+                                    size="xsmall"
+                                    className="!p-1 !w-8 !h-8 hover:!text-red-500"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                  </button>
+                                  </FancyButton>
                                   </div>
                               </div>
                             )}
@@ -811,38 +819,34 @@ export default function TrackerPage() {
                 {/* Notes Header */}
                 <div className="border-b border-gray-200 dark:border-[#2a2a2a] p-4">
                   <div className="flex items-center space-x-4 mb-4">
-                    <button
+                    <FancyButton
                       onClick={() => setActiveNotesTab('trade-note')}
-                      className={`px-3 py-1 text-sm font-medium rounded-lg ${
-                        activeNotesTab === 'trade-note'
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
+                      variant={activeNotesTab === 'trade-note' ? 'primary' : 'basic'}
+                      size="xsmall"
                     >
                       Trade note
-                    </button>
-                    <button
+                    </FancyButton>
+                    <FancyButton
                       onClick={() => setActiveNotesTab('daily-journal')}
-                      className={`px-3 py-1 text-sm font-medium rounded-lg ${
-                        activeNotesTab === 'daily-journal'
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
+                      variant={activeNotesTab === 'daily-journal' ? 'primary' : 'basic'}
+                      size="xsmall"
                     >
                       Daily Journal
-                    </button>
+                    </FancyButton>
                   </div>
 
                   <div className="mb-4">
                     <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Recently used templates</div>
                     <div className="flex flex-wrap gap-2">
                       {templates.map((template) => (
-                        <button
+                        <FancyButton
                           key={template}
-                          className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+                          variant="basic"
+                          size="xsmall"
+                          className="!text-xs"
                         >
                           {template}
-                        </button>
+                        </FancyButton>
                       ))}
                     </div>
                   </div>
@@ -978,9 +982,9 @@ export default function TrackerPage() {
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                     {generateExecutionData(trade).length} executions
                   </h3>
-                  <button className="text-blue-600 dark:text-blue-400 text-sm hover:underline flex items-center">
+                  <FancyButton variant="basic" size="xsmall" className="!text-blue-600 dark:!text-blue-400 !text-sm hover:underline">
                     👁 View all
-                  </button>
+                  </FancyButton>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1026,9 +1030,9 @@ export default function TrackerPage() {
                             </span>
                           </td>
                           <td className="py-3">
-                            <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <FancyButton variant="basic" size="xsmall" className="!p-1 !w-8 !h-8 !text-gray-400 hover:!text-gray-600 dark:hover:!text-gray-300">
                               ⚡
-                            </button>
+                            </FancyButton>
                           </td>
                         </tr>
                       ))}
@@ -1054,10 +1058,10 @@ export default function TrackerPage() {
                     Or
                   </p>
                   
-                  <button className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg">
+                  <FancyButton variant="primary" size="small">
                     <span className="mr-2">⬆</span>
                     Browse Files
-                  </button>
+                  </FancyButton>
                 </div>
               </div>
             )}
@@ -1098,12 +1102,14 @@ export default function TrackerPage() {
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
-            <button
+            <FancyButton
               onClick={() => setViewingImage(null)}
-              className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 transition-colors"
+              variant="basic"
+              size="xsmall"
+              className="!absolute !top-4 !right-4 !text-white !bg-black !bg-opacity-50 hover:!bg-opacity-75 !rounded-full !p-2"
             >
               <XMarkIcon className="w-6 h-6" />
-            </button>
+            </FancyButton>
           </div>
         </div>
       )}

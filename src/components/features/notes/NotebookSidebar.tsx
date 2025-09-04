@@ -1,7 +1,7 @@
 'use client'
 
 import { Plus, FolderOpen, Folder, MoreHorizontal, ChevronDown, ChevronRight, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Hash } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { cn } from '@/lib/utils'
 import { AdvancedColorPicker } from '@/components/ui/advanced-color-picker'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -133,44 +133,30 @@ export function NotebookSidebar({
       "bg-white dark:bg-[#0f0f0f] flex flex-col rounded-bl-xl transition-all duration-300",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      {/* Header with collapse toggle */}
-      <div className="p-4 flex items-center justify-between">
-        {!isCollapsed && (
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Folders</h2>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleCollapse}
-          className={cn(
-            "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white p-2",
-            isCollapsed && "mx-auto"
-          )}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <ChevronLeft className={cn("w-4 h-4 transition-transform", isCollapsed && "rotate-180")} />
-        </Button>
-      </div>
-
       {/* Add folder button */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pt-4 pb-4">
         {isCollapsed ? (
           <Tooltip content="Add folder" side="right">
-            <Button
+            <FancyButton
               onClick={onAddFolder}
-              className="w-full h-10 relative bg-[#3559E9] hover:bg-[#2947d1] text-white border-none shadow-sm overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none"
+              variant="primary"
+              size="small"
+              className="w-full h-10 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none !bg-black"
+              title="Add folder"
             >
               <Plus className="w-4 h-4 relative z-10" />
-            </Button>
+            </FancyButton>
           </Tooltip>
         ) : (
-          <Button
+          <FancyButton
             onClick={onAddFolder}
-            className="w-full relative bg-[#3559E9] hover:bg-[#2947d1] text-white border-none shadow-sm overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none"
+            variant="primary"
+            size="small"
+            className="w-full relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none !bg-black"
           >
             <Plus className="w-4 h-4 mr-2 relative z-10" />
             <span className="relative z-10">Add folder</span>
-          </Button>
+          </FancyButton>
         )}
       </div>
 

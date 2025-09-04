@@ -1,7 +1,7 @@
 'use client'
 
 import { Search, Plus, MoreHorizontal, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Share2, Users } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,20 +134,15 @@ export function NotebookMiddlePanel({
       {/* Header with back arrow and New note */}
       <div className="p-4 bg-white dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-[#404040]">
         <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={onToggleCollapse}
-            className="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2A2A2A] rounded-md transition-colors"
-            title="Collapse notes panel"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <Button
+          <FancyButton
+            variant="basic"
+            size="small"
+            className="!bg-white dark:!bg-[#0f0f0f] !border-gray-200 dark:!border-[#404040] hover:!bg-gray-50 dark:hover:!bg-[#171717]"
             onClick={onCreateNote}
-            className="bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 border-none shadow-sm transition-all duration-200 font-medium px-4 py-2 rounded-lg"
+            title="New note"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            <span>New note</span>
-          </Button>
+            <Plus className="w-4 h-4" />
+          </FancyButton>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2A2A2A] rounded-md transition-colors">
@@ -287,30 +282,30 @@ export function NotebookMiddlePanel({
 
                 {/* Action buttons */}
                 <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2A2A2A] hover:scale-110 transition-all duration-200"
-                    onClick={(e) => {
+                  <FancyButton
+                    variant="basic"
+                    size="xsmall"
+                    className="!h-8 !w-8 !p-0"
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation()
                       setShowAdvancedColorPicker(note.id)
                     }}
                     title="Change note color"
                   >
                     <Palette className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110 transition-all duration-200"
-                    onClick={(e) => {
+                  </FancyButton>
+                  <FancyButton
+                    variant="basic"
+                    size="xsmall"
+                    className="!h-8 !w-8 !p-0 !text-red-500 dark:!text-red-400 hover:!text-red-700 dark:hover:!text-red-300 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation()
                       onDeleteNote(note.id, note.title)
                     }}
                     title="Delete note"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </Button>
+                  </FancyButton>
                 </div>
               </div>
 

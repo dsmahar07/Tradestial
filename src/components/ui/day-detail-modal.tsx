@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import * as FancyButton from '@/components/ui/fancy-button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { cn, formatCurrencyValue } from '@/lib/utils'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts'
@@ -298,7 +299,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     reader.onload = () => {
       const src = String(reader.result)
       if (src.startsWith('data:image/')) {
-        insertHTMLAtCursor(`<img src="${src}" style="max-width:100%;height:auto;border-radius:8px;" alt="Uploaded image" />`)
+        insertHTMLAtCursor(`<p><img src="${src}" style="max-width:300px;height:auto;border-radius:8px;display:inline-block;margin:8px 0;" alt="Uploaded image" /></p><p><br></p>`)
       }
       onEditorInput()
     }
@@ -354,15 +355,19 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
             <div className="flex items-center gap-3 text-lg">
               <span className="font-semibold">{date ? date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }) : '—'}</span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300" />
-              <span className={cn('text-sm font-semibold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
+              <span className={cn('text-lg font-semibold', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
                 Net P&L {typeof pnl === 'number' ? `${pnl >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(pnl))}`.replace('$-', '-') : '$0'}
               </span>
             </div>
             <div className="flex items-center gap-2 mr-4 sm:mr-6">
-              <Button size="sm" className="bg-[#3559E9] hover:bg-[#2947d1] text-white" onClick={() => setIsNoteMode((v) => !v)}>
-                <FileText className="w-4 h-4 mr-2" />
+              <FancyButton.Root variant="primary" size="small" className="px-3" onClick={() => setIsNoteMode((v) => !v)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19.0906 14.4414V18.8806C19.0906 19.1918 19.0293 19.4999 18.9102 19.7874C18.7912 20.0748 18.6166 20.336 18.3966 20.556C18.1766 20.7761 17.9154 20.9506 17.6279 21.0697C17.3405 21.1887 17.0324 21.25 16.7212 21.25H5.11939C4.80709 21.25 4.49787 21.1883 4.20951 21.0684C3.92116 20.9484 3.65935 20.7727 3.43915 20.5512C3.21896 20.3298 3.04471 20.067 2.92644 19.7779C2.80818 19.4889 2.74821 19.1793 2.75001 18.867V7.27882C2.7482 6.96716 2.80825 6.65824 2.92669 6.36996C3.04512 6.08168 3.21958 5.81976 3.43996 5.59938C3.66034 5.379 3.92225 5.20454 4.21054 5.08611C4.49882 4.96768 4.80774 4.90763 5.11939 4.90943H9.55858" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6.83519 15.8031V13.638C6.83669 13.2808 6.97852 12.9384 7.23009 12.6848L16.7621 3.15279C16.8887 3.02516 17.0393 2.92386 17.2052 2.85472C17.3712 2.78559 17.5491 2.75 17.7289 2.75C17.9087 2.75 18.0867 2.78559 18.2526 2.85472C18.4185 2.92386 18.5691 3.02516 18.6957 3.15279L20.8472 5.3043C20.9749 5.43089 21.0762 5.5815 21.1453 5.74744C21.2144 5.91337 21.25 6.09136 21.25 6.27112C21.25 6.45088 21.2144 6.62887 21.1453 6.7948C21.0762 6.96074 20.9749 7.11135 20.8472 7.23794L11.3152 16.7699C11.0616 17.0215 10.7193 17.1633 10.362 17.1648H8.1969C7.83576 17.1648 7.4894 17.0214 7.23403 16.766C6.97866 16.5106 6.83519 16.1643 6.83519 15.8031Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M19.0906 8.99454L15.0055 4.90939" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 {isNoteMode ? 'Hide note' : 'View note'}
-              </Button>
+              </FancyButton.Root>
               {/* Custom Tradestial Logo */}
               <div className="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <div className="w-6 h-6 relative">
@@ -380,7 +385,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-8 pb-8 bg-white dark:bg-[#0f0f0f] [--grid:#e5e7eb] dark:[--grid:#262626]">
+        <div className="bg-white dark:bg-[#0f0f0f] [--grid:#e5e7eb] dark:[--grid:#262626]">
           <AnimatePresence initial={false}>
           {isNoteMode && (
             <motion.div
@@ -389,23 +394,23 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.28, ease: 'easeInOut' }}
-              className="mb-6 overflow-hidden"
+              className="mb-6 overflow-hidden border-t border-gray-100 dark:border-[#2A2A2A] w-full"
               layout
             >
               {/* Toolbar */}
-              <div className="rounded-md bg-white dark:bg-[#0f0f0f] px-2 py-1.5 [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_*:focus]:ring-0 [&_*:focus-visible]:ring-0 border border-transparent">
+              <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f] [&_*:focus]:outline-none [&_*:focus-visible]:outline-none [&_*:focus]:ring-0 [&_*:focus-visible]:ring-0">
                 <div className="flex flex-wrap items-center gap-1">
                   {/* Undo/Redo */}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('undo')}><Undo className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('redo')}><Redo className="w-4 h-4" /></Button>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('undo')}><Undo className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('redo')}><Redo className="w-4 h-4" /></FancyButton.Root>
                   <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
                   {/* Font family */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
+                      <FancyButton.Root variant="basic" size="xsmall" className="h-8 px-2 text-xs gap-1">
                         <Type className="w-4 h-4 text-gray-500" /> {fontFamily}
-                      </button>
+                      </FancyButton.Root>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-white dark:bg-[#0f0f0f] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {[
@@ -424,9 +429,9 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Font size stepper */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
+                      <FancyButton.Root variant="basic" size="xsmall" className="ml-1 h-8 px-2 text-xs">
                         {FONT_SIZES[fontSizeIndex]}
-                      </button>
+                      </FancyButton.Root>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-white dark:bg-[#0f0f0f] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {FONT_SIZES.map((s, idx) => (
@@ -440,18 +445,18 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
                   {/* Inline styles */}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('bold')}><Bold className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('italic')}><Italic className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('underline')}><Underline className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('strikeThrough')}><Strikethrough className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('removeFormat')}><Eraser className="w-4 h-4" /></Button>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('bold')}><Bold className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('italic')}><Italic className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('underline')}><Underline className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('strikeThrough')}><Strikethrough className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('removeFormat')}><Eraser className="w-4 h-4" /></FancyButton.Root>
 
                   {/* Text color */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
+                      <FancyButton.Root variant="basic" size="xsmall" className="ml-1 h-8 px-2 text-xs gap-1">
                         <Palette className="w-4 h-4 text-gray-500" /> Text
-                      </button>
+                      </FancyButton.Root>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a]">
                       {['#000000','#1F2937','#4B5563','#6B7280','#9CA3AF','#111827','#10b981','#ef4444','#f59e0b','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#22c55e','#eab308'].map(c => (
@@ -463,12 +468,12 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   {/* Highlight color */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center gap-1 rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">
+                      <FancyButton.Root variant="basic" size="xsmall" className="ml-1 h-8 px-2 text-xs gap-1">
                         <Palette className="w-4 h-4 text-yellow-500" /> Highlight
-                      </button>
+                      </FancyButton.Root>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="p-2 grid grid-cols-8 gap-2 w-64 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a]">
-                      {['#fff59d','#fde68a','#fef08a','#fde047','#facc15','#fde68a80','#fff176','#ffd54f','#ffecb3','#fff9c4','#fff3e0','#ffe0b2','#fecaca','#dcfce7','#dbeafe','#f5d0fe'].map(c => (
+                    <DropdownMenuContent className="p-2 grid grid-cols-4 gap-2 w-40 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a]">
+                      {['#335CFF','#FB3748','#F6B51E','#7D52F4','#47C2FF','#FB4BA3','#22D3BB'].map(c => (
                         <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} />
                       ))}
                     </DropdownMenuContent>
@@ -477,42 +482,44 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
                   {/* Alignment */}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('justifyLeft')}><AlignLeft className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('justifyCenter')}><AlignCenter className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('justifyRight')}><AlignRight className="w-4 h-4" /></Button>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('justifyLeft')}><AlignLeft className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('justifyCenter')}><AlignCenter className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('justifyRight')}><AlignRight className="w-4 h-4" /></FancyButton.Root>
 
                   <span className="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700" />
 
                   {/* Lists and code */}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('insertUnorderedList')}><List className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('insertOrderedList')}><ListOrdered className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('formatBlock', 'blockquote')}><Quote className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => exec('formatBlock', 'pre')}><Code className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => {
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('insertUnorderedList')}><List className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('insertOrderedList')}><ListOrdered className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('formatBlock', 'blockquote')}><Quote className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => exec('formatBlock', 'pre')}><Code className="w-4 h-4" /></FancyButton.Root>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => {
                     const url = prompt('Enter URL')
                     if (url) exec('createLink', url)
-                  }}><LinkIcon className="w-4 h-4" /></Button>
+                  }}><LinkIcon className="w-4 h-4" /></FancyButton.Root>
 
                   {/* Insert image via URL */}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => {
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 w-8 p-0" onClick={() => {
                     const url = prompt('Paste image URL')
                     if (url) {
                       const u = url.trim()
-                      const lower = u.toLowerCase()
-                      if (lower.startsWith('http://') || lower.startsWith('https://')) {
-                        insertHTMLAtCursor(`<img src='${u}' style='max-width:100%;height:auto;border-radius:8px;' alt='Image' />`)
+                      if (u) {
+                        // Insert image with proper styling
+                        insertHTMLAtCursor(`<p><img src='${u}' style='max-width:300px;height:auto;border-radius:8px;display:inline-block;margin:8px 0;' alt='Image' /></p><p><br></p>`)
                       }
                     }
-                  }}><ImagePlus className="w-4 h-4" /></Button>
+                  }}><ImagePlus className="w-4 h-4" /></FancyButton.Root>
 
                   {/* Hidden file input for image upload */}
                   <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFileChange} />
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-xs focus:outline-none focus:ring-0" onClick={() => fileInputRef.current?.click()}>Upload</Button>
+                  <FancyButton.Root variant="basic" size="xsmall" className="h-8 px-2 text-xs" onClick={() => fileInputRef.current?.click()}>Upload</FancyButton.Root>
 
                   {/* Heading */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="ml-1 h-8 px-2 inline-flex items-center rounded-md bg-white dark:bg-[#0f0f0f] text-xs text-gray-700 dark:text-gray-300">Paragraph</button>
+                      <FancyButton.Root variant="basic" size="xsmall" className="ml-1 h-8 px-2 text-xs">
+                        Paragraph
+                      </FancyButton.Root>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-white dark:bg-[#0f0f0f] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#2a2a2a]">
                       {[
@@ -531,17 +538,20 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
               </div>
 
               {/* Editor */}
-              <div
-                ref={editorRef}
-                contentEditable
-                onInput={onEditorInput}
-                className="mt-3 min-h-[520px] max-h-[70vh] overflow-y-auto rounded-lg bg-white dark:bg-[#0f0f0f] p-4 text-gray-900 dark:text-gray-100 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 border border-transparent smooth-scrollbar"
-                style={{ fontFamily }}
-              />
+              <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-white dark:bg-[#0f0f0f]">
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  onInput={onEditorInput}
+                  className="min-h-[520px] max-h-[70vh] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 leading-relaxed transition-colors text-gray-900 dark:text-gray-100 smooth-scrollbar"
+                  style={{ fontFamily }}
+                />
+              </div>
             </motion.div>
           )}
           </AnimatePresence>
           {/* Top section: chart + stats */}
+          <div className="px-8 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             <div className="md:col-span-7">
               <div className="h-56">
@@ -862,10 +872,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
           <DialogFooter className="mt-4 flex items-center justify-between">
             <div />
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={onClose} className="dark:bg-[#0f0f0f] dark:border-[#2a2a2a]">Cancel</Button>
-              <Button className="bg-[#3559E9] hover:bg-[#2947d1] text-white">View Details</Button>
+              <FancyButton.Root variant="basic" size="medium" onClick={onClose}>Cancel</FancyButton.Root>
+              <FancyButton.Root variant="primary" size="medium" onClick={onClose}>View Details</FancyButton.Root>
             </div>
           </DialogFooter>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

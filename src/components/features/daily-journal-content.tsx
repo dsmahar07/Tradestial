@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, Edit3, Share2 } from 'lucide-react'
 import { XMarkIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { MonthlyCalendar } from '@/components/ui/monthly-calendar'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -681,15 +681,15 @@ export function DailyJournalContent() {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-gray-600 dark:text-gray-300 bg-white dark:bg-[#0f0f0f] border-gray-300 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#2a2a2a]"
+                    <FancyButton 
+                      variant="basic" 
+                      size="small" 
+                      className="!text-gray-600 dark:!text-gray-300 !bg-white dark:!bg-[#0f0f0f] !border-gray-300 dark:!border-[#2a2a2a] hover:!bg-gray-50 dark:hover:!bg-[#2a2a2a]"
                       onClick={() => handleAddNote(card as TradeCard)}
                     >
                       <Edit3 className="w-4 h-4 mr-2" />
                       Add note
-                    </Button>
+                    </FancyButton>
                     <div className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                       <div className="w-6 h-6 relative">
                         <Image

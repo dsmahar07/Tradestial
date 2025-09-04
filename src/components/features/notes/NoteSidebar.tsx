@@ -16,7 +16,7 @@ import {
   Lightbulb,
   Trash2
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
@@ -67,13 +67,15 @@ export function NoteSidebar({ selectedFolder, onFolderSelect }: NoteSidebarProps
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Notebook</h1>
-        <Button 
-          size="sm" 
-          className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white"
+        <FancyButton 
+          variant="primary"
+          size="small" 
+          className="mt-3 w-full"
+          onClick={() => {}}
         >
           <Plus className="w-4 h-4 mr-2" />
           Add folder
-        </Button>
+        </FancyButton>
       </div>
 
       {/* Folders */}

@@ -38,9 +38,13 @@ export const fancyButtonVariants = tv({
       basic: {
         root: [
           // base
-          'bg-white text-gray-600 shadow-lg border border-gray-200',
+          'bg-white text-gray-600 border border-gray-200',
+          // dark theme
+          'dark:bg-[#0f0f0f] dark:text-gray-300 dark:border-[#404040]',
           // hover
-          'hover:bg-gray-50 hover:text-gray-900 hover:shadow-xl',
+          'hover:bg-gray-50 hover:text-gray-900',
+          // dark hover
+          'dark:hover:bg-[#1a1a1a] dark:hover:text-white',
         ],
       },
     },

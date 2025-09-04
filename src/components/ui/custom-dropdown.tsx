@@ -42,14 +42,14 @@ export function CustomDropdown({ value, onChange, options, className, variant = 
   const buttonClasses = cn(
     'relative w-full h-9 text-left transition-colors focus:outline-none',
     variant === 'glass'
-      ? 'px-3 pr-8 rounded-full bg-white/70 dark:bg-white/10 backdrop-blur ring-1 ring-black/10 dark:ring-white/10 text-neutral-900 dark:text-neutral-100 hover:bg-white/80 dark:hover:bg-white/15 focus:ring-2 focus:ring-[#3559E9]/40'
+      ? 'px-3 pr-8 rounded-full bg-white/70 dark:bg-[#0f0f0f]/80 backdrop-blur ring-1 ring-gray-200 dark:ring-[#404040] text-gray-900 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-[#1a1a1a] focus:ring-2 focus:ring-blue-500'
       : 'px-3 pr-8 bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 text-sm hover:border-gray-400 dark:hover:border-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400'
   )
 
   const menuClasses = cn(
     'absolute z-50 w-full mt-1 max-h-60 overflow-auto',
     variant === 'glass'
-      ? 'bg-white/80 dark:bg-[#0B0B0B]/70 backdrop-blur ring-1 ring-black/10 dark:ring-white/10 rounded-xl shadow-xl'
+      ? 'bg-white/80 dark:bg-[#0f0f0f]/90 backdrop-blur ring-1 ring-gray-200 dark:ring-[#404040] rounded-xl shadow-xl'
       : 'bg-white dark:bg-[#0f0f0f] border border-gray-300 dark:border-gray-600 rounded-md shadow-lg'
   )
 
@@ -59,7 +59,7 @@ export function CustomDropdown({ value, onChange, options, className, variant = 
       variant === 'glass'
         ? isSelected
           ? 'bg-[#3559E9]/10 text-[#3559E9]'
-          : 'text-neutral-900 dark:text-neutral-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+          : 'text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1a1a1a]'
         : isSelected
           ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
           : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -78,7 +78,7 @@ export function CustomDropdown({ value, onChange, options, className, variant = 
         <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
           <ChevronDown
             className={cn(
-              'h-4 w-4 text-neutral-500 dark:text-neutral-400 transition-transform duration-200',
+              'h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform duration-200',
               isOpen && 'rotate-180'
             )}
           />

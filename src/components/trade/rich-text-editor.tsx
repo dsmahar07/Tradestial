@@ -21,7 +21,7 @@ import {
   Smile,
   ChevronDown,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Root as FancyButton } from '@/components/ui/fancy-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -356,38 +356,38 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
       <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]">
         <div className="flex items-center space-x-4">
           {/* Undo/Redo */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('undo')}
             title="Undo"
           >
             <Undo className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('redo')}
             title="Redo"
           >
             <Redo className="w-4 h-4" />
-          </Button>
+          </FancyButton>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Font Family Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[100px] justify-between"
+              <FancyButton
+                variant="basic"
+                size="xsmall"
+                className="!h-8 !px-3 !text-sm !min-w-[100px] !justify-between"
               >
                 {fontFamily}
                 <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
+              </FancyButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[140px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               {[
@@ -437,14 +437,14 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
           {/* Font Size Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f0f0f] dark:text-white min-w-[70px] justify-between ml-2"
+              <FancyButton
+                variant="basic"
+                size="xsmall"
+                className="!h-8 !px-3 !text-sm !min-w-[70px] !justify-between !ml-2"
               >
                 {fontSize}
                 <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
+              </FancyButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[80px] bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
               {['10px', '12px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px'].map((size) => (
@@ -468,123 +468,123 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Text Formatting */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('bold')}
             title="Bold (Ctrl+B)"
           >
             <Bold className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('italic')}
             title="Italic (Ctrl+I)"
           >
             <Italic className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('underline')}
             title="Underline (Ctrl+U)"
           >
             <Underline className="w-4 h-4" />
-          </Button>
+          </FancyButton>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Links */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={handleLinkInsert}
             title="Insert Link"
           >
             <Link className="w-4 h-4" />
-          </Button>
+          </FancyButton>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Text Alignment */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('justifyLeft')}
             title="Align Left"
           >
             <AlignLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('justifyCenter')}
             title="Align Center"
           >
             <AlignCenter className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('justifyRight')}
             title="Align Right"
           >
             <AlignRight className="w-4 h-4" />
-          </Button>
+          </FancyButton>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Lists */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('insertUnorderedList')}
             title="Bullet List"
           >
             <List className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('insertOrderedList')}
             title="Numbered List"
           >
             <ListOrdered className="w-4 h-4" />
-          </Button>
+          </FancyButton>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Media & Special */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={handleImageUpload}
             title="Insert Image"
           >
             <Camera className="w-4 h-4" />
-          </Button>
+          </FancyButton>
 
           <div className="relative">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+            <FancyButton
+              variant="basic"
+              size="xsmall"
+              className="!h-8 !w-8 !p-0"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               title="Insert Emoji"
             >
               <Smile className="w-4 h-4" />
-            </Button>
+            </FancyButton>
             
             <EmojiPicker
               isOpen={showEmojiPicker}
@@ -599,33 +599,33 @@ export function RichTextEditor({ placeholder = placeholders.text.notes, value = 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
           {/* Special Formatting */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => insertContent('<input type="checkbox" style="margin-right: 8px;" /> ')}
             title="Insert Checkbox"
           >
             <CheckSquare className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('formatBlock', 'blockquote')}
             title="Quote"
           >
             <Quote className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-[#2A2A2A]"
+          </FancyButton>
+          <FancyButton
+            variant="basic"
+            size="xsmall"
+            className="!h-8 !w-8 !p-0"
             onClick={() => formatText('formatBlock', 'pre')}
             title="Code Block"
           >
             <Code className="w-4 h-4" />
-          </Button>
+          </FancyButton>
         </div>
       </div>
 
