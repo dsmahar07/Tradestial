@@ -7,6 +7,7 @@ import { Trade } from './trade-data.service'
 import { DataParserService, ParsedTradeData } from './data-parser.service'
 import { ReactiveAnalyticsService } from './reactive-analytics.service'
 import { AnalyticsCacheService } from './analytics-cache.service'
+import { TradingViewCsvParser } from './tradingview-csv-parser'
 import { calculateTradeDuration } from '@/utils/duration'
 import { getBrokerTimezoneDefault } from '@/utils/timezones'
 
@@ -126,7 +127,8 @@ export class CSVImportService {
 
       const brokerConfig = this.brokerConfigs.get(effectiveBroker)
 
-      if (!brokerConfig) {
+      // TradingView doesn't need broker config as it uses specialized parser
+      if (!brokerConfig && effectiveBroker !== 'tradingview') {
         return {
           success: false,
           trades: [],
@@ -148,21 +150,39 @@ export class CSVImportService {
         timezoneOffsetMinutes: parseOptions?.timezoneOffsetMinutes ?? getBrokerTimezoneDefault(effectiveBroker)
       }
 
-      // Parse CSV with broker-specific configuration
-      const parseResult = await DataParserService.parseCSVData(
-        csvContent,
-        {
-          required: brokerConfig.validation.required,
-          optional: brokerConfig.validation.optional
-        },
-        finalParseOptions
-      )
+      let trades: Trade[] = []
+      let parseResult: any
 
-      // Transform parsed data to Trade format
-      const trades = this.transformToTrades(parseResult.trades, brokerConfig, customMapping)
+      // Handle TradingView CSV with specialized parser
+      if (effectiveBroker === 'tradingview') {
+        const tradingViewResult = await TradingViewCsvParser.parseCSV(csvContent, finalParseOptions)
+        trades = tradingViewResult.trades
+        parseResult = {
+          errors: tradingViewResult.errors.map((e: string) => ({ message: e })),
+          warnings: tradingViewResult.warnings.map((w: string) => ({ message: w })),
+          metadata: tradingViewResult.metadata
+        }
+      } else {
+        // Parse CSV with broker-specific configuration
+        if (!brokerConfig) {
+          throw new Error(`Broker configuration not found for: ${effectiveBroker}`)
+        }
+        
+        parseResult = await DataParserService.parseCSVData(
+          csvContent,
+          {
+            required: brokerConfig.validation.required,
+            optional: brokerConfig.validation.optional
+          },
+          finalParseOptions
+        )
+
+        // Transform parsed data to Trade format
+        trades = this.transformToTrades(parseResult.trades, brokerConfig, customMapping)
+      }
 
       // Lightweight post-import verification (sanity checks)
-      const verificationWarnings = this.verifyCalculations(trades, brokerConfig.id)
+      const verificationWarnings = this.verifyCalculations(trades, effectiveBroker)
 
       // Update reactive analytics system
       await this.updateAnalytics(trades)
@@ -173,10 +193,10 @@ export class CSVImportService {
       return {
         success: parseResult.errors.length === 0,
         trades,
-        errors: parseResult.errors.map(e => e.message),
-        warnings: [...extraWarnings, ...parseResult.warnings.map(w => w.message), ...verificationWarnings],
+        errors: parseResult.errors.map((e: any) => e.message),
+        warnings: [...extraWarnings, ...parseResult.warnings.map((w: any) => w.message), ...verificationWarnings],
         metadata: {
-          broker: brokerConfig.name,
+          broker: effectiveBroker === 'tradingview' ? 'TradingView' : brokerConfig?.name || effectiveBroker,
           originalRowCount: parseResult.metadata.totalRows,
           processedRowCount: trades.length,
           skippedRowCount: parseResult.metadata.skippedRows,
@@ -205,10 +225,15 @@ export class CSVImportService {
    * Get supported brokers list
    */
   static getSupportedBrokers(): Array<{ id: string; name: string }> {
-    return Array.from(this.brokerConfigs.values()).map(config => ({
+    const brokers = Array.from(this.brokerConfigs.values()).map(config => ({
       id: config.id,
       name: config.name
     }))
+    
+    // Add TradingView which uses specialized parser
+    brokers.push({ id: 'tradingview', name: 'TradingView' })
+    
+    return brokers
   }
 
   /**
@@ -364,11 +389,24 @@ export class CSVImportService {
       }
     })
 
+    // TradingView uses specialized parser - no broker config needed
+
     // Add more broker configurations as needed...
   }
 
   private static detectBroker(csvContent: string): string {
     const firstLine = csvContent.split('\n')[0].toLowerCase()
+
+    // TradingView detection - look for specific TradingView headers
+    if (
+      firstLine.includes('time') &&
+      firstLine.includes('balance before') &&
+      firstLine.includes('balance after') &&
+      firstLine.includes('realized p&l (value)') &&
+      firstLine.includes('action')
+    ) {
+      return 'tradingview'
+    }
 
     // Tradovate detection - Performance.csv format (new standard)
     if (
