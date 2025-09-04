@@ -31,7 +31,8 @@ import {
   X,
   Save,
   MoreVertical,
-  Palette
+  Palette,
+  Type
 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { Button } from '@/components/ui/button'
@@ -1799,6 +1800,26 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           >
             <Underline className="w-4 h-4" />
           </FancyButton.Root>
+
+          {/* Text color */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <FancyButton.Root
+                variant="basic"
+                size="xsmall"
+                className="h-8 w-8 p-0"
+                title="Text Color"
+                disabled={!note}
+              >
+                <Type className="w-4 h-4" />
+              </FancyButton.Root>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="p-3 grid grid-cols-4 gap-2 w-40 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg">
+              {['#335CFF','#FB3748','#F6B51E','#7D52F4','#47C2FF','#FB4BA3','#22D3BB'].map(c => (
+                <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => formatText('foreColor', c)} />
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Highlight color */}
           <DropdownMenu>
