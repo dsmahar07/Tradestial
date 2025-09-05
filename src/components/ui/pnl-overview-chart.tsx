@@ -1,14 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
-import { Button } from './button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
 import { BudgetIncomeIcon, BudgetExpensesIcon, BudgetScheduledIcon, PNLOverviewIcon } from './custom-icons'
 import { useState, useEffect, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts'
@@ -25,7 +17,6 @@ interface PNLData {
 
 
 export function PnlOverviewChart() {
-  const [selectedPeriod, setSelectedPeriod] = useState<'Last Year' | 'This Year' | 'Last Month'>('This Year')
   const [trades, setTrades] = useState<Trade[]>([])
 
   // Load trades and subscribe to changes
@@ -42,66 +33,58 @@ export function PnlOverviewChart() {
     if (!trades.length) return []
 
     const now = new Date()
-    const currentYear = now.getFullYear()
     const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
 
-    // Filter trades based on selected period
-    const filteredTrades = trades.filter(trade => {
-      const tradeDate = parseLocalDate(trade.closeDate || trade.openDate)
-      const tradeYear = getYear(tradeDate)
-      const tradeMonth = getMonth(tradeDate)
+    // Group by month and year - only include months with actual trades
+    const monthlyData = new Map<string, { wins: number, losses: number, total: number, monthIndex: number, year: number, isCurrentMonth: boolean }>()
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-      switch (selectedPeriod) {
-        case 'Last Year':
-          return tradeYear === currentYear - 1
-        case 'This Year':
-          return tradeYear === currentYear
-        case 'Last Month':
-          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
-          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
-          return tradeYear === lastMonthYear && tradeMonth === lastMonth
-        default:
-          return tradeYear === currentYear
-      }
-    })
-
-    // Group by month
-    const monthlyData = new Map<string, { wins: number, losses: number, total: number }>()
-    const monthNames = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-
-    // Initialize all months with 0
-    monthNames.forEach(month => {
-      monthlyData.set(month, { wins: 0, losses: 0, total: 0 })
-    })
-
-    // Process trades
-    filteredTrades.forEach(trade => {
+    // Process trades and only add months that have trades
+    trades.forEach(trade => {
       const tradeDate = parseLocalDate(trade.closeDate || trade.openDate)
       const monthIndex = getMonth(tradeDate)
-      const monthKey = monthNames[monthIndex]
+      const year = getYear(tradeDate)
+      const monthKey = `${monthNames[monthIndex]} ${year}`
+      const isCurrentMonth = monthIndex === currentMonth && year === currentYear
+      
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, { wins: 0, losses: 0, total: 0, monthIndex, year, isCurrentMonth })
+      }
+      
       const monthStats = monthlyData.get(monthKey)!
-
-      monthStats.total += trade.netPnl
+      
       if (trade.netPnl > 0) {
-        monthStats.wins += trade.netPnl
+        monthStats.wins += trade.netPnl  // Peak Profit = sum of all winning trades
       } else {
-        monthStats.losses += Math.abs(trade.netPnl)
+        monthStats.losses += Math.abs(trade.netPnl)  // Peak Loss = sum of all losing trades
       }
     })
 
-    // Convert to chart format
-    return Array.from(monthlyData.entries()).map(([month, stats]) => ({
-      month,
-      peakProfit: Math.max(0, stats.wins),
-      peakLoss: Math.max(0, stats.losses), 
-      bookedPnl: Math.max(0, stats.total)
-    }))
-  }, [trades, selectedPeriod])
+    // Convert to chart format and sort by chronological order (year first, then month)
+    return Array.from(monthlyData.entries())
+      .map(([month, stats]) => ({
+        month: month.split(' ')[0], // Just show month name for display
+        fullMonth: month, // Keep full month+year for sorting
+        peakProfit: stats.wins,  // All winning trades combined
+        peakLoss: stats.losses,  // All losing trades combined
+        bookedPnl: stats.wins - stats.losses,  // Peak Profit - Peak Loss
+        monthIndex: stats.monthIndex,
+        year: stats.year,
+        isCurrentMonth: stats.isCurrentMonth
+      }))
+      .sort((a, b) => {
+        // Sort by year first, then by month
+        if (a.year !== b.year) return a.year - b.year
+        return a.monthIndex - b.monthIndex
+      })
+  }, [trades])
 
   // Get current data (real or empty)
   const currentData = realPnlData.length > 0 ? realPnlData : []
 
-  if (!trades.length) {
+  // Show empty state if no trades or no data for selected period
+  if (!trades.length || currentData.length === 0) {
     return (
       <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -154,44 +137,10 @@ export function PnlOverviewChart() {
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 rounded-full bg-[#3559E9]"></div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Booked PNL</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">PNL</span>
               </div>
             </div>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="bg-white dark:bg-[#0f0f0f] border-0 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 shadow-sm !h-5 !min-h-0 px-2 text-xs"
-                >
-                  <span>{selectedPeriod}</span>
-                  <ChevronDown className="ml-1 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                className="bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#2a2a2a] shadow-lg min-w-[120px]"
-              >
-                <DropdownMenuItem 
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer"
-                  onClick={() => setSelectedPeriod('Last Year')}
-                >
-                  Last Year
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer"
-                  onClick={() => setSelectedPeriod('This Year')}
-                >
-                  This Year
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717] cursor-pointer"
-                  onClick={() => setSelectedPeriod('Last Month')}
-                >
-                  Last Month
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
         
@@ -229,17 +178,23 @@ export function PnlOverviewChart() {
                 className="dark:fill-gray-400"
                 scale="linear"
                 allowDecimals={false}
+                domain={['dataMin', 'dataMax']}
                 tickFormatter={(value) => {
                   if (value === 0) return '$0'
-                  if (Math.abs(value) >= 1000) {
-                    return `$${(value / 1000).toFixed(1)}k`
+                  const absValue = Math.abs(value)
+                  if (absValue >= 1000) {
+                    return `${value < 0 ? '-' : ''}$${(absValue / 1000).toFixed(1)}k`
                   }
-                  return `$${value}`
+                  return `${value < 0 ? '-' : ''}$${absValue}`
                 }}
               />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || !payload.length) return null
+                  
+                  // Find the data point to check if it's current month
+                  const dataPoint = currentData.find(d => d.month === label)
+                  const isCurrentMonth = dataPoint?.isCurrentMonth || false
                   
                   return (
                     <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
@@ -257,6 +212,12 @@ export function PnlOverviewChart() {
                           formattedValue = `$${value.toLocaleString()}`
                         }
                         
+                        // Dynamic label based on current month
+                        let displayName = entry.name as string
+                        if (entry.dataKey === 'bookedPnl') {
+                          displayName = isCurrentMonth ? 'Current PNL' : 'Booked PNL'
+                        }
+                        
                         return (
                           <div key={index} className="flex items-center gap-2">
                             <div 
@@ -264,7 +225,7 @@ export function PnlOverviewChart() {
                               style={{ backgroundColor: entry.color }}
                             />
                             <span className="text-gray-700 dark:text-gray-300">
-                              {entry.name}: {formattedValue}
+                              {displayName}: {formattedValue}
                             </span>
                           </div>
                         )
@@ -294,7 +255,7 @@ export function PnlOverviewChart() {
               <Bar 
                 dataKey="bookedPnl" 
                 fill="#3559E9"
-                name="Booked PNL"
+                name="PNL"
                 radius={[4, 4, 0, 0]}
                 isAnimationActive={true}
                 animationBegin={400}

@@ -27,6 +27,7 @@ const ActivityJournalHeatmap = lazy(() => import('@/components/ui/activity-journ
 const DrawdownChart = lazy(() => import('@/components/ui/drawdown-chart').then(m => ({ default: m.DrawdownChart })))
 const TradeTimePerformance = lazy(() => import('@/components/ui/trade-time-performance').then(m => ({ default: m.TradeTimePerformance })))
 const YearlyCalendar = lazy(() => import('@/components/ui/yearly-calendar').then(m => ({ default: m.YearlyCalendar })))
+const PerformanceWeekDays = lazy(() => import('@/components/ui/performance-week-days').then(m => ({ default: m.PerformanceWeekDays })))
 const ReportChart = lazy(() => import('@/components/ui/report-chart').then(m => ({ default: m.ReportChart })))
 const AccountBalanceChart = lazy(() => import('@/components/ui/account-balance-chart').then(m => ({ default: m.AccountBalanceChart })))
 const AdvanceRadar = lazy(() => import('@/components/ui/AdvanceRadar').then(m => ({ default: m.default })))
@@ -348,7 +349,7 @@ export function DashboardContent() {
 
 
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#f2f2f2] dark:bg-[#171717]">
       <div className="space-y-6">
         {/* Journal Button with Dropdown - Top Right of Content */}
         <div className="flex justify-end mb-4">
@@ -453,6 +454,15 @@ export function DashboardContent() {
             <Suspense fallback={<ChartSkeleton />}>
               <YearlyCalendar />
             </Suspense>
+          </div>
+          
+          {/* Performance Week Days row - Same size as Daily & Cumulative P&L */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+            <div>
+              <Suspense fallback={<ChartSkeleton />}>
+                <PerformanceWeekDays />
+              </Suspense>
+            </div>
           </div>
           
         </div>

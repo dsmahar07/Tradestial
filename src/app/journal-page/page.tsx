@@ -300,11 +300,11 @@ function JournalPageContent() {
 export default function JournalPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)]">
+      <div className="flex min-h-screen bg-[#f2f2f2] dark:bg-[var(--color-bg-dark,#171717)]">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader />
-          <main className="flex-1 overflow-hidden bg-gray-50 dark:bg-[var(--color-bg-dark,#171717)] p-3 md:p-6">
+          <main className="flex-1 overflow-hidden bg-[#f2f2f2] dark:bg-[var(--color-bg-dark,#171717)] p-3 md:p-6">
           <div className="flex flex-col lg:flex-row gap-6 h-full">
             <div className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg min-h-[400px] lg:min-h-0">
               <PageLoading text="Loading Journal..." />

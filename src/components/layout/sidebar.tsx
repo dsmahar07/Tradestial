@@ -23,6 +23,7 @@ import { Activity, LayoutGrid, Plus, LogOut, Moon, Settings, UserCog, Menu, X } 
 import Image from 'next/image'
 import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
+import * as FancyButton from '@/components/ui/fancy-button'
 import { getEnabledNavigationItems } from '@/config/navigation'
 import { GradientIcon } from '@/components/ui/gradient-icon'
 
@@ -117,7 +118,7 @@ export function Sidebar() {
           role="navigation"
           aria-label="Main navigation"
           className={cn(
-            "bg-white dark:bg-[#171717] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent transition-all duration-300",
+            "bg-[#f2f2f2] dark:bg-[#171717] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent transition-all duration-300",
             "fixed lg:sticky z-50 lg:z-auto",
             isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
             isCollapsed ? "w-20" : "w-64"
@@ -141,12 +142,13 @@ export function Sidebar() {
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <Link href="/import-data">
-              <Button 
-                size="sm"
-                className="w-12 h-9 relative bg-[#3559E9] hover:bg-[#2947d1] text-white border-none shadow-lg overflow-hidden transition duration-200 ease-out before:pointer-events-none before:absolute before:inset-0 before:z-10 before:rounded-[inherit] before:bg-gradient-to-b before:p-px before:from-white/[.12] before:to-transparent before:[mask-clip:content-box,border-box] before:[mask-composite:exclude] before:[mask-image:linear-gradient(#fff_0_0),linear-gradient(#fff_0_0)] after:absolute after:inset-0 after:rounded-[inherit] after:bg-gradient-to-b after:from-white after:to-transparent after:pointer-events-none after:opacity-[.16] after:transition after:duration-200 after:ease-out hover:after:opacity-[.24]"
+              <FancyButton.Root 
+                variant="primary"
+                size="small"
+                className="!w-12 !h-9"
               >
-                <Plus className="w-4 h-4 relative z-10" />
-              </Button>
+                <FancyButton.Icon as={Plus} />
+              </FancyButton.Root>
             </Link>
           </Tooltip.Trigger>
           <Tooltip.Portal>

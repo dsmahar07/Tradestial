@@ -74,6 +74,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPnl, setSelectedPnl] = useState<number | undefined>(undefined)
   const [selectedTrades, setSelectedTrades] = useState<Trade[] | undefined>(undefined)
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
 
   const today = new Date()
   const currentMonth = currentDate.getMonth()
@@ -246,6 +247,23 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
     setIsModalOpen(true)
   }
 
+  const handleDayClick = (c: any) => {
+    if (!c.isCurrentMonth) return
+    
+    if (typeof c.pnl === 'number') {
+      openModalFor(c.date, c.pnl)
+    } else {
+      // Show feedback for non-traded days
+      const dateStr = c.date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'short', 
+        day: 'numeric' 
+      })
+      setFeedbackMessage(`No trades on ${dateStr}`)
+      setTimeout(() => setFeedbackMessage(null), 2000)
+    }
+  }
+
   return (
     <div className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 h-full flex flex-col', className)}>
       {/* Header */}
@@ -355,6 +373,13 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
         </div>
       </div>
 
+      {/* Feedback Message */}
+      {feedbackMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in-0 slide-in-from-top-2">
+          {feedbackMessage}
+        </div>
+      )}
+
       <DayDetailModal open={isModalOpen} onClose={() => setIsModalOpen(false)} date={selectedDate} pnl={selectedPnl} trades={selectedTrades} />
 
       {/* Mobile/tablet: show simple grid without weekly column */}
@@ -374,7 +399,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
             return (
               <button
                 key={idx}
-                onClick={() => c.isCurrentMonth && openModalFor(c.date, c.pnl)}
+                onClick={() => handleDayClick(c)}
                 disabled={!c.isCurrentMonth}
                 className={cn(
                   'h-24 w-full rounded-lg border text-xs flex flex-col p-1.5',
@@ -448,7 +473,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               return (
                 <button
                   key={idx}
-                  onClick={() => c.isCurrentMonth && openModalFor(c.date, c.pnl)}
+                  onClick={() => handleDayClick(c)}
                   disabled={!c.isCurrentMonth}
                   className={cn(
                     'h-28 w-full rounded-xl border text-sm flex flex-col p-2',
