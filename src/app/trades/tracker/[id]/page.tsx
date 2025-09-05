@@ -34,7 +34,7 @@ import { DataStore } from '@/services/data-store.service'
 import { chartColorPalette } from '@/config/theme'
 import { useTagData } from '@/hooks/use-tag-data'
 import { useTradeMetadata } from '@/hooks/use-trade-metadata'
-import { StatsWidget } from '@/components/ui/stats-widget'
+import { StrategyCard } from '@/components/strategy/tradestats-card'
 
 // Old hardcoded data removed - now using TradeDataService
 
@@ -56,7 +56,7 @@ export default function TrackerPage() {
   const [activeMainTab, setActiveMainTab] = useState('stats')
   const [activeContentTab, setActiveContentTab] = useState('notes')
   const [activeNotesTab, setActiveNotesTab] = useState('trade-note')
-  const [rating, setRating] = useState(5)
+  const [rating, setRating] = useState<number | undefined>(undefined)
   const [profitTarget, setProfitTarget] = useState('')
   const [stopLoss, setStopLoss] = useState('')
   
@@ -151,16 +151,25 @@ export default function TrackerPage() {
   useEffect(() => {
     const loadTrade = async () => {
       try {
+        setIsLoading(true)
+        
         // Get trades from DataStore (real CSV data)
         const trades = DataStore.getAllTrades()
         console.log('🔍 Tracker - Available trades:', trades.length)
         
-        // Get trade ID from URL params or search params
-        const tradeId = params.id || params.tradeId || searchParams.get('trade')
-        console.log('🔍 Tracker - Looking for trade ID:', tradeId)
+        // Get trade ID from URL params or search params and decode it
+        const rawTradeId = params.id || params.tradeId || searchParams.get('trade')
+        const tradeId = rawTradeId ? decodeURIComponent(Array.isArray(rawTradeId) ? rawTradeId[0] : rawTradeId) : null
+        console.log('🔍 Tracker - Raw trade ID from URL:', rawTradeId)
+        console.log('🔍 Tracker - Decoded trade ID:', tradeId)
+        console.log('🔍 Tracker - All available trade IDs:', trades.map(t => t.id))
+        console.log('🔍 Tracker - Params object:', params)
+        console.log('🔍 Tracker - SearchParams:', Object.fromEntries(searchParams.entries()))
         
         if (!trades.length) {
           console.warn('⚠️ Tracker - No trades available in DataStore')
+          setTrade(null)
+          setRunningPnlData([])
           setIsLoading(false)
           return
         }
@@ -168,16 +177,37 @@ export default function TrackerPage() {
         // Find specific trade if ID provided, otherwise use first trade
         let selectedTrade = null
         if (tradeId) {
+          // Try exact match first
           selectedTrade = trades.find(t => t.id === tradeId)
+          
+          // If no exact match, try string comparison (in case of type mismatch)
           if (!selectedTrade) {
-            console.warn(`⚠️ Tracker - Trade with ID ${tradeId} not found, using first trade`)
+            selectedTrade = trades.find(t => String(t.id) === String(tradeId))
+          }
+          
+          // If still no match, try partial match
+          if (!selectedTrade && typeof tradeId === 'string') {
+            selectedTrade = trades.find(t => t.id && String(t.id).includes(tradeId))
+          }
+          
+          if (!selectedTrade) {
+            console.warn(`⚠️ Tracker - Trade with ID ${tradeId} not found in any format`)
+            console.warn('Available trade IDs and types:', trades.map(t => ({ id: t.id, type: typeof t.id })))
             selectedTrade = trades[0]
           } else {
-            console.log('✅ Tracker - Found specific trade:', selectedTrade.id, selectedTrade.symbol)
+            console.log('✅ Tracker - Found specific trade:', selectedTrade.id, selectedTrade.symbol, 'Side:', selectedTrade.side)
           }
         } else {
           selectedTrade = trades[0]
-          console.log('✅ Tracker - Using first trade:', selectedTrade.id, selectedTrade.symbol)
+          console.log('✅ Tracker - No trade ID provided, using first trade:', selectedTrade.id, selectedTrade.symbol, 'Side:', selectedTrade.side)
+        }
+        
+        if (!selectedTrade) {
+          console.error('❌ Tracker - No trade selected')
+          setTrade(null)
+          setRunningPnlData([])
+          setIsLoading(false)
+          return
         }
         
         // Generate mock running P&L data based on the trade
@@ -186,18 +216,32 @@ export default function TrackerPage() {
         // Clean the trade object of any review properties
         const cleanTrade = cleanTradeObject(selectedTrade)
         
-        setTrade(cleanTrade)
-        setRunningPnlData(mockRunningPnlData)
-        console.log('✅ Tracker - Trade loaded successfully')
+        // Force state update with new trade
+        setTrade(null) // Clear first to force re-render
+        setTimeout(() => {
+          setTrade(cleanTrade)
+          setRunningPnlData(mockRunningPnlData)
+          console.log('✅ Tracker - Trade state updated:', {
+            id: cleanTrade?.id,
+            symbol: cleanTrade?.symbol,
+            side: cleanTrade?.side,
+            netPnl: cleanTrade?.netPnl,
+            entryPrice: cleanTrade?.entryPrice,
+            exitPrice: cleanTrade?.exitPrice
+          })
+        }, 10)
+        
       } catch (error) {
         console.error('❌ Tracker - Error loading trade:', error)
+        setTrade(null)
+        setRunningPnlData([])
       } finally {
         setIsLoading(false)
       }
     }
     
     loadTrade()
-  }, [params, searchParams])
+  }, [params.id, searchParams])
 
   // Load metadata when trade changes or metadata updates
   useEffect(() => {
@@ -206,22 +250,19 @@ export default function TrackerPage() {
     const metadata = getTradeMetadata(trade.id)
     console.log(`🔍 Tracker - Loading metadata for trade ${trade.id}:`, metadata)
     
-    if (metadata) {
-      setRating(metadata.rating || 5)
+    if (metadata && metadata.rating !== undefined) {
+      setRating(metadata.rating)
       setProfitTarget(metadata.profitTarget || '')
       setStopLoss(metadata.stopLoss || '')
-      console.log(`✅ Tracker - Restored SL/TP for trade ${trade.id}: PT=${metadata.profitTarget}, SL=${metadata.stopLoss}`)
+      console.log(`✅ Tracker - Restored metadata for trade ${trade.id}: Rating=${metadata.rating}, PT=${metadata.profitTarget}, SL=${metadata.stopLoss}`)
     } else {
-      // Only reset to defaults if no metadata exists AND current values are empty
-      // This prevents overwriting user input when switching between trades
-      if (!profitTarget && !stopLoss && rating === 5) {
-        setRating(5)
-        setProfitTarget('')
-        setStopLoss('')
-        console.log(`🔧 Tracker - Set defaults for new trade ${trade.id}`)
-      }
+      // No metadata or no rating saved - start with no rating (undefined)
+      setRating(undefined)
+      setProfitTarget('')
+      setStopLoss('')
+      console.log(`🔧 Tracker - No rating saved for trade ${trade.id}, starting fresh`)
     }
-  }, [trade, getTradeMetadata])
+  }, [trade?.id])
 
   // Create handlers that save to metadata service
   const handleRatingChange = (newRating: number) => {
@@ -608,25 +649,29 @@ export default function TrackerPage() {
       {/* Main Content */}
       <div className="flex flex-1 min-h-0 p-6 gap-6 bg-[#f2f2f2] dark:bg-[#171717]">
         {/* Left Sidebar - Dynamic Content */}
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-lg flex-shrink-0 h-fit" style={{width: '376px'}}>
+        <div className="bg-transparent flex-shrink-0 h-fit" style={{width: '480px'}}>
           <div className="p-4">
             {activeMainTab === 'stats' && (
-              <StatsWidget
-                trade={trade}
-                runningPnlData={runningPnlData}
-                categories={categories}
-                tags={tags}
-                profitTarget={profitTarget}
-                stopLoss={stopLoss}
-                rating={rating}
-                onProfitTargetChange={handleProfitTargetChange}
-                onStopLossChange={handleStopLossChange}
-                onRatingChange={handleRatingChange}
-                onAddTag={addTag}
-                onRemoveTag={removeTag}
-                onUpdateCategory={updateCategory}
-                onShowColorPicker={setShowColorPicker}
-              />
+              <div className="[&>div:first-child]:!bg-transparent [&>div:first-child]:!border-0 [&>div:first-child]:!shadow-none [&>div:first-child]:!p-0 [&>div:first-child]:!rounded-none [&_div[class*='absolute'][class*='-inset-4']]:!hidden">
+                <StrategyCard
+                  title={trade?.symbol || 'NQ'}
+                  subtitle={`${trade?.contractsTraded || 1} contracts`}
+                  trade={trade}
+                  runningPnlData={runningPnlData}
+                  categories={categories}
+                  tags={tags}
+                  profitTarget={profitTarget}
+                  stopLoss={stopLoss}
+                  rating={rating}
+                  onProfitTargetChange={handleProfitTargetChange}
+                  onStopLossChange={handleStopLossChange}
+                  onRatingChange={handleRatingChange}
+                  onAddTag={addTag}
+                  onRemoveTag={removeTag}
+                  onUpdateCategory={updateCategory}
+                  onShowColorPicker={setShowColorPicker}
+                />
+              </div>
             )}
 
             {activeMainTab === 'attachments' && (

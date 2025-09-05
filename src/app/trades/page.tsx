@@ -720,7 +720,7 @@ export default function TradesPage() {
                     <tr 
                       key={trade.id} 
                       className="hover:bg-gray-50 dark:hover:bg-[#2a2a2a] dark:hover:bg-[#2a2a2a] transition-colors cursor-pointer"
-                      onClick={() => router.push(`/trades/tracker?trade=${trade.id}`)}
+                      onClick={() => router.push(`/trades/tracker/${trade.id}`)}
                     >
                       <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                         <Checkbox.Root
