@@ -6,6 +6,8 @@ import * as echarts from 'echarts';
 import { DataStore } from '@/services/data-store.service'
 import { formatCurrencyValue } from '@/lib/utils'
 import { useHydrated } from '@/hooks/use-hydrated'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 type EChartsOption = echarts.EChartsOption;
 
@@ -357,10 +359,28 @@ const AdvanceRadar: React.FC = () => {
       <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-2 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '432px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <div>
+          <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Performance Radar
             </h3>
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Multi-dimensional performance analysis showing six key trading metrics: consistency, win rate, profit factor, risk management, average win/loss ratio, and maximum drawdown. Each axis represents a different performance aspect, with the filled area showing your current trading strength across all dimensions.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
         </div>
         

@@ -5,6 +5,7 @@ import { DataStore } from '@/services/data-store.service'
 import { accountService } from '@/services/account.service'
 import { motion } from 'framer-motion'
 import { ChevronDown, Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 import { Button } from './button'
 import { formatDisplayTime, getDisplayTimezone } from '@/utils/display-time'
 import {
@@ -225,9 +226,29 @@ export function AccountBalanceChart({
       {title && (
         <>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {title}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {title}
+              </h3>
+              <RadixTooltip.Provider>
+                <RadixTooltip.Root>
+                  <RadixTooltip.Trigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <Info size={16} />
+                    </button>
+                  </RadixTooltip.Trigger>
+                  <RadixTooltip.Portal>
+                    <RadixTooltip.Content
+                      className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                      sideOffset={5}
+                    >
+                      Account balance progression over time showing your starting balance (red line) versus your current account balance (purple line) which includes all profits and losses. The gap between lines represents your cumulative trading performance.
+                      <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                    </RadixTooltip.Content>
+                  </RadixTooltip.Portal>
+                </RadixTooltip.Root>
+              </RadixTooltip.Provider>
+            </div>
           </div>
           
           {/* Header Divider */}

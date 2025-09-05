@@ -1,8 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ChevronDown, TrendingUp, TrendingDown } from 'lucide-react'
+import { ChevronDown, TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { Button } from './button'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -104,11 +105,11 @@ export function CumulativePnlBar() {
   // Load trades and subscribe to changes
   useEffect(() => {
     const initialTrades = DataStore.getAllTrades()
-    console.log('🔍 Cumulative PNL Bar - Initial load:', initialTrades.length)
+    console.log(' Cumulative PNL Bar - Initial load:', initialTrades.length)
     setTrades(initialTrades)
     const unsubscribe = DataStore.subscribe(() => {
       const updatedTrades = DataStore.getAllTrades()
-      console.log('🔍 Cumulative PNL Bar - Data update received:', updatedTrades.length)
+      console.log(' Cumulative PNL Bar - Data update received:', updatedTrades.length)
       setTrades(updatedTrades)
     })
     return unsubscribe
@@ -116,11 +117,11 @@ export function CumulativePnlBar() {
 
   // Generate P&L data from real trades
   const pnlData = useMemo(() => {
-    console.log('🔍 Cumulative PNL Bar - Generating data from trades:', trades.length)
+    console.log(' Cumulative PNL Bar - Generating data from trades:', trades.length)
     const data = generatePnlDataFromTrades(trades)
-    console.log('🔍 Generated P&L data:', data.length, 'periods')
+    console.log(' Generated P&L data:', data.length, 'periods')
     if (data.length > 0) {
-      console.log('🔍 Sample data point:', data[0])
+      console.log(' Sample data point:', data[0])
     }
     return data
   }, [trades])
@@ -207,9 +208,29 @@ export function CumulativePnlBar() {
       >
         <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {selectedMetric}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {selectedMetric}
+              </h3>
+              <RadixTooltip.Provider>
+                <RadixTooltip.Root>
+                  <RadixTooltip.Trigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <Info size={16} />
+                    </button>
+                  </RadixTooltip.Trigger>
+                  <RadixTooltip.Portal>
+                    <RadixTooltip.Content
+                      className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                      sideOffset={5}
+                    >
+                      Performance metrics over the last 14 trading days. Switch between cumulative P&L (running total), daily P&L (per-day profits/losses), and trade count to analyze different aspects of your trading performance.
+                      <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                    </RadixTooltip.Content>
+                  </RadixTooltip.Portal>
+                </RadixTooltip.Root>
+              </RadixTooltip.Provider>
+            </div>
           </div>
           {/* Header Divider */}
           <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
@@ -275,10 +296,28 @@ export function CumulativePnlBar() {
       <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <div>
+          <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {selectedMetric}
             </h3>
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Performance metrics over the last 14 trading days. Switch between cumulative P&L (running total), daily P&L (per-day profits/losses), and trade count to analyze different aspects of your trading performance.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
           <div className="flex items-center space-x-1">
             <DropdownMenu>

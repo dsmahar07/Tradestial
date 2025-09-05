@@ -83,7 +83,7 @@ export function DashboardHeader() {
       default:
         return {
           title: 'Dashboard',
-          description: "Here's your analytic details"
+          description: ''
         }
     }
   }
@@ -97,7 +97,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="bg-[#f2f2f2] dark:bg-[#171717] px-6 py-2">
+    <header className="bg-gray-50 dark:bg-[#171717] px-6 py-2">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h1 className="text-2xl"><span className="font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">{title}</span></h1>

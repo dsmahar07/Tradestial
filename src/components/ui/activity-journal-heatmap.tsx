@@ -1,9 +1,12 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
+import { DataStore } from '@/services/data-store.service'
+import { Trade } from '@/services/trade-data.service'
 import { Info } from 'lucide-react'
-import { Button } from './button'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { Button } from '@/components/ui/button'
 
 interface ProgressData {
   date: Date
@@ -54,18 +57,18 @@ export function ActivityJournalHeatmap({
   onOpenDailyChecklist,
   height = 432,
 }: ActivityJournalHeatmapProps = {}) {
-  const gridAreaRef = useRef<HTMLDivElement | null>(null)
-  const firstRowCellsRef = useRef<HTMLDivElement | null>(null)
-  const [cellSize, setCellSize] = useState<number>(16)
+  const gridAreaRef = React.createRef<HTMLDivElement>()
+  const firstRowCellsRef = React.createRef<HTMLDivElement>()
+  const [cellSize, setCellSize] = React.useState<number>(16)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const computeSize = () => {
       setCellSize(16) 
     }
     computeSize()
   }, [])
   
-  const todayData = useMemo(() => {
+  const todayData = React.useMemo(() => {
     return {
       date: new Date(),
       score: todayScore,
@@ -74,7 +77,7 @@ export function ActivityJournalHeatmap({
     }
   }, [todayScore, todayCompleted, todayTotal])
 
-  const historyWithToday = useMemo(() => {
+  const historyWithToday = React.useMemo(() => {
     const merged = { ...history }
     const k = toKey(todayData.date)
     merged[k] = {
@@ -85,7 +88,7 @@ export function ActivityJournalHeatmap({
     return merged
   }, [history, todayData])
 
-  const weeks = useMemo(() => {
+  const weeks = React.useMemo(() => {
     const today = new Date()
     const startThisWeek = startOfWeekSun(today)
     
@@ -114,7 +117,7 @@ export function ActivityJournalHeatmap({
     return weeksWithData
   }, [historyWithToday])
 
-  const monthHeaders = useMemo(() => {
+  const monthHeaders = React.useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const monthRanges: { month: string; startWeek: number; weekCount: number }[] = []
     
@@ -174,10 +177,25 @@ export function ActivityJournalHeatmap({
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Activity Journal
-            </h3>
-            <Info className="w-4 h-4 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Activity Journal</h3>
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Trading activity heatmap showing your daily trading frequency and performance over the year. Darker squares indicate higher trading activity, with color intensity representing profit/loss levels. Helps identify patterns in your trading schedule and performance consistency.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
           
           {/* Legend moved to header */}

@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { useTheme } from '@/hooks/use-theme'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 type ChartPoint = {
   date: string
@@ -133,12 +135,33 @@ export function DailyCumulativePnlWidget() {
   const gradientId = useMemo(() => `dailyCumulative-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, [])
 
   return (
-    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily & Cumulative P&L</h3>
-        
-        {/* Legend */}
-        <div className="flex items-center space-x-4">
+    <RadixTooltip.Provider delayDuration={400}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily & Cumulative P&L</h3>
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Track your daily and cumulative trading performance over time. Green/red bars show daily P&L, while the purple line displays your running cumulative total across all trading sessions.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to right, #10b981, #ef4444)' }}></div>
             <span className="text-xs text-gray-600 dark:text-gray-400">Daily P&L (Bars)</span>
@@ -260,6 +283,7 @@ export function DailyCumulativePnlWidget() {
       </div>
 
     </div>
+    </RadixTooltip.Provider>
   )
 }
 

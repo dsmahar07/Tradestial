@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import * as Tooltip from '@radix-ui/react-tooltip'
 import { cn } from '@/lib/utils'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
@@ -127,16 +128,32 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
     // Show empty state when no trades
     if (!trades.length) {
         return (
-            <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
-                <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <CardTitle className="text-lg font-semibold">Yearly calendar</CardTitle>
-                            <Info className="w-4 h-4 text-gray-400" />
+            <Tooltip.Provider delayDuration={400}>
+                <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <CardTitle className="text-lg font-semibold">Yearly calendar</CardTitle>
+                                <Tooltip.Root>
+                                    <Tooltip.Trigger asChild>
+                                        <button className="inline-flex items-center justify-center">
+                                            <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                                        </button>
+                                    </Tooltip.Trigger>
+                                    <Tooltip.Portal>
+                                        <Tooltip.Content
+                                            className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                                            sideOffset={5}
+                                        >
+                                            Yearly calendar heatmap displays your trading activity by month. Each colored cell shows performance intensity - darker colors indicate higher values. Toggle between Win Rate (%), P&L ($), and Trade Count metrics using the tabs.
+                                            <Tooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                                        </Tooltip.Content>
+                                    </Tooltip.Portal>
+                                </Tooltip.Root>
+                            </div>
                         </div>
-                    </div>
-                    <div className="border-b border-gray-200 dark:border-gray-800 mt-4"></div>
-                </CardHeader>
+                        <div className="border-b border-gray-200 dark:border-gray-800 mt-4"></div>
+                    </CardHeader>
                 <CardContent className="pt-4">
                     <div className="h-32 flex items-center justify-center">
                         <div className="text-gray-500 dark:text-gray-400 text-center">
@@ -146,17 +163,34 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                     </div>
                 </CardContent>
             </Card>
+            </Tooltip.Provider>
         )
     }
 
     return (
-        <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
-            <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg font-semibold">Yearly calendar</CardTitle>
-                        <Info className="w-4 h-4 text-gray-400" />
-                    </div>
+        <Tooltip.Provider delayDuration={400}>
+            <Card className={cn("w-full border-0 shadow-none bg-white dark:bg-[#0f0f0f]", className)}>
+                <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-semibold">Yearly calendar</CardTitle>
+                            <Tooltip.Root>
+                                <Tooltip.Trigger asChild>
+                                    <button className="inline-flex items-center justify-center">
+                                        <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                                    </button>
+                                </Tooltip.Trigger>
+                                <Tooltip.Portal>
+                                    <Tooltip.Content
+                                        className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                                        sideOffset={5}
+                                    >
+                                        Yearly calendar heatmap displays your trading activity by month. Each colored cell shows performance intensity - darker colors indicate higher values. Toggle between Win Rate (%), P&L ($), and Trade Count metrics using the tabs.
+                                        <Tooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                                    </Tooltip.Content>
+                                </Tooltip.Portal>
+                            </Tooltip.Root>
+                        </div>
 
                     <div className="flex items-center gap-4">
                         {/* Tab Buttons */}
@@ -283,5 +317,6 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                 </div>
             </CardContent>
         </Card>
+        </Tooltip.Provider>
     )
 }

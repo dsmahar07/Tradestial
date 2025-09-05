@@ -4,6 +4,8 @@ import React, { useMemo, useState } from 'react'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip, CartesianGrid } from 'recharts'
 import { useChartData } from '@/hooks/use-analytics'
 import { DateTime } from 'luxon'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 // chartData will be generated dynamically in the component
 
@@ -66,7 +68,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 type TimeFilter = 'all' | 'month' | 'week'
 
-export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
+export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulativePnlChart() {
   const timeFilter: TimeFilter = 'all'
   
   // Pull reactive, filtered, cached chart data from analytics service
@@ -92,7 +94,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
   // Map reactive data shape to chart's expected shape with robust error handling
   const chartData = useMemo(() => {
     if (process.env.NODE_ENV !== 'production') {
-      console.debug('[CumulativePnlChart] filteredData points:', Array.isArray(filteredData) ? filteredData.length : 0)
+      console.debug('[DailyNetCumulativePnlChart] filteredData points:', Array.isArray(filteredData) ? filteredData.length : 0)
     }
     
     // Handle empty or invalid data
@@ -200,14 +202,14 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
       if (firstDate.isValid) {
         const out = [{ time: '', value: 0, positiveValue: 0, negativeValue: 0, index: -1 }, ...mapped]
         if (process.env.NODE_ENV !== 'production') {
-          console.debug('[CumulativePnlChart] mapped points (with baseline):', out.length)
+          console.debug('[DailyNetCumulativePnlChart] mapped points (with baseline):', out.length)
         }
         return out
       }
     }
     
     if (process.env.NODE_ENV !== 'production') {
-      console.debug('[CumulativePnlChart] mapped points:', mapped.length)
+      console.debug('[DailyNetCumulativePnlChart] mapped points:', mapped.length)
     }
     return mapped
   }, [filteredData])
@@ -284,7 +286,25 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
       <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 h-[432px] text-gray-900 dark:text-white">
         {/* Header (title visible, dropdown hidden) */}
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Net Cumulative P&L</h3>
+            <RadixTooltip.Root>
+              <RadixTooltip.Trigger asChild>
+                <button className="inline-flex items-center justify-center">
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                </button>
+              </RadixTooltip.Trigger>
+              <RadixTooltip.Portal>
+                <RadixTooltip.Content
+                  className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                  sideOffset={5}
+                >
+                  Displays how your total account P&L accumulated over the course of each trading day.
+                  <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                </RadixTooltip.Content>
+              </RadixTooltip.Portal>
+            </RadixTooltip.Root>
+          </div>
         </div>
         
         {/* Header Divider */}
@@ -302,11 +322,30 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
   }
 
   return (
-    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cumulative PNL</h3>
-      </div>
+    <RadixTooltip.Provider delayDuration={400}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily Net Cumulative P&L</h3>
+            <RadixTooltip.Root>
+              <RadixTooltip.Trigger asChild>
+                <button className="inline-flex items-center justify-center">
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                </button>
+              </RadixTooltip.Trigger>
+              <RadixTooltip.Portal>
+                <RadixTooltip.Content
+                  className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                  sideOffset={5}
+                >
+                  Displays how your total account P&L accumulated over the course of each trading day.
+                  <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                </RadixTooltip.Content>
+              </RadixTooltip.Portal>
+            </RadixTooltip.Root>
+          </div>
+        </div>
       
       {/* Header Divider */}
       <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
@@ -454,6 +493,7 @@ export const CumulativePnlChart = React.memo(function CumulativePnlChart() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+      </div>
+    </RadixTooltip.Provider>
   )
 })

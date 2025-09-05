@@ -14,6 +14,8 @@ import {
 import { useState, useMemo, useEffect } from 'react'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 interface SymbolPerformance {
   symbol: string
@@ -155,12 +157,32 @@ export function SymbolPerformanceChart() {
         <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
           {/* Header (title visible, dropdowns hidden) */}
           <div className="flex items-center justify-between mb-2">
-            <div>
+            <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Symbol Performance
               </h3>
+              <RadixTooltip.Provider>
+                <RadixTooltip.Root>
+                  <RadixTooltip.Trigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <Info size={16} />
+                    </button>
+                  </RadixTooltip.Trigger>
+                  <RadixTooltip.Portal>
+                    <RadixTooltip.Content
+                      className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                      sideOffset={5}
+                    >
+                      Trading performance breakdown by symbol/instrument. Bar chart shows profit/loss for each traded symbol, with green bars for profitable symbols and red bars for losses. Helps identify which instruments are most/least profitable in your trading strategy.
+                      <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                    </RadixTooltip.Content>
+                  </RadixTooltip.Portal>
+                </RadixTooltip.Root>
+              </RadixTooltip.Provider>
             </div>
+            
           </div>
+          
           {/* Header Divider */}
           <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           {/* Empty state */}
@@ -237,10 +259,28 @@ export function SymbolPerformanceChart() {
       <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <div>
+          <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Symbol Performance
             </h3>
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Trading performance breakdown by symbol/instrument. Bar chart shows profit/loss for each traded symbol, with green bars for profitable symbols and red bars for losses. Helps identify which instruments are most/least profitable in your trading strategy.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
           
         </div>

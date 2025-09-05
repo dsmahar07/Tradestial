@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
@@ -161,7 +162,24 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Drawdown
               </h3>
-              <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <RadixTooltip.Provider>
+                <RadixTooltip.Root>
+                  <RadixTooltip.Trigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <Info size={16} />
+                    </button>
+                  </RadixTooltip.Trigger>
+                  <RadixTooltip.Portal>
+                    <RadixTooltip.Content
+                      className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                      sideOffset={5}
+                    >
+                      Maximum drawdown analysis showing the peak-to-trough decline in your account value. The chart displays how far your account balance dropped from its highest point, helping you understand the worst-case loss periods in your trading history.
+                      <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                    </RadixTooltip.Content>
+                  </RadixTooltip.Portal>
+                </RadixTooltip.Root>
+              </RadixTooltip.Provider>
             </div>
           </div>
           <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
@@ -189,7 +207,24 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Drawdown
             </h3>
-            <Info className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Maximum drawdown analysis showing the peak-to-trough decline in your account value. The chart displays how far your account balance dropped from its highest point, helping you understand the worst-case loss periods in your trading history.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
         </div>
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>

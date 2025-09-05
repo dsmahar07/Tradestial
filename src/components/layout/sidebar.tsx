@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import { userProfileService, UserProfile } from '@/services/user-profile.service'
+import { authService } from '@/services/auth.service'
 
 import * as Avatar from '@/components/ui/avatar'
 import * as Badge from '@/components/ui/badge'
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Activity, LayoutGrid, Plus, LogOut, Moon, Settings, UserCog, Menu, X } from 'lucide-react'
+import { Activity, LayoutGrid, Plus, LogOut, Moon, Settings, UserCog, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import Image from 'next/image'
 import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
@@ -48,7 +49,13 @@ function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(true)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tradestial_sidebar_collapsed')
+      return saved ? JSON.parse(saved) : true
+    }
+    return true
+  })
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
@@ -89,6 +96,17 @@ export function Sidebar() {
     setTheme(isDarkMode ? 'light' : 'dark')
   }
 
+  // Handle logout
+  const handleLogout = () => {
+    authService.logout()
+  }
+
+  // Handle sidebar toggle with persistence
+  const toggleSidebar = (collapsed: boolean) => {
+    setIsCollapsed(collapsed)
+    localStorage.setItem('tradestial_sidebar_collapsed', JSON.stringify(collapsed))
+  }
+
   return (
     <>
       {/* Mobile Menu Button */}
@@ -96,21 +114,38 @@ export function Sidebar() {
         variant="ghost"
         size="icon"
         className="fixed top-4 left-4 z-50 lg:hidden bg-white dark:bg-gray-800 shadow-lg"
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        aria-label="Toggle navigation menu"
-        aria-expanded={isMobileOpen}
-        aria-controls="mobile-navigation"
+        onClick={() => setIsMobileOpen(true)}
+        aria-label="Open mobile menu"
       >
-        {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <Menu className="h-5 w-5" />
       </Button>
 
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
+
+      {/* Toggle Button - Completely outside sidebar */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden lg:flex h-6 w-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 fixed top-8 z-[99999]"
+        style={{
+          left: isCollapsed ? '68px' : '196px',
+          transition: 'left 500ms ease-in-out'
+        }}
+        onClick={() => toggleSidebar(!isCollapsed)}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="h-3 w-3" />
+        ) : (
+          <ChevronLeft className="h-3 w-3" />
+        )}
+      </Button>
 
       <Tooltip.Provider delayDuration={400} skipDelayDuration={100}>
         <div 
@@ -118,15 +153,15 @@ export function Sidebar() {
           role="navigation"
           aria-label="Main navigation"
           className={cn(
-            "bg-[#f2f2f2] dark:bg-[#171717] text-gray-900 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto overflow-x-hidden flex flex-col border-r border-transparent dark:border-r-transparent transition-all duration-300",
-            "fixed lg:sticky z-50 lg:z-auto",
+            "bg-gray-50 dark:bg-[#171717] text-gray-700 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto flex flex-col border-r border-gray-200 dark:border-gray-800 transition-[width] duration-300 ease-out relative",
+            "fixed lg:sticky z-[9998] lg:z-auto",
             isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-            isCollapsed ? "w-20" : "w-64"
+            isCollapsed ? "w-20" : "w-52"
           )}
         >
       {/* Logo */}
-      <div className="py-4 flex items-center justify-center px-5">
-        <div className="w-8 h-8 relative">
+      <div className="py-4 flex items-center px-5 relative">
+        <div className="w-8 h-8 relative flex-shrink-0">
           <Image
             src="/new-tradestial-logo.png"
             alt="Tradestial Logo"
@@ -135,34 +170,61 @@ export function Sidebar() {
             className="object-contain"
           />
         </div>
+{!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: "auto" }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="ml-3 flex-1 overflow-hidden"
+          >
+            <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 via-pink-500 to-violet-600 bg-clip-text text-transparent whitespace-nowrap">
+              TRADESTIAL
+            </h1>
+          </motion.div>
+        )}
       </div>
+
 
       {/* Import Button */}
       <div className="px-4 pb-2">
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <Link href="/import-data">
-              <FancyButton.Root 
-                variant="primary"
-                size="small"
-                className="!w-12 !h-9"
+        {isCollapsed ? (
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <Link href="/import-data">
+                <FancyButton.Root 
+                  variant="primary"
+                  size="small"
+                  className="!w-12 !h-9"
+                >
+                  <FancyButton.Icon as={Plus} />
+                </FancyButton.Root>
+              </Link>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content 
+                side="right" 
+                sideOffset={12}
+                className="z-[9999] select-none rounded-md bg-gray-100 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-md will-change-[transform,opacity] data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade"
+                avoidCollisions={true}
               >
-                <FancyButton.Icon as={Plus} />
-              </FancyButton.Root>
-            </Link>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content 
-              side="right" 
-              sideOffset={12}
-              className="z-[9999] select-none rounded-md bg-gray-100 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-md will-change-[transform,opacity] data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade"
-              avoidCollisions={true}
+                Import
+                <Tooltip.Arrow className="fill-gray-100 dark:fill-gray-900" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        ) : (
+          <Link href="/import-data">
+            <FancyButton.Root 
+              variant="primary"
+              size="medium"
+              className="w-full gap-2"
             >
-              Import
-              <Tooltip.Arrow className="fill-gray-100 dark:fill-gray-900" />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
+              <FancyButton.Icon as={Plus} />
+              <span>Import Data</span>
+            </FancyButton.Root>
+          </Link>
+        )}
       </div>
 
       {/* Navigation */}
@@ -172,41 +234,65 @@ export function Sidebar() {
             const isActive = pathname === item.href || (item.isActive && item.isActive(pathname))
             return (
               <NavigationMenu.Item key={item.label}>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <NavigationMenu.Link asChild>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "w-full flex items-center rounded-lg text-left transition-all duration-200 text-sm relative group px-3.5 py-3 justify-center",
-                          isActive 
-                            ? "bg-white shadow-sm border border-gray-200 dark:bg-[#171717] dark:border-[#2a2a2a]" 
-                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#171717]"
-                        )}
+                {isCollapsed ? (
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <NavigationMenu.Link asChild>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "w-full flex items-center rounded-lg text-left transition-all duration-200 text-sm relative group px-3.5 py-3 justify-center",
+                            isActive 
+                              ? "bg-white shadow-sm border border-gray-200 dark:bg-[#171717] dark:border-[#2a2a2a]" 
+                              : "text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#171717]"
+                          )}
+                        >
+                          {isActive ? (
+                            <GradientIcon Icon={item.icon} className="w-6 h-6 flex-shrink-0" />
+                          ) : (
+                            <item.icon className="w-6 h-6 flex-shrink-0" />
+                          )}
+                          {item.badge && (
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></div>
+                          )}
+                        </Link>
+                      </NavigationMenu.Link>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content 
+                        side="right" 
+                        sideOffset={12}
+                        className="z-[9999] select-none rounded-md bg-gray-100 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-md will-change-[transform,opacity] data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade"
+                        avoidCollisions={true}
                       >
-                        {isActive ? (
-                          <GradientIcon Icon={item.icon} className="w-6 h-6 flex-shrink-0" />
-                        ) : (
-                          <item.icon className="w-6 h-6 flex-shrink-0" />
-                        )}
-                        {item.badge && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></div>
-                        )}
-                      </Link>
-                    </NavigationMenu.Link>
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content 
-                      side="right" 
-                      sideOffset={12}
-                      className="z-[9999] select-none rounded-md bg-gray-100 dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-md will-change-[transform,opacity] data-[state=delayed-open]:data-[side=top]:animate-slideDownAndFade data-[state=delayed-open]:data-[side=right]:animate-slideLeftAndFade data-[state=delayed-open]:data-[side=left]:animate-slideRightAndFade data-[state=delayed-open]:data-[side=bottom]:animate-slideUpAndFade"
-                      avoidCollisions={true}
+                        {item.label}
+                        <Tooltip.Arrow className="fill-gray-100 dark:fill-gray-900" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                ) : (
+                  <NavigationMenu.Link asChild>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "w-full flex items-center rounded-lg text-left transition-all duration-200 text-sm relative group px-3.5 py-3 justify-start gap-3",
+                        isActive 
+                          ? "bg-white shadow-sm border border-gray-200 dark:bg-[#171717] dark:border-[#2a2a2a]" 
+                          : "text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#171717]"
+                      )}
                     >
-                      {item.label}
-                      <Tooltip.Arrow className="fill-gray-100 dark:fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
+                      {isActive ? (
+                        <GradientIcon Icon={item.icon} className="w-6 h-6 flex-shrink-0" />
+                      ) : (
+                        <item.icon className="w-6 h-6 flex-shrink-0" />
+                      )}
+                      <span className="font-medium">{item.label}</span>
+                      {item.badge && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"></div>
+                      )}
+                    </Link>
+                  </NavigationMenu.Link>
+                )}
               </NavigationMenu.Item>
             )
           })}
@@ -214,7 +300,7 @@ export function Sidebar() {
       </NavigationMenu.Root>
 
       {/* User Avatar with Dropdown */}
-      <div className="py-4 px-3 flex justify-center">
+      <div className={cn("py-4 px-3 flex", isCollapsed ? "justify-center" : "justify-start")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="focus:outline-none">
@@ -248,7 +334,7 @@ export function Sidebar() {
                 </Avatar.Indicator>
               </Avatar.Root>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile?.fullName || 'Alex Chen'}</div>
+                <div className="text-sm font-semibold text-gray-700 dark:text-white">{userProfile?.fullName || 'Alex Chen'}</div>
                 <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                   {userProfile?.email || 'alex@tradestial.com'}
                 </div>
@@ -315,7 +401,10 @@ export function Sidebar() {
               <Plus className="mr-3 h-4 w-4" />
               Add Account
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20">
+            <DropdownMenuItem 
+              className="text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
+              onClick={handleLogout}
+            >
               <LogOut className="mr-3 h-4 w-4" />
               Logout
             </DropdownMenuItem>

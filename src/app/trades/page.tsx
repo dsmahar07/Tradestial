@@ -284,7 +284,7 @@ export default function TradesPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#f2f2f2] dark:bg-[#171717]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <div className="max-w-[1400px] mx-auto">
             
             {/* Header */}

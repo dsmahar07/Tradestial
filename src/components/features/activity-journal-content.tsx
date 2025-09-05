@@ -546,7 +546,7 @@ export function ActivityJournalContent() {
 
   
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-[#f2f2f2] dark:bg-[#171717]">
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-gray-50 dark:bg-[#171717]">
       <div className="space-y-6">
         
         {/* Top Section */}

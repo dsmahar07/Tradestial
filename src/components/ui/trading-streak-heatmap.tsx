@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate, getMonth, getYear, getDayOfWeek } from '@/utils/date-utils'
-import { Tooltip } from './tooltip'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 interface DayData {
   date: number
@@ -117,7 +117,24 @@ export function TradingStreakHeatmap() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Heatmap</h3>
-              <Info className="h-4 w-4 text-gray-400" />
+              <RadixTooltip.Provider>
+                <RadixTooltip.Root>
+                  <RadixTooltip.Trigger asChild>
+                    <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <Info size={16} />
+                    </button>
+                  </RadixTooltip.Trigger>
+                  <RadixTooltip.Portal>
+                    <RadixTooltip.Content
+                      className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                      sideOffset={5}
+                    >
+                      Monthly trading calendar showing daily activity and performance. Green glow indicates profitable days, red glow shows loss days. Navigate between months to view your complete trading history and identify patterns in your activity.
+                      <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                    </RadixTooltip.Content>
+                  </RadixTooltip.Portal>
+                </RadixTooltip.Root>
+              </RadixTooltip.Provider>
             </div>
           </div>
           <div className="flex-1 flex items-center justify-center">
@@ -143,7 +160,24 @@ export function TradingStreakHeatmap() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Heatmap</h3>
-            <Info className="h-4 w-4 text-gray-400" />
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Monthly trading calendar showing daily activity and performance. Green glow indicates profitable days, red glow shows loss days. Navigate between months to view your complete trading history and identify patterns in your activity.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={goPrevMonth} className="p-1 rounded-md border border-gray-200 dark:border-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-gray-800">

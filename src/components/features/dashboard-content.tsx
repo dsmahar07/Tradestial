@@ -16,7 +16,7 @@ import { RuleTrackingService } from '@/services/rule-tracking.service'
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
-const CumulativePnlChart = lazy(() => import('@/components/ui/cumulative-pnl-chart').then(m => ({ default: m.CumulativePnlChart })))
+const DailyNetCumulativePnlChart = lazy(() => import('@/components/ui/daily-net-cumulative-pnl-chart').then(m => ({ default: m.DailyNetCumulativePnlChart })))
 const DailyCumulativePnlWidget = lazy(() => import('@/components/ui/daily-cumulative-pnl-widget').then(m => ({ default: m.DailyCumulativePnlWidget })))
 const MetricsOverTimeChart = lazy(() => import('@/components/ui/metrics-over-time-chart').then(m => ({ default: m.MetricsOverTimeChart })))
 const RecentTradesTable = lazy(() => import('@/components/ui/recent-trades-table').then(m => ({ default: m.RecentTradesTable })))
@@ -349,7 +349,7 @@ export function DashboardContent() {
 
 
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#f2f2f2] dark:bg-[#171717]">
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
       <div className="space-y-6">
         {/* Journal Button with Dropdown - Top Right of Content */}
         <div className="flex justify-end mb-4">
@@ -384,7 +384,7 @@ export function DashboardContent() {
             </Suspense>
           </div>
           
-          {/* Second Row: TradingStreakHeatmap + DrawdownChart + CumulativePnlChart */}
+          {/* Second Row: TradingStreakHeatmap + DrawdownChart + DailyNetCumulativePnlChart */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             <Suspense fallback={<ChartSkeleton />}>
               <TradingStreakHeatmap />
@@ -393,7 +393,7 @@ export function DashboardContent() {
               <DrawdownChart />
             </Suspense>
             <Suspense fallback={<ChartSkeleton />}>
-              <CumulativePnlChart />
+              <DailyNetCumulativePnlChart />
             </Suspense>
           </div>
           

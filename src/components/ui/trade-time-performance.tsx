@@ -8,6 +8,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip, Refe
 import { useTheme } from '@/hooks/use-theme'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 interface TradeTimeData {
   x: number // Time in decimal hours (e.g., 9.5 = 9:30)
@@ -146,23 +147,43 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
         transition={{ duration: 0.5, delay: 1.8 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Trade time performance
-            </h3>
-          </div>
-          
-          {/* Header Divider */}
-          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
-          
-          <div className="h-[405px] flex items-center justify-center">
-            <div className="text-gray-500 dark:text-gray-400 text-center">
-              <div>No time performance data</div>
-              <div className="text-sm mt-1">Import your CSV with exit times to see trading patterns</div>
+        <RadixTooltip.Provider delayDuration={400}>
+          <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Trade time performance
+                </h3>
+                <RadixTooltip.Root>
+                  <RadixTooltip.Trigger asChild>
+                    <button className="inline-flex items-center justify-center">
+                      <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                    </button>
+                  </RadixTooltip.Trigger>
+                  <RadixTooltip.Portal>
+                    <RadixTooltip.Content
+                      className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                      sideOffset={5}
+                    >
+                      Visualize your trading performance throughout the day. Each dot represents a trade plotted by exit time and P&L. Green dots show profitable trades, red dots show losses. Identify your most profitable trading hours.
+                      <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                    </RadixTooltip.Content>
+                  </RadixTooltip.Portal>
+                </RadixTooltip.Root>
+              </div>
+            </div>
+            
+            {/* Header Divider */}
+            <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+            
+            <div className="h-[405px] flex items-center justify-center">
+              <div className="text-gray-500 dark:text-gray-400 text-center">
+                <div>No time performance data</div>
+                <div className="text-sm mt-1">Import your CSV with exit times to see trading patterns</div>
+              </div>
             </div>
           </div>
-        </div>
+        </RadixTooltip.Provider>
       </motion.div>
     )
   }
@@ -219,159 +240,176 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
       transition={{ duration: 0.5, delay: 1.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Trade time performance
-          </h3>
-        </div>
-        
-        {/* Header Divider */}
-        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
-        
-        
-        <div className="h-[405px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
-            >
-              <XAxis 
-                type="number"
-                dataKey="x"
-                name="time"
-                stroke="#9ca3af"
-                axisLine={false}
-                tickLine={false}
-                padding={{ left: 0, right: 0 }}
-                tick={{ 
-                  fontSize: 12, 
-                  fill: '#9ca3af',
-                  fontWeight: 600
-                }}
-                className="dark:fill-gray-400"
-                height={25}
-                tickMargin={5}
-                tickFormatter={formatXAxis}
-                interval="preserveStartEnd"
-              />
-              {uniqueYTicks.map((y) => (
-                <ReferenceLine
-                  key={`grid-y-${y}`}
-                  y={y}
-                  stroke="var(--grid)"
-                  strokeDasharray="3 3"
-                  strokeWidth={1}
-                  ifOverflow="extendDomain"
+      <RadixTooltip.Provider delayDuration={400}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Trade time performance
+              </h3>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="inline-flex items-center justify-center">
+                    <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                    sideOffset={5}
+                  >
+                    Visualize your trading performance throughout the day. Each dot represents a trade plotted by exit time and P&L. Green dots show profitable trades, red dots show losses. Identify your most profitable trading hours.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </div>
+          </div>
+          
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+          
+          
+          <div className="h-[405px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart
+                margin={{ top: 20, right: 5, left: -10, bottom: 60 }}
+              >
+                <XAxis 
+                  type="number"
+                  dataKey="x"
+                  name="time"
+                  stroke="#9ca3af"
+                  axisLine={false}
+                  tickLine={false}
+                  padding={{ left: 0, right: 0 }}
+                  tick={{ 
+                    fontSize: 12, 
+                    fill: '#9ca3af',
+                    fontWeight: 600
+                  }}
+                  className="dark:fill-gray-400"
+                  height={25}
+                  tickMargin={5}
+                  tickFormatter={formatXAxis}
+                  interval="preserveStartEnd"
                 />
-              ))}
-              <YAxis 
-                type="number"
-                dataKey="y"
-                name="pnl"
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={formatYAxis}
-                domain={[ niceMinY, niceMaxY ]}
-                ticks={uniqueYTicks}
-                tick={{ 
-                  fontSize: 11, 
-                  fill: '#9ca3af'
-                }}
-                className="dark:fill-gray-400"
-                scale="linear"
-                allowDecimals={false}
-              />
-              
-              
-              
-              <Tooltip cursor={false} content={({ active, payload }) => {
-                if (!active || !payload || !payload.length) return null
+                {uniqueYTicks.map((y) => (
+                  <ReferenceLine
+                    key={`grid-y-${y}`}
+                    y={y}
+                    stroke="var(--grid)"
+                    strokeDasharray="3 3"
+                    strokeWidth={1}
+                    ifOverflow="extendDomain"
+                  />
+                ))}
+                <YAxis 
+                  type="number"
+                  dataKey="y"
+                  name="pnl"
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={formatYAxis}
+                  domain={[ niceMinY, niceMaxY ]}
+                  ticks={uniqueYTicks}
+                  tick={{ 
+                    fontSize: 11, 
+                    fill: '#9ca3af'
+                  }}
+                  className="dark:fill-gray-400"
+                  scale="linear"
+                  allowDecimals={false}
+                />
                 
-                try {
-                  const data = payload[0].payload
+                <Tooltip cursor={false} content={({ active, payload }) => {
+                  if (!active || !payload || !payload.length) return null
                   
-                  // Safety check for data structure
-                  if (!data || typeof data !== 'object') return null
-                  
-                  const trade = data.trade
-                  const time = data.actualTime ? data.actualTime : formatXAxis(data.x)
-                  const pnl = data.y || 0
-                  const signed = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`
-                  
-                  // Validate that color matches P&L
-                  const expectedColor = pnl >= 0 ? '#10b981' : '#ef4444'
-                  const actualColor = data.color
-                  if (actualColor !== expectedColor) {
-                    console.error('Color mismatch detected:', { pnl, expectedColor, actualColor })
-                  }
-                  
-                  // Safety check for trade object
-                  if (!trade || typeof trade !== 'object') {
+                  try {
+                    const data = payload[0].payload
+                    
+                    // Safety check for data structure
+                    if (!data || typeof data !== 'object') return null
+                    
+                    const trade = data.trade
+                    const time = data.actualTime ? data.actualTime : formatXAxis(data.x)
+                    const pnl = data.y || 0
+                    const signed = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`
+                    
+                    // Validate that color matches P&L
+                    const expectedColor = pnl >= 0 ? '#10b981' : '#ef4444'
+                    const actualColor = data.color
+                    if (actualColor !== expectedColor) {
+                      console.error('Color mismatch detected:', { pnl, expectedColor, actualColor })
+                    }
+                    
+                    // Safety check for trade object
+                    if (!trade || typeof trade !== 'object') {
+                      return (
+                        <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm shadow focus:outline-none">
+                          <div className="font-medium text-gray-900 dark:text-white mb-1">
+                            Trade Data
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            Time: {time}
+                          </div>
+                          <div className={`font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            P&L: {signed}
+                          </div>
+                        </div>
+                      )
+                    }
+                    
+                    const tradeDate = trade.closeDate || trade.openDate 
+                      ? new Date(trade.closeDate || trade.openDate).toLocaleDateString()
+                      : 'Unknown Date'
+                    
                     return (
                       <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                         <div className="font-medium text-gray-900 dark:text-white mb-1">
-                          Trade Data
+                          {trade.symbol || 'Unknown Symbol'}
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          Time: {time}
+                          {tradeDate} at {time}
+                          {data.isDistributed && <span className="ml-1 text-orange-500">(estimated time)</span>}
                         </div>
-                        <div className={`font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          P&L: {signed}
+                        <div className="space-y-1">
+                          <div className={`font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            P&L: {signed}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Entry: ${trade.entryPrice?.toFixed(2) || 'N/A'} → Exit: ${trade.exitPrice?.toFixed(2) || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  } catch (error) {
+                    console.error('Error rendering Trade Time Performance tooltip:', error)
+                    return (
+                      <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm shadow focus:outline-none">
+                        <div className="text-gray-600 dark:text-gray-400">
+                          Unable to load trade details
                         </div>
                       </div>
                     )
                   }
-                  
-                  const tradeDate = trade.closeDate || trade.openDate 
-                    ? new Date(trade.closeDate || trade.openDate).toLocaleDateString()
-                    : 'Unknown Date'
-                  
-                  return (
-                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm shadow focus:outline-none">
-                      <div className="font-medium text-gray-900 dark:text-white mb-1">
-                        {trade.symbol || 'Unknown Symbol'}
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                        {tradeDate} at {time}
-                        {data.isDistributed && <span className="ml-1 text-orange-500">(estimated time)</span>}
-                      </div>
-                      <div className="space-y-1">
-                        <div className={`font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          P&L: {signed}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          Entry: ${trade.entryPrice?.toFixed(2) || 'N/A'} → Exit: ${trade.exitPrice?.toFixed(2) || 'N/A'}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                } catch (error) {
-                  console.error('Error rendering Trade Time Performance tooltip:', error)
-                  return (
-                    <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm shadow focus:outline-none">
-                      <div className="text-gray-600 dark:text-gray-400">
-                        Unable to load trade details
-                      </div>
-                    </div>
-                  )
-                }
-              }} />
-              {/* Legend intentionally omitted to match the reference look */}
-              
-              <Scatter 
-                name="Trades"
-                data={coloredData}
-                fill="#10b981"
-                isAnimationActive={false}
-                shape={(props: any) => {
-                  const pointColor = props.payload?.color || '#10b981'
-                  return <Dot cx={props.cx} cy={props.cy} fill={pointColor} stroke={pointColor} />
-                }}
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
+                }} />
+                
+                <Scatter 
+                  name="Trades"
+                  data={coloredData}
+                  fill="#10b981"
+                  isAnimationActive={false}
+                  shape={(props: any) => {
+                    const pointColor = props.payload?.color || '#10b981'
+                    return <Dot cx={props.cx} cy={props.cy} fill={pointColor} stroke={pointColor} />
+                  }}
+                />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
-    </motion.div>
-  )
+        </RadixTooltip.Provider>
+      </motion.div>
+    )
 })

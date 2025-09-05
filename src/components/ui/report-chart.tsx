@@ -4,6 +4,8 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 interface ReportDataPoint {
   date: string
@@ -143,9 +145,24 @@ export const ReportChart = React.memo(function ReportChart() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report</h3>
-            <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-[#2a2a2a] flex items-center justify-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400">?</span>
-            </div>
+            <RadixTooltip.Provider>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Info size={16} />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                    sideOffset={5}
+                  >
+                    Performance report showing win rate percentage (green line), average winning trade amount (blue line), and average losing trade amount (orange line) over time. Helps track the evolution of your trading consistency and risk-reward patterns.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </RadixTooltip.Provider>
           </div>
         </div>
         
@@ -168,9 +185,24 @@ export const ReportChart = React.memo(function ReportChart() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report</h3>
-          <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-[#2a2a2a] flex items-center justify-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400">?</span>
-          </div>
+          <RadixTooltip.Provider>
+            <RadixTooltip.Root>
+              <RadixTooltip.Trigger asChild>
+                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                  <Info size={16} />
+                </button>
+              </RadixTooltip.Trigger>
+              <RadixTooltip.Portal>
+                <RadixTooltip.Content
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm max-w-xs z-50"
+                  sideOffset={5}
+                >
+                  Performance report showing win rate percentage (green line), average winning trade amount (blue line), and average losing trade amount (orange line) over time. Helps track the evolution of your trading consistency and risk-reward patterns.
+                  <RadixTooltip.Arrow className="fill-white dark:fill-gray-800" />
+                </RadixTooltip.Content>
+              </RadixTooltip.Portal>
+            </RadixTooltip.Root>
+          </RadixTooltip.Provider>
         </div>
       </div>
       

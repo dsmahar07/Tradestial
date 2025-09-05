@@ -238,11 +238,8 @@ export function RecentTradesTable() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Recent Trades ({recentTrades.length})
+              Recent Trades
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Latest trading activity
-            </p>
           </div>
           
           <div className="flex items-center space-x-2">

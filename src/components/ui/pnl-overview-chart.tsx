@@ -7,6 +7,8 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate, getMonth, getYear } from '@/utils/date-utils'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 interface PNLData {
   month: string
@@ -86,45 +88,82 @@ export function PnlOverviewChart() {
   // Show empty state if no trades or no data for selected period
   if (!trades.length || currentData.length === 0) {
     return (
-      <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
-      className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6"
-      style={{ height: '432px' }}
-    >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">P&L Overview</h3>
-        </div>umulative P&L
-        
-        {/* Header Divider */}
-        <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
-        
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <div>No P&L data available</div>
-            <div className="text-sm mt-1">Import your CSV to see monthly performance</div>
+      <RadixTooltip.Provider delayDuration={400}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6"
+          style={{ height: '432px' }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">P&L Overview</h3>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="inline-flex items-center justify-center">
+                    <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                    sideOffset={5}
+                  >
+                    Monthly P&L breakdown showing your trading performance. Green bars show total profits, red bars show total losses, and blue bars display net P&L for each month. Track your consistency and growth over time.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </div>
           </div>
-        </div>
-      </motion.div>
+          
+          {/* Header Divider */}
+          <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
+          
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center text-gray-500 dark:text-gray-400">
+              <div>No P&L data available</div>
+              <div className="text-sm mt-1">Import your CSV to see monthly performance</div>
+            </div>
+          </div>
+        </motion.div>
+      </RadixTooltip.Provider>
     )
   }
   
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
-    >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <PNLOverviewIcon size={20} />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">PNL Overview</h3>
-          </div>
-          
-          <div className="flex items-center space-x-4">
+    <RadixTooltip.Provider delayDuration={400}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <PNLOverviewIcon size={20} />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">PNL Overview</h3>
+              <RadixTooltip.Root>
+                <RadixTooltip.Trigger asChild>
+                  <button className="inline-flex items-center justify-center">
+                    <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                  </button>
+                </RadixTooltip.Trigger>
+                <RadixTooltip.Portal>
+                  <RadixTooltip.Content
+                    className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                    sideOffset={5}
+                  >
+                    Monthly P&L breakdown showing your trading performance. Green bars show total profits, red bars show total losses, and blue bars display net P&L for each month. Track your consistency and growth over time.
+                    <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                  </RadixTooltip.Content>
+                </RadixTooltip.Portal>
+              </RadixTooltip.Root>
+            </div>
+            
+            <div className="flex items-center space-x-4">
             {/* Legend */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -274,7 +313,8 @@ export function PnlOverviewChart() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-    </motion.div>
+        </div>
+      </motion.div>
+    </RadixTooltip.Provider>
   )
 }

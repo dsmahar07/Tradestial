@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { useTheme } from '@/hooks/use-theme'
+import { Info } from 'lucide-react'
+import * as RadixTooltip from '@radix-ui/react-tooltip'
 
 type ChartPoint = {
   weekday: string
@@ -173,12 +175,31 @@ export function PerformanceWeekDays() {
   const gradientId = useMemo(() => `performanceWeekDays-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, [])
 
   return (
-    <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Performance Week Days</h3>
-        
-        {/* Legend */}
-        <div className="flex items-center space-x-4">
+    <RadixTooltip.Provider delayDuration={400}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Performance Week Days</h3>
+            <RadixTooltip.Root>
+              <RadixTooltip.Trigger asChild>
+                <button className="inline-flex items-center justify-center">
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+                </button>
+              </RadixTooltip.Trigger>
+              <RadixTooltip.Portal>
+                <RadixTooltip.Content
+                  className="z-[9999] max-w-xs select-none rounded-md bg-white dark:bg-[#0f0f0f] px-3 py-2 text-sm text-gray-900 dark:text-white shadow-lg border border-gray-200 dark:border-gray-700"
+                  sideOffset={5}
+                >
+                  Analyze your trading performance by day of the week. Green/red bars show total P&L for each weekday, while the purple line displays the performance trend across the trading week.
+                  <RadixTooltip.Arrow className="fill-white dark:fill-[#0f0f0f]" />
+                </RadixTooltip.Content>
+              </RadixTooltip.Portal>
+            </RadixTooltip.Root>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 rounded-sm" style={{ background: 'linear-gradient(to right, #10b981, #ef4444)' }}></div>
             <span className="text-xs text-gray-600 dark:text-gray-400">Performance</span>
@@ -294,6 +315,7 @@ export function PerformanceWeekDays() {
       </div>
 
     </div>
+    </RadixTooltip.Provider>
   )
 }
 

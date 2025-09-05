@@ -61,7 +61,7 @@ export const navigationConfig: NavigationSection[] = [
         icon: AnalyticsIcon,
         label: 'Analytics',
         href: '/analytics',
-        badge: true,
+        badge: false,
         tooltip: 'Advanced analytics and reports',
         isEnabled: true
       },
@@ -70,7 +70,7 @@ export const navigationConfig: NavigationSection[] = [
         icon: JournalIcon,
         label: 'Daily Journal',
         href: '/daily-journal',
-        badge: true,
+        badge: false,
         tooltip: 'Your daily trading journal',
         isEnabled: true
       },
