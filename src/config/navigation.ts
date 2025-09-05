@@ -83,14 +83,6 @@ export const navigationConfig: NavigationSection[] = [
         isEnabled: true
       },
       {
-        id: 'strategy',
-        icon: AnalyticsIcon,
-        label: 'Strategy',
-        href: '/strategy',
-        tooltip: 'Compare strategies and assign trades',
-        isEnabled: true
-      },
-      {
         id: 'trades',
         icon: ChartBarsIcon,
         label: 'Trades',

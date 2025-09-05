@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
 import * as Tooltip from "@radix-ui/react-tooltip"
 import * as Separator from "@radix-ui/react-separator"
 import { Trade, RunningPnlPoint } from "@/services/trade-data.service"
@@ -62,23 +61,18 @@ export function StrategyCard({
   highlight,
   runningPnlData = [],
   categories = [],
-  tags = [],
-  profitTarget,
-  stopLoss,
-  rating,
-  onProfitTargetChange,
-  onStopLossChange,
-  onRatingChange,
-  onTagAdd,
-  onTagRemove,
-  onCategoryChange,
+  tags = {},
+  profitTarget = '',
+  stopLoss = '',
+  rating = 0,
+  onProfitTargetChange = () => {},
+  onStopLossChange = () => {},
+  onRatingChange = () => {},
+  onAddTag = () => {},
+  onRemoveTag = () => {},
+  onUpdateCategory = () => {},
+  onShowColorPicker = () => {}
 }: StrategyCardProps) {
-  const [renderKey, setRenderKey] = useState(0)
-  
-  useEffect(() => {
-    setRenderKey(prev => prev + 1)
-  }, [trade?.id, trade?.side, trade?.netPnl])
-
   const [strategies, setStrategies] = React.useState<Array<{ id: string; name: string }>>([])
   const [selectedStrategyId, setSelectedStrategyId] = React.useState<string>("")
   const [ruleChecks, setRuleChecks] = React.useState<Record<string, boolean>>({})
@@ -87,13 +81,8 @@ export function StrategyCard({
   const [isDarkMode, setIsDarkMode] = React.useState(false)
   const [selectedMistakesTag, setSelectedMistakesTag] = React.useState('')
   const [selectedCustomTag, setSelectedCustomTag] = React.useState('')
-  const [currentRating, setCurrentRating] = React.useState<number | undefined>(rating)
+  const [currentRating, setCurrentRating] = React.useState(rating)
   const [hoverRating, setHoverRating] = React.useState<number | null>(null)
-
-  // Update currentRating when rating prop changes (for different trades)
-  useEffect(() => {
-    setCurrentRating(rating)
-  }, [rating])
 
   // Retrieve full selected strategy object (with ruleGroups) from localStorage
   const selectedStrategy = (() => {
@@ -181,68 +170,38 @@ export function StrategyCard({
   const exit = parseCurrency(trade?.exitPrice)
   const points = trade ? Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)) : 0
 
-  // Debug logging
-  console.log('🎯 TradeStatsCard - Received props:', {
-    title,
-    subtitle,
-    trade: trade ? {
-      id: trade.id,
-      symbol: trade.symbol,
-      side: trade.side,
-      sideType: typeof trade.side,
-      sideUpperCase: trade.side?.toUpperCase(),
-      netPnl: trade.netPnl,
-      entryPrice: trade.entryPrice,
-      exitPrice: trade.exitPrice,
-      fullTradeObject: trade
-    } : null,
-    pnl,
-    entry,
-    exit,
-    points
-  })
-  
-  console.log('🔍 Raw trade.side value:', trade?.side)
-  console.log('🔍 Badge will show:', trade?.side?.toUpperCase() || 'UNKNOWN')
-
   return (
-    <div className="relative w-full">
-      {/* Glow background - blended with page background */}
-      <div className="absolute -inset-4 rounded-[32px] bg-white dark:bg-[#0f0f0f] pointer-events-none" />
+    <div className="relative max-w-lg mx-auto w-full">
+      {/* Glow background */}
+      <div className="absolute -inset-4 rounded-[32px] bg-gradient-to-br from-pink-200/40 via-purple-200/30 to-orange-200/40 blur-2xl pointer-events-none" />
 
       {/* Main card */}
-      <div className="relative rounded-[44px] bg-[#fafcff] dark:bg-[#171717] ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-visible">
+      <div className="relative rounded-[44px] bg-[#fafcff] ring-1 ring-gray-200 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-visible">
         {/* Top chip and badge */}
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between">
-            <div className="h-10 w-10 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#171717] text-gray-600 dark:text-gray-300 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full border border-gray-300 bg-white text-gray-600 flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
               </svg>
             </div>
-            <div className="px-4 py-1.5 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#171717] border border-gray-200 dark:border-gray-600">
-              {trade?.side?.toUpperCase() || 'UNKNOWN'}
-            </div>
+            <div className="px-4 py-1.5 rounded-full text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200">LONG</div>
           </div>
 
           <h3 className="mt-6 text-2xl"><span className="font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">{title}</span></h3>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">{subtitle}</p>
+          <p className="mt-2 text-gray-600">{subtitle}</p>
         </div>
 
         {/* Price-like headline */}
         <div className="px-6 mt-6 flex items-baseline gap-1">
-          <div className="text-5xl font-bold" style={{ color: pnl >= 0 ? '#10B981' : '#ef4444' }}>
-            {formatMoney(pnl)}
-          </div>
+          <div className="text-5xl font-bold" style={{ color: '#10B981' }}>$8,900</div>
           <div className="text-gray-500 text-lg">Net</div>
-          <div className="ml-auto text-sm text-gray-400">
-            {trade ? `${formatMoney(trade.entryPrice)} - ${formatMoney(trade.exitPrice)}` : '--'}
-          </div>
+          <div className="ml-auto text-sm text-gray-400">$23624.25 - $23634.75</div>
         </div>
 
         {/* Full Stats Section from StatsWidget */}
         <div className="px-3 py-6 mt-6">
-          <div className="relative z-30 bg-white dark:bg-[#0f0f0f] rounded-[32px] p-6 ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_16px_rgba(0,0,0,0.3)]">
+          <div className="relative z-30 bg-white rounded-[32px] p-6 ring-1 ring-gray-200 shadow-[0_8px_16px_rgba(0,0,0,0.08)]">
             {/* Trade Metrics */}
             <div className="space-y-2 text-sm">
 
@@ -731,23 +690,21 @@ export function StrategyCard({
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, i) => {
                     const starNumber = i + 1
-                    const displayRating = hoverRating !== null ? hoverRating : (currentRating || 0)
+                    const displayRating = hoverRating !== null ? hoverRating : currentRating
                     const isFullActive = starNumber <= displayRating
                     const isHalfActive = starNumber - 0.5 <= displayRating && displayRating < starNumber
                     
                     // Color and glow based on rating level
                     const getStarColor = (isActive: boolean) => {
                       if (!isActive) return '#d1d5db' // Gray for inactive
-                      const rating = currentRating || 0
-                      if (rating <= 2) return '#ef4444' // Red for low rating
-                      if (rating === 3) return '#f59e0b' // Yellow for medium rating
-                      if (rating === 4) return '#10b981' // Green for good rating
+                      if (currentRating <= 2) return '#ef4444' // Red for low rating
+                      if (currentRating === 3) return '#f59e0b' // Yellow for medium rating
+                      if (currentRating === 4) return '#10b981' // Green for good rating
                       return '#fbbf24' // Golden for excellent rating
                     }
                     
                     const getStarGlow = (isActive: boolean) => {
                       if (!isActive) return 'none'
-                      const rating = currentRating || 0
                       if (rating <= 2) return '0 0 12px rgba(239, 68, 68, 0.8)' // Red glow
                       if (rating === 3) return '0 0 12px rgba(245, 158, 11, 0.8)' // Yellow glow
                       if (rating === 4) return '0 0 12px rgba(16, 185, 129, 0.8)' // Green glow
@@ -788,7 +745,7 @@ export function StrategyCard({
                             const isLeftHalf = x < rect.width / 2
                             const newRating = isLeftHalf ? starNumber - 0.5 : starNumber
                             setCurrentRating(newRating)
-                            onRatingChange?.(newRating)
+                            onRatingChange(newRating)
                           }}
                         >
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -839,12 +796,12 @@ export function StrategyCard({
               <div className="flex justify-between items-center py-1">
                 <label className="font-semibold" style={{color: '#7F85AF'}}>Profit Target</label>
                 <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs w-32 focus-within:border-[#5B2CC9] focus-within:ring-1 focus-within:ring-[#5B2CC9] transition-all duration-200">
-                  <span className="mr-1 text-gray-500 dark:text-gray-400">$</span>
+                  <span className="mr-1 text-gray-500">$</span>
                   <input
                     value={profitTarget}
                     onChange={(e) => onProfitTargetChange(e.target.value)}
                     placeholder="0.00"
-                    className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400"
                   />
                 </div>
               </div>
@@ -853,19 +810,20 @@ export function StrategyCard({
               <div className="flex justify-between items-center py-1">
                 <label className="font-semibold" style={{color: '#7F85AF'}}>Stop Loss</label>
                 <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs w-32 focus-within:border-[#5B2CC9] focus-within:ring-1 focus-within:ring-[#5B2CC9] transition-all duration-200">
-                  <span className="mr-1 text-gray-500 dark:text-gray-400">$</span>
+                  <span className="mr-1 text-gray-500">$</span>
                   <input
-                    type="number"
                     value={stopLoss}
                     onChange={(e) => {
-                      const value = e.target.value
-                      onStopLossChange(value)
-                      if (trade && value) {
-                        setTradeLevels(trade.id, profitTarget, value)
+                      const newValue = e.target.value
+                      onStopLossChange(newValue)
+                      
+                      // Track stop loss input for rule completion
+                      if (trade && trade.id && newValue.trim() !== '') {
+                        RuleTrackingService.trackStopLossInput(trade.id, newValue)
                       }
                     }}
                     placeholder="0.00"
-                    className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400"
                   />
                 </div>
               </div>
@@ -1043,7 +1001,7 @@ export function StrategyCard({
                         }
                       }}
                       placeholder="Select tag"
-                      className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-500 dark:text-gray-400 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200"
+                      className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200"
                     />
                     <datalist id="mistakes-tags">
                       {(tags['mistakes'] || []).map((tag) => (
@@ -1143,7 +1101,7 @@ export function StrategyCard({
                             }
                           }}
                           placeholder="Select tag"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0f0f0f] text-gray-500 dark:text-gray-400 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200"
+                          className="w-full px-4 py-3 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 focus:border-[#5B2CC9] focus:ring-1 focus:ring-[#5B2CC9] transition-all duration-200"
                         />
                         <datalist id={`${category.id}-tags`}>
                           {(tags[category.id] || []).map((tag) => (
