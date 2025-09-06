@@ -1,11 +1,16 @@
 'use client'
 
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, Maximize, Minimize } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import Image from 'next/image'
 
-export function NotebookTopSearch() {
+interface NotebookTopSearchProps {
+  onToggleFullscreen?: () => void
+  isFullscreen?: boolean
+}
+
+export function NotebookTopSearch({ onToggleFullscreen, isFullscreen }: NotebookTopSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
   return (
@@ -29,8 +34,22 @@ export function NotebookTopSearch() {
           </Button>
         </div>
         
-        {/* Tradestial Logo on the right */}
-        <div className="flex items-center">
+        {/* Right side controls */}
+        <div className="flex items-center gap-3">
+          {/* Fullscreen toggle button */}
+          {onToggleFullscreen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleFullscreen}
+              className="h-8 w-8 text-gray-400 dark:text-[#888888] hover:text-gray-600 dark:hover:text-[#CCCCCC]"
+              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </Button>
+          )}
+          
+          {/* Tradestial Logo */}
           <div className="w-10 h-10 relative">
             <Image
               src="/new-tradestial-logo.png"

@@ -113,6 +113,8 @@ export default function NotesPage() {
   const [templates, setTemplates] = useState<TradeJournalingTemplate[]>(defaultTemplates)
   // Tag filter state
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const tags = useMemo(() => {
     const set = new Set<string>()
     for (const n of notes) {
@@ -752,8 +754,134 @@ export default function NotesPage() {
     })
   }
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+  }
+
+  if (isFullscreen) {
+    // Fullscreen mode - show entire notes widget
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="fixed inset-0 z-50 bg-white dark:bg-[#0f0f0f] flex flex-col"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="h-full flex flex-col bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] overflow-hidden"
+        >
+          {/* Top Search Bar */}
+          <NotebookTopSearch onToggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+          
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {/* Left Sidebar */}
+            <div className="w-64 pr-4 border-r border-gray-200 dark:border-[#404040] flex-shrink-0 h-full">
+              <NotebookSidebar 
+                selectedFolder={selectedFolder}
+                folders={folders}
+                onFolderSelect={handleFolderSelect}
+                onAddFolder={handleAddFolder}
+                onDeleteFolder={handleDeleteFolder}
+                onRenameFolder={handleRenameFolder}
+                onReorderFolders={handleReorderFolders}
+                onUpdateFolderColor={handleUpdateFolderColor}
+                tags={tags}
+                selectedTag={selectedTag}
+                onTagSelect={handleTagSelect}
+              />
+            </div>
+            
+            {/* Middle Panel */}
+            <div className="w-80 flex-shrink-0 border-r border-gray-200 dark:border-[#404040]">
+              <NotebookMiddlePanel 
+                selectedFolder={selectedFolder}
+                selectedTag={selectedTag}
+                selectedNote={selectedNote}
+                notes={notes}
+                onNoteSelect={handleNoteSelect}
+                onCreateNote={handleCreateNote}
+                onDeleteNote={handleDeleteNote}
+                onUpdateNote={handleUpdateNote}
+                onReorderNotes={handleReorderNotes}
+                onDeleteAllNotes={handleDeleteAllNotes}
+              />
+            </div>
+            
+            {/* Right Editor Panel - takes remaining space */}
+            {(() => {
+              const isSessionRecap = selectedFolder === 'Sessions Recap'
+              const isJournalContext =
+                selectedFolder === 'Daily Journal' ||
+                selectedFolder === 'Trade Notes' ||
+                !!selectedNote?.tradingData ||
+                (selectedNote?.tags?.some(tag => tag === 'trade-analysis' || tag === 'daily-journal') ?? false)
+
+              const useRange = isSessionRecap
+              const useDaily = !useRange && isJournalContext
+
+              // Convert selectedRange (YYYY-MM-DD) to Date objects for the editor to use during sharing
+              let rangeFromDate: Date | undefined = undefined
+              let rangeToDate: Date | undefined = undefined
+              if (useRange && selectedRange?.startYMD && selectedRange?.endYMD) {
+                const [sy, sm, sd] = selectedRange.startYMD.split('-').map((n: string) => parseInt(n, 10))
+                const [ey, em, ed] = selectedRange.endYMD.split('-').map((n: string) => parseInt(n, 10))
+                rangeFromDate = new Date(sy, sm - 1, sd)
+                rangeToDate = new Date(ey, em - 1, ed)
+              }
+
+              return (
+                <div className="flex-1 min-w-0">
+                  <NotebookEditor 
+                    note={selectedNote} 
+                    onUpdateNote={handleUpdateNote}
+                    onDeleteNote={handleDeleteNote}
+                    useRangePicker={useRange}
+                    onRangeChange={useRange ? handleRangeChange : undefined}
+                    rangeFrom={rangeFromDate}
+                    rangeTo={rangeToDate}
+                    useDatePicker={useDaily}
+                    onDateChange={useDaily ? handleDateChange : undefined}
+                    headerStats={useRange ? rangeHeaderNode : useDaily ? headerNode : undefined}
+                    netPnlValue={useRange ? rangeNetPnl : useDaily ? netPnl : undefined}
+                    netPnlIsProfit={useRange ? (rangeNetPnl ?? 0) >= 0 : useDaily ? netPnl >= 0 : undefined}
+                    hideNetPnl={!useRange && !useDaily}
+                    // Template creation props moved to editor menu
+                    onCreateNote={handleCreateNote}
+                    onCreateNoteFromTemplate={handleCreateNoteFromTemplate}
+                    onQuickApplyTemplate={handleQuickApplyTemplate}
+                    onDeleteTemplate={handleDeleteTemplate}
+                    templates={templates}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={toggleFullscreen}
+                  />
+                </div>
+              )
+            })()}
+          </div>
+        </motion.div>
+        
+        {/* Confirmation Modal */}
+        <ConfirmationModal />
+        
+        {/* Toast Notifications */}
+        <ToastContainer />
+      </motion.div>
+    )
+  }
+
+  // Normal mode - standard layout
   return (
-    <div className="flex h-screen">
+    <motion.div 
+      initial={{ opacity: 0, scale: 1.05 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className="flex h-screen"
+    >
       <Sidebar />
       
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -761,13 +889,13 @@ export default function NotesPage() {
         
         <main className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
             className="h-full min-h-0 flex flex-col bg-white dark:bg-[#0f0f0f] rounded-xl overflow-hidden shadow-lg"
           >
             {/* Top Search Bar */}
-            <NotebookTopSearch />
+            <NotebookTopSearch onToggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
             
             <div className="flex flex-1 min-h-0 overflow-hidden">
               {/* Left Sidebar with right spacing */}
@@ -844,6 +972,8 @@ export default function NotesPage() {
                     onQuickApplyTemplate={handleQuickApplyTemplate}
                     onDeleteTemplate={handleDeleteTemplate}
                     templates={templates}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={toggleFullscreen}
                   />
                 )
               })()}
@@ -857,6 +987,6 @@ export default function NotesPage() {
       
       {/* Toast Notifications */}
       <ToastContainer />
-    </div>
+    </motion.div>
   )
 }

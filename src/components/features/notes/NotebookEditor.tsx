@@ -82,10 +82,13 @@ interface NotebookEditorProps {
   onCreateNoteFromTemplate?: (template: TradeJournalingTemplate, templateInstance: TemplateInstance, generatedContent: string) => void
   onQuickApplyTemplate?: (template: TradeJournalingTemplate, content: string) => void
   onDeleteTemplate?: (template: TradeJournalingTemplate) => void
+  // Fullscreen props
+  isFullscreen?: boolean
+  onToggleFullscreen?: () => void
   templates?: TradeJournalingTemplate[]
 }
 
-export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker = false, onDateChange, useRangePicker = false, onRangeChange, rangeFrom, rangeTo, hideNetPnl = false, headerStats, netPnlValue, netPnlIsProfit, onCreateNote, onCreateNoteFromTemplate, onQuickApplyTemplate, onDeleteTemplate, templates }: NotebookEditorProps) {
+export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker = false, onDateChange, useRangePicker = false, onRangeChange, rangeFrom, rangeTo, hideNetPnl = false, headerStats, netPnlValue, netPnlIsProfit, onCreateNote, onCreateNoteFromTemplate, onQuickApplyTemplate, onDeleteTemplate, templates, isFullscreen, onToggleFullscreen }: NotebookEditorProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [tempTitle, setTempTitle] = useState('')
   const [content, setContent] = useState('')
