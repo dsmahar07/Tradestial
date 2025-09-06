@@ -135,20 +135,15 @@ export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCa
       ]
     },
     {
-      title: "Current streak",
-      value: currentStreak.value.toString(),
+      title: "Current day streak",
+      value: currentStreak.type === 'win' ? `${currentStreak.value} ${currentStreak.value === 1 ? 'day' : 'days'}` : "0 days",
       change: 0,
-      changeLabel: `${currentStreak.type} streak`,
+      changeLabel: `${currentStreak.type === 'win' ? 'Winning' : 'No'} days in a row`,
       delay: 0.4,
       icon: StreakIcon,
       customIcon: true,
-      valueColor: currentStreak.type === 'win' ? "#10b981" : "#ef4444",
+      valueColor: currentStreak.type === 'win' ? "#ef4444" : "#6b7280",
       iconColor: "#10b981", // green to match StreakIcon
-      showVerticalBars: true,
-      verticalBarsData: [
-        { name: 'Win', value: currentStreak.type === 'win' ? currentStreak.value : 0, color: '#10b981' },
-        { name: 'Loss', value: currentStreak.type === 'loss' ? currentStreak.value : 0, color: '#ef4444' }
-      ]
     },
     {
       title: "Trade expectancy",
@@ -226,20 +221,15 @@ export function getEmptyAnalyticsCards(): AnalyticsCardConfig[] {
       ]
     },
     {
-      title: "Current Streak",
-      value: "0",
+      title: "Current day streak",
+      value: "0 days",
       change: 0,
-      changeLabel: "No streak",
+      changeLabel: "No winning days in a row",
       delay: 0.4,
       icon: StreakIcon,
       customIcon: true,
       valueColor: "#6b7280",
       iconColor: "#10b981",
-      showVerticalBars: true,
-      verticalBarsData: [
-        { name: 'Win', value: 0, color: '#10b981' },
-        { name: 'Loss', value: 0, color: '#ef4444' }
-      ]
     },
     {
       title: "Trade Expectancy",

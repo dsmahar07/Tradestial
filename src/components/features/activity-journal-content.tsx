@@ -567,10 +567,10 @@ export function ActivityJournalContent() {
           {/* Right Stats Column */}
           <div className="lg:col-span-1 space-y-4">
             
-            {/* Current Streak */}
+            {/* Current day streak */}
             <div className="bg-white dark:bg-[#0f0f0f] rounded-lg p-4" style={{ height: '144px' }}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Current streak</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Current day streak</span>
                 <Info className="w-4 h-4 text-gray-400" />
               </div>
               <div className="flex items-center space-x-2">

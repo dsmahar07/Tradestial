@@ -210,11 +210,11 @@ export const ReportChart = React.memo(function ReportChart() {
       <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
       
       {/* Chart */}
-      <div className="h-[405px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
+      <div className="h-[405px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 48px)' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={reportData}
-            margin={{ top: 20, right: 15, left: -10, bottom: 80 }}
+            margin={{ top: 20, right: -15, left: -10, bottom: 80 }}
           >
             {/* Left Y-Axis for percentage */}
             <YAxis 
@@ -244,7 +244,7 @@ export const ReportChart = React.memo(function ReportChart() {
               className="dark:fill-gray-400"
               tickFormatter={(value) => `$${Math.abs(value / 1000).toFixed(1)}k`}
               domain={[-2000, 5000]}
-              width={55}
+              width={70}
             />
             
             <XAxis 
