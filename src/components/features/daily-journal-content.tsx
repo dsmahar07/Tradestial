@@ -1147,10 +1147,10 @@ export function DailyJournalContent() {
                                 <td className="px-4 py-4 text-center text-sm text-gray-900 dark:text-gray-100 w-[100px]">
                                   <span 
                                     style={{
-                                      color: trade.netRoi >= 0 ? '#10b981' : '#ef4444'
+                                      color: (trade.netRoi || 0) >= 0 ? '#10b981' : '#ef4444'
                                     }}
                                   >
-                                    {trade.netRoi.toFixed(2)}%
+                                    {typeof trade.netRoi === 'number' ? (trade.netRoi * 100).toFixed(2) : '0.00'}%
                                   </span>
                                 </td>
                               )}
@@ -1181,7 +1181,7 @@ export function DailyJournalContent() {
                                             // Calculate dynamic scale based on trade performance
                                             const netRoi = trade.netRoi || 0
                                             
-                                            // Base scale on ROI performance
+                                            // Base scale on ROI performance (netRoi is stored as ratio, not percentage)
                                             if (netRoi >= 0.15) return 100 // Excellent (5/5)
                                             if (netRoi >= 0.10) return 80  // Very Good (4/5)
                                             if (netRoi >= 0.05) return 60  // Good (3/5)

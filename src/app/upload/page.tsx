@@ -85,6 +85,111 @@ export default function UploadPage() {
     await processFile(file)
   }
 
+  const getFileFirstLine = async (file: File): Promise<string> => {
+    const text = await file.text()
+    const first = text.split(/\r?\n/)[0] || ''
+    return first.trim()
+  }
+
+  const parseCsvHeaderAdvanced = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"'
+          i++
+        } else {
+          inQuotes = !inQuotes
+        }
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += ch
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
+  const validateTradovatePerformanceHeaders = async (file: File): Promise<boolean> => {
+    try {
+      const headerLine = await getFileFirstLine(file)
+      const headers = parseCsvHeaderAdvanced(headerLine)
+      const normalized = headers.map(h => h.replace(/\s+/g, '').toLowerCase())
+      const has = (name: string) => normalized.includes(name.replace(/\s+/g, '').toLowerCase())
+      const required = ['symbol', 'pnl', 'boughttimestamp']
+      return required.every(r => has(r))
+    } catch {
+      return false
+    }
+  }
+
+  const validateTradingViewHeaders = async (file: File): Promise<boolean> => {
+    try {
+      const headerLine = await getFileFirstLine(file)
+      const headers = parseCsvHeaderAdvanced(headerLine)
+      const normalized = headers.map(h => h.trim().toLowerCase())
+      const has = (name: string) => normalized.includes(name.trim().toLowerCase())
+      const required = ['time', 'realized p&l (value)', 'action']
+      return required.every(r => has(r))
+    } catch {
+      return false
+    }
+  }
+
+  const validateNinjaTraderHeaders = async (file: File): Promise<boolean> => {
+    try {
+      const headerLine = await getFileFirstLine(file)
+      const headers = parseCsvHeaderAdvanced(headerLine)
+      const normalized = headers.map(h => h.trim().toLowerCase())
+      const has = (name: string) => normalized.includes(name.trim().toLowerCase())
+      const required = ['trade #', 'entry time', 'exit time']
+      return required.every(r => has(r))
+    } catch {
+      return false
+    }
+  }
+
+  const validateInteractiveBrokersHeaders = async (file: File): Promise<boolean> => {
+    try {
+      const headerLine = await getFileFirstLine(file)
+      const headers = parseCsvHeaderAdvanced(headerLine)
+      const normalized = headers.map(h => h.trim().toLowerCase())
+      const has = (name: string) => normalized.includes(name.trim().toLowerCase())
+      const required = ['tradeid', 'proceeds', 'comm/fee']
+      return required.every(r => has(r))
+    } catch {
+      return false
+    }
+  }
+
+  const validateHeadersForSelectedBroker = async (file: File, brokerId: string): Promise<{ ok: boolean; message?: string }> => {
+    switch (brokerId) {
+      case 'tradovate': {
+        const ok = await validateTradovatePerformanceHeaders(file)
+        return ok ? { ok } : { ok: false, message: 'Only Tradovate Performance.csv with the exact columns is accepted. Expected headers: Symbol, P&L, Bought Timestamp.' }
+      }
+      case 'tradingview': {
+        const ok = await validateTradingViewHeaders(file)
+        return ok ? { ok } : { ok: false, message: 'Invalid TradingView CSV. Expected headers: Time, Realized P&L (value), Action.' }
+      }
+      case 'ninjatrader': {
+        const ok = await validateNinjaTraderHeaders(file)
+        return ok ? { ok } : { ok: false, message: 'Invalid NinjaTrader CSV. Expected headers: Trade #, Entry time, Exit time.' }
+      }
+      case 'interactivebrokers': {
+        const ok = await validateInteractiveBrokersHeaders(file)
+        return ok ? { ok } : { ok: false, message: 'Invalid Interactive Brokers CSV. Expected headers: TradeID, Proceeds, Comm/Fee.' }
+      }
+      default:
+        return { ok: true }
+    }
+  }
+
   const processFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
       toastWarning('Invalid file type', 'Please select a .csv file')
@@ -97,6 +202,14 @@ export default function UploadPage() {
       // Validate timezone offset before processing
       if (isNaN(selectedTimezone)) {
         toastWarning('Invalid timezone', 'Please select a valid timezone before uploading')
+        setIsProcessing(false)
+        return
+      }
+
+      // Strict CSV header validation for selected broker
+      const { ok, message } = await validateHeadersForSelectedBroker(file, selectedBroker.id)
+      if (!ok) {
+        toastWarning('Invalid CSV format for ' + selectedBroker.name, message || 'The uploaded file does not match the required header format.')
         setIsProcessing(false)
         return
       }

@@ -4,6 +4,10 @@
  */
 
 import { Trade } from './trade-data.service'
+import { DataParserService } from './data-parser.service'
+import { inferInstrumentType } from '../config/instruments'
+import { parseOptionSymbol, calculateDTE } from '../utils/options'
+import { normalizeForexPair, isForexPair, calculatePips } from '../utils/forex'
 
 export interface TradingViewImportResult {
   success: boolean
@@ -176,7 +180,44 @@ export class TradingViewCsvParser {
       grossPnl: netPnl,
     }
 
+    // Add instrument typing and instrument-specific enrichment
+    this.enrichTradeWithInstrumentData(trade)
+
     return trade
+  }
+
+  private static enrichTradeWithInstrumentData(trade: Trade): void {
+    // Infer and set instrument type from symbol
+    if (!trade.instrumentType) {
+      trade.instrumentType = inferInstrumentType(trade.symbol)
+    }
+
+    // Handle forex-specific fields
+    if (trade.instrumentType === 'forex' && trade.symbol) {
+      const normalizedPair = normalizeForexPair(trade.symbol)
+      if (isForexPair(normalizedPair)) {
+        trade.symbol = normalizedPair
+        // Calculate pips if entry and exit prices are available
+        if (trade.entryPrice && trade.exitPrice) {
+          ;(trade as any).pips = calculatePips(normalizedPair, trade.entryPrice, trade.exitPrice)
+        }
+      }
+    }
+
+    // Handle options-specific fields
+    if (trade.instrumentType === 'option' && trade.symbol) {
+      const optionDetails = parseOptionSymbol(trade.symbol)
+      if (optionDetails) {
+        ;(trade as any).optionType = optionDetails.optionType
+        ;(trade as any).strike = optionDetails.strike
+        trade.expirationDate = optionDetails.expiration.toISOString().split('T')[0]
+        // Calculate DTE if we have expiration date
+        if (trade.openDate) {
+          const openDate = new Date(trade.openDate)
+          ;(trade as any).dte = calculateDTE(optionDetails.expiration, openDate)
+        }
+      }
+    }
   }
 
   private static parseCSVRow(row: string): string[] {

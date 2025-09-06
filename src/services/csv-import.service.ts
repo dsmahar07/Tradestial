@@ -4,11 +4,13 @@
  */
 
 import { Trade } from './trade-data.service'
-import { DataParserService, ParsedTradeData } from './data-parser.service'
-import { ReactiveAnalyticsService } from './reactive-analytics.service'
-import { AnalyticsCacheService } from './analytics-cache.service'
+import { DataParserService } from './data-parser.service'
+import { DataStore } from './data-store.service'
+import { TradovateCsvParser } from './tradovate-csv-parser'
 import { TradingViewCsvParser } from './tradingview-csv-parser'
-import { calculateTradeDuration } from '@/utils/duration'
+import { inferInstrumentType } from '../config/instruments'
+import { parseOptionSymbol, calculateDTE } from '../utils/options'
+import { normalizeForexPair, isForexPair, calculatePips } from '../utils/forex'
 import { getBrokerTimezoneDefault } from '@/utils/timezones'
 
 export interface BrokerConfig {
@@ -555,6 +557,39 @@ export class CSVImportService {
       trade.closeDate = trade.openDate
     }
 
+    // Infer and set instrument type from symbol
+    if (trade.symbol && !trade.instrumentType) {
+      trade.instrumentType = inferInstrumentType(trade.symbol)
+    }
+
+    // Handle forex-specific fields
+    if (trade.instrumentType === 'forex' && trade.symbol) {
+      const normalizedPair = normalizeForexPair(trade.symbol)
+      if (isForexPair(normalizedPair)) {
+        trade.symbol = normalizedPair
+        // Calculate pips if entry and exit prices are available
+        if (trade.entryPrice && trade.exitPrice) {
+          trade.pips = calculatePips(normalizedPair, trade.entryPrice, trade.exitPrice)
+        }
+      }
+    }
+
+    // Handle options-specific fields
+    if (trade.instrumentType === 'option' && trade.symbol) {
+      const optionDetails = parseOptionSymbol(trade.symbol)
+      if (optionDetails) {
+        // Use type assertion since these properties may not be in the base Trade interface yet
+        ;(trade as any).optionType = optionDetails.optionType
+        ;(trade as any).strike = optionDetails.strike
+        trade.expirationDate = optionDetails.expiration.toISOString().split('T')[0]
+        // Calculate DTE if we have expiration date
+        if (trade.openDate) {
+          const openDate = new Date(trade.openDate)
+          ;(trade as any).dte = calculateDTE(optionDetails.expiration, openDate)
+        }
+      }
+    }
+
     // Determine status from P&L
     if (typeof trade.netPnl === 'number') {
       trade.status = trade.netPnl >= 0 ? 'WIN' : 'LOSS'
@@ -569,18 +604,25 @@ export class CSVImportService {
     trade.contractsTraded = trade.contractsTraded || 1
     trade.side = trade.side || 'LONG' // Default assumption
 
-    // Compute and set human-readable trade duration if possible
-    // Skip calculation if duration is already provided from CSV (e.g., Tradovate Performance.csv)
-    if (!trade.duration) {
+    // Set duration if available from CSV or calculate simple duration
+    if (!trade.duration && trade.openDate && trade.closeDate) {
       try {
-        const duration = calculateTradeDuration(
-          trade.entryTime,
-          trade.exitTime,
-          trade.openDate,
-          trade.closeDate
-        )
-        if (duration && duration.formatted) {
-          trade.duration = duration.formatted
+        const openTime = new Date(trade.openDate).getTime()
+        const closeTime = new Date(trade.closeDate).getTime()
+        const durationMs = closeTime - openTime
+        
+        if (durationMs > 0) {
+          const hours = Math.floor(durationMs / (1000 * 60 * 60))
+          const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
+          
+          if (hours > 24) {
+            const days = Math.floor(hours / 24)
+            trade.duration = `${days}d ${hours % 24}h`
+          } else if (hours > 0) {
+            trade.duration = `${hours}h ${minutes}m`
+          } else {
+            trade.duration = `${minutes}m`
+          }
         }
       } catch (err) {
         console.debug('Duration computation failed for trade', { id: trade.id, err })
@@ -601,18 +643,9 @@ export class CSVImportService {
 
   private static async updateAnalytics(trades: Trade[]): Promise<void> {
     try {
-      // Get reactive analytics instance
-      const analytics = ReactiveAnalyticsService.getInstance()
-      
-      // Replace with new trades (not add to existing)
-      await analytics.updateTrades(trades)
-      
-      // Wait for all data preparation to complete
-      await analytics.waitForDataPreparation()
-      
-      // Invalidate related cache entries
-      AnalyticsCacheService.invalidate('trades:*')
-      
+      // Store trades in the centralized data store
+      // This will trigger any reactive updates automatically
+      DataStore.addTrades(trades)
     } catch (error) {
       console.warn('Failed to update analytics:', error)
     }

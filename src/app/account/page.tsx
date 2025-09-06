@@ -276,8 +276,8 @@ export default function AccountManagementPage() {
 
             {/* Overall Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="Total Accounts" value={totalStats.totalAccounts.toString()} icon={OrdersIcon} />
-              <StatCard title="Total Trades" value={totalStats.totalTrades.toString()} icon={StreakIcon} />
+              <StatCard title="Total Accounts" value={String(totalStats.totalAccounts)} icon={OrdersIcon} />
+              <StatCard title="Total Trades" value={String(totalStats.totalTrades)} icon={StreakIcon} />
               <StatCard title="Total P&L" value={`$${totalStats.totalPnl.toFixed(2)}`} icon={PNLOverviewIcon} />
               <StatCard title="Avg. Win Rate" value={`${totalStats.avgWinRate.toFixed(2)}%`} icon={BudgetIncomeIcon} />
             </div>
