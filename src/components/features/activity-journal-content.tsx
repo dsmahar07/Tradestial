@@ -87,29 +87,8 @@ export function ActivityJournalContent() {
       if (saved) {
         return JSON.parse(saved)
       } else {
-        // Initialize with default manual rules if none exist
-        const defaultRules = [
-          {
-            id: 'mr1',
-            name: 'Review market analysis',
-            days: 'Daily',
-            completed: false
-          },
-          {
-            id: 'mr2', 
-            name: 'Check economic calendar',
-            days: 'Mon-Fri',
-            completed: false
-          },
-          {
-            id: 'mr3',
-            name: 'Update trading journal',
-            days: 'Daily',
-            completed: false
-          }
-        ]
-        localStorage.setItem('tradestial:manual-rules', JSON.stringify(defaultRules))
-        return defaultRules
+        // Manual rules should start empty - users add their own rules
+        return []
       }
     } catch {
       return []
@@ -454,37 +433,15 @@ export function ActivityJournalContent() {
     localStorage.setItem('tradestial:manual-rules', JSON.stringify(manualRules))
   }, [manualRules])
 
-  // Listen for manual rules updates from the Rules dialog
   useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const saved = localStorage.getItem('tradestial:manual-rules')
-        if (saved) {
-          const parsedRules = JSON.parse(saved)
-          setManualRules(parsedRules)
-        }
-      } catch (error) {
-        console.error('Error loading manual rules from localStorage:', error)
-      }
-    }
-
     const handleManualRulesUpdate = (event: CustomEvent) => {
       setManualRules(event.detail.rules)
     }
 
-    // Listen for storage changes (when rules are saved from dialog)
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Listen for immediate updates from Rules dialog
     window.addEventListener('manualRulesUpdated', handleManualRulesUpdate as EventListener)
-    
-    // Also check periodically in case rules were updated in same tab
-    const interval = setInterval(handleStorageChange, 1000)
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('manualRulesUpdated', handleManualRulesUpdate as EventListener)
-      clearInterval(interval)
     }
   }, [])
 
@@ -536,12 +493,33 @@ export function ActivityJournalContent() {
 
   // Reset progress functionality
   const handleResetProgress = () => {
+    // Reset component state
     setTodayCompletions({})
     setIsDayFinished(false)
     setManualRules(prev => prev.map(rule => ({ ...rule, completed: false })))
     setHistory({})
-    // In a real app, this would also clear historical data
-    console.log('Progress reset!')
+    
+    // Clear all localStorage data related to progress
+    try {
+      // Clear rule completions history
+      localStorage.removeItem('tradestial:rule-completions')
+      
+      // Clear progress data
+      localStorage.removeItem('progress:todayCompletions')
+      localStorage.removeItem('progress:history')
+      
+      // Reset manual rules completion status in localStorage
+      const currentManualRules = JSON.parse(localStorage.getItem('tradestial:manual-rules') || '[]')
+      const resetManualRules = currentManualRules.map((rule: ManualRule) => ({ ...rule, completed: false }))
+      localStorage.setItem('tradestial:manual-rules', JSON.stringify(resetManualRules))
+      
+      // Clear any cached rule tracking data from RuleTrackingService
+      RuleTrackingService.clearAllData()
+      
+      console.log('Progress reset successfully!')
+    } catch (error) {
+      console.error('Error resetting progress:', error)
+    }
   }
 
   

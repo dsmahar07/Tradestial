@@ -462,4 +462,16 @@ export class RuleTrackingService {
       }
     }
   }
+
+  // Clear all rule tracking data - used for reset functionality
+  static clearAllData(): void {
+    if (typeof window === 'undefined') return
+    
+    try {
+      localStorage.removeItem(this.RULE_COMPLETIONS_KEY)
+      localStorage.removeItem(this.JOURNAL_ENTRIES_KEY)
+    } catch (error) {
+      console.error('Failed to clear rule tracking data:', error)
+    }
+  }
 }

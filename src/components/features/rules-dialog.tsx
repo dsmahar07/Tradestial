@@ -128,6 +128,7 @@ export function RulesDialog({
   onResetProgress
 }: RulesDialogProps) {
   const [newManualRule, setNewManualRule] = useState({ name: '', days: 'Mon-Fri' })
+  const [showAddRuleForm, setShowAddRuleForm] = useState(false)
 
   const toggleTradingDay = (day: string) => {
     if (tradingDays.includes(day)) {
@@ -144,30 +145,45 @@ export function RulesDialog({
   }
 
   const updateManualRuleAndSync = (updatedRules: ManualRule[]) => {
+    // Update local state first
     setManualRules(updatedRules)
     
     // Immediately save to localStorage and notify parent
     try {
       localStorage.setItem('tradestial:manual-rules', JSON.stringify(updatedRules))
       
-      // Trigger immediate update to parent component
-      window.dispatchEvent(new CustomEvent('manualRulesUpdated', { 
-        detail: { rules: updatedRules } 
-      }))
+      // Use setTimeout to ensure state update completes before event dispatch
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('manualRulesUpdated', { 
+          detail: { rules: updatedRules } 
+        }))
+      }, 0)
     } catch (error) {
       console.error('Error syncing manual rules:', error)
     }
   }
 
   const addManualRule = () => {
+    if (!newManualRule.name.trim()) return // Don't add empty rules
+    
     const newRule: ManualRule = {
-      id: Date.now().toString(),
-      name: newManualRule.name.trim() || 'New Rule',
+      id: `manual_${Date.now()}`, // Use unique prefix to avoid ID conflicts
+      name: newManualRule.name.trim(),
       days: newManualRule.days,
       completed: false
     }
     const updatedRules = [...manualRules, newRule]
     updateManualRuleAndSync(updatedRules)
+    setNewManualRule({ name: '', days: 'Mon-Fri' })
+    setShowAddRuleForm(false) // Hide form after adding
+  }
+
+  const showAddForm = () => {
+    setShowAddRuleForm(true)
+  }
+
+  const cancelAddRule = () => {
+    setShowAddRuleForm(false)
     setNewManualRule({ name: '', days: 'Mon-Fri' })
   }
 
@@ -177,16 +193,25 @@ export function RulesDialog({
   }
 
   const handleSaveChanges = () => {
-    // Save manual rules to localStorage
+    // Save all form data to localStorage and notify parent
     try {
+      // Save manual rules
       localStorage.setItem('tradestial:manual-rules', JSON.stringify(manualRules))
       
-      // Trigger a custom event to notify parent component immediately
-      window.dispatchEvent(new CustomEvent('manualRulesUpdated', { 
-        detail: { rules: manualRules } 
-      }))
+      // Save trading days selection
+      localStorage.setItem('progress:tradingDays', JSON.stringify(tradingDays))
+      
+      // Save trading rules
+      localStorage.setItem('progress:tradingRules', JSON.stringify(tradingRules))
+      
+      // Ensure parent component gets the latest state
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('manualRulesUpdated', { 
+          detail: { rules: manualRules } 
+        }))
+      }, 0)
     } catch (error) {
-      console.error('Error saving manual rules:', error)
+      console.error('Error saving rules and preferences:', error)
     }
     
     onClose()
@@ -513,45 +538,59 @@ export function RulesDialog({
                   </div>
                 ))}
 
-                {/* Add New Manual Rule */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={newManualRule.name}
-                    onChange={(e) => setNewManualRule({ ...newManualRule, name: e.target.value })}
-                    className="flex-1 px-2 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-0 focus:border-blue-300 dark:focus:border-blue-500"
-                    placeholder="Name the rule"
-                  />
-                  <Select
-                    value={newManualRule.days}
-                    onValueChange={(value) => setNewManualRule({ ...newManualRule, days: value })}
-                  >
-                    <SelectTrigger className="w-24 h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MANUAL_RULE_DAYS.map(day => (
-                        <SelectItem key={day} value={day}>{day}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={addManualRule}
-                    className="h-7 w-7 p-0 text-blue-500 hover:text-blue-600 border-blue-200 hover:border-blue-300"
+                {/* Add New Manual Rule Form - Only show when showAddRuleForm is true */}
+                {showAddRuleForm && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newManualRule.name}
+                      onChange={(e) => setNewManualRule({ ...newManualRule, name: e.target.value })}
+                      className="flex-1 px-2 py-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-0 focus:border-blue-300 dark:focus:border-blue-500"
+                      placeholder="Name the rule"
+                      autoFocus
+                    />
+                    <Select
+                      value={newManualRule.days}
+                      onValueChange={(value) => setNewManualRule({ ...newManualRule, days: value })}
+                    >
+                      <SelectTrigger className="w-24 h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MANUAL_RULE_DAYS.map(day => (
+                          <SelectItem key={day} value={day}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addManualRule}
+                      className="h-7 w-7 p-0 text-green-500 hover:text-green-600 border-green-200 hover:border-green-300"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelAddRule}
+                      className="h-7 w-7 p-0 text-gray-500 hover:text-gray-600 border-gray-200 hover:border-gray-300"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Add Rule Button - Only show when form is not visible */}
+                {!showAddRuleForm && (
+                  <button
+                    onClick={showAddForm}
+                    className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 font-medium"
                   >
                     <Plus className="w-3 h-3" />
-                  </Button>
-                </div>
-
-                <button
-                  onClick={addManualRule}
-                  className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 font-medium"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add rule
-                </button>
+                    Add rule
+                  </button>
+                )}
               </div>
 
               {/* Reset Progress */}
