@@ -4,14 +4,11 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 import { 
-  UserGroupIcon,
-  CloudIcon,
-  CubeIcon,
-  ArrowPathIcon,
-  ServerStackIcon,
-  SparklesIcon,
-  CheckCircleIcon
+  XMarkIcon
 } from "@heroicons/react/24/outline";
+import { 
+  CheckCircleIcon
+} from "@heroicons/react/24/solid";
 import * as FancyButton from '@/components/ui/fancy-button';
 
 const Card = React.forwardRef<
@@ -111,49 +108,66 @@ export default function PaymentsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto px-4">
             {/* Basic Plan */}
-            <Card className="bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
-              <CardHeader className="pb-6">
+            <div className="rounded-[32px] bg-[#fafcff] dark:bg-[#171717] ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-visible flex flex-col">
+              {/* Header Section */}
+              <div className="px-8 py-6 min-h-[200px]">
                 <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">BASIC</h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Best for beginner traders</p>
                 
-                <div className="space-y-2 mb-8">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold text-black dark:text-white">$19</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                      ${isYearly ? '16.67' : '20'}
+                    </span>
                     <span className="text-gray-600 dark:text-gray-300 text-lg font-medium">/ Month</span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">billed $200 / year</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">
+                    {isYearly ? 'billed $200 / year' : 'billed monthly'}
+                  </p>
                 </div>
-
+              </div>
+              
+              {/* Inner container for features */}
+              <div className="rounded-t-[24px] rounded-b-[32px] bg-white dark:bg-[#0f0f0f] shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 flex-1">
+                <div className="px-8 pb-8 pt-6 space-y-5">
                 <FancyButton.Root 
-                  variant="basic" 
+                  variant="neutral" 
                   size="medium" 
-                  className="mb-8 w-full h-12 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-black dark:text-white cursor-pointer"
+                  className="mb-6 w-full h-12 cursor-pointer"
                   onClick={() => window.open('/signup', '_self')}
                 >
                   Get started
                 </FancyButton.Root>
-              </CardHeader>
-              
-              <CardContent className="space-y-5">
                 <div className="flex items-center gap-4">
-                  <UserGroupIcon className="w-6 h-6 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                  <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                   <span className="text-gray-800 dark:text-gray-200 font-medium">Can add up to 2 accounts</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <CloudIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
+                  <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                   <span className="text-gray-800 dark:text-gray-200 font-medium">2GB of secure data storage</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <CubeIcon className="w-6 h-6 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                  <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                   <span className="text-gray-800 dark:text-gray-200 font-medium">Create up to 5 Models</span>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex items-center gap-4 opacity-50">
+                  <XMarkIcon className="w-6 h-6 text-red-500 dark:text-red-400 flex-shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 dark:text-gray-400 font-medium line-through">Market Replay</span>
+                    <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                      Coming Soon
+                    </span>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
 
             {/* Premium Plan */}
-            <Card className="shadow-2xl border-2 border-gray-200 bg-white dark:bg-gray-800 overflow-hidden">
+            <div className="rounded-[32px] bg-[#fafcff] dark:bg-[#171717] ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-visible relative">
               <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-r from-[#335CFF]/10 to-[#FA7319]/10 blur-lg"></div>
-              <CardHeader className="pb-6 relative z-10">
+              {/* Header Section */}
+              <div className="px-8 py-6 relative z-10 min-h-[200px]">
                 <h3 className="text-3xl mb-2">
                   <span 
                     style={{
@@ -170,39 +184,54 @@ export default function PaymentsPage() {
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-8">Best for advanced traders</p>
                 
-                <div className="space-y-2 mb-8">
+                <div className="space-y-2">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-5xl font-bold text-black dark:text-white">$27</span>
+                    <span className="text-5xl font-bold text-black dark:text-white">
+                      ${isYearly ? '25' : '30'}
+                    </span>
                     <span className="text-black dark:text-white text-lg font-medium">/ Month</span>
                   </div>
-                  <p className="text-black dark:text-white text-sm">billed $300 / year</p>
+                  <p className="text-black dark:text-white text-sm">
+                    {isYearly ? 'billed $300 / year' : 'billed monthly'}
+                  </p>
                 </div>
-
+              </div>
+              
+              {/* Inner container for features */}
+              <div className="rounded-t-[24px] rounded-b-[32px] bg-white dark:bg-[#0f0f0f] shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+                <div className="px-8 pb-8 pt-6 space-y-5">
                 <FancyButton.Root 
                   variant="neutral" 
                   size="medium" 
-                  className="mb-8 w-full h-12 cursor-pointer"
+                  className="mb-6 w-full h-12 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
                   onClick={() => window.open('/signup', '_self')}
                 >
                   Get Started
                 </FancyButton.Root>
-              </CardHeader>
-              
-              <CardContent className="space-y-5">
                   <div className="flex items-center gap-4">
-                    <ArrowPathIcon className="w-6 h-6 text-orange-500 dark:text-orange-400 flex-shrink-0" />
+                    <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                     <span className="text-black dark:text-white font-medium">Connect UNLIMITED accounts</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <ServerStackIcon className="w-6 h-6 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                    <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                     <span className="text-black dark:text-white font-medium">10GB of secure data storage</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <SparklesIcon className="w-6 h-6 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                    <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
                     <span className="text-black dark:text-white font-medium">Unlimited Models</span>
                   </div>
-                </CardContent>
-            </Card>
+                  <div className="flex items-center gap-4">
+                    <CheckCircleIcon className="w-6 h-6 text-green-500 dark:text-green-400 flex-shrink-0" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-black dark:text-white font-medium">Market Replay</span>
+                      <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                        Coming Soon
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* FAQ Section */}
@@ -213,19 +242,27 @@ export default function PaymentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <div className="text-left">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Can I change plans anytime?</h4>
-                <p className="text-gray-600 dark:text-gray-300">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+                <p className="text-gray-600 dark:text-gray-300">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately and billing adjusts accordingly.</p>
               </div>
               <div className="text-left">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Is there a free trial?</h4>
-                <p className="text-gray-600 dark:text-gray-300">We offer a 14-day free trial for all new users to explore our platform.</p>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">What brokers do you support?</h4>
+                <p className="text-gray-600 dark:text-gray-300">We support major brokers including TradingView, Webull, TD Ameritrade, Interactive Brokers, and many more through CSV imports.</p>
               </div>
               <div className="text-left">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">What payment methods do you accept?</h4>
                 <p className="text-gray-600 dark:text-gray-300">We accept all major credit cards, PayPal, and bank transfers for annual plans.</p>
               </div>
               <div className="text-left">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Is my trading data secure?</h4>
+                <p className="text-gray-600 dark:text-gray-300">Yes, we use enterprise-grade encryption and security measures to protect your trading data and personal information.</p>
+              </div>
+              <div className="text-left">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Can I cancel anytime?</h4>
                 <p className="text-gray-600 dark:text-gray-300">Yes, you can cancel your subscription at any time. No long-term commitments required.</p>
+              </div>
+              <div className="text-left">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">What if my broker CSV is not supported?</h4>
+                <p className="text-gray-600 dark:text-gray-300">Simply send us your broker CSV file via Discord or email, and our development team will quickly add support for your specific broker format.</p>
               </div>
             </div>
           </div>
