@@ -96,10 +96,182 @@ export class DataStore {
     this.triggerRuleChecks(validTrades)
   }
 
-  // Get all trades
+  // Calculate ROI for a single trade using improved logic (returns ratio 0-1)
+  private static calculateTradeROI(trade: Trade): number {
+    const netPnl = trade.netPnl || 0
+    const entryPrice = Math.abs(trade.entryPrice || 0)
+    const quantity = Math.abs(trade.contractsTraded || 1)
+    const instrument = (trade.instrument || trade.instrumentType || '').toLowerCase()
+    const symbol = (trade.symbol || '').toUpperCase()
+    
+    // Compute instrument-aware notional
+    const notionalValue = this.computeInstrumentNotional({ entryPrice, quantity, instrument, symbol, side: trade.side })
+    
+    // Use adjustedCost if available and reasonable
+    let capitalAtRisk = trade.adjustedCost || trade.initialRisk || 0
+    
+    // Validate adjustedCost/initialRisk - reject if unreasonably small
+    if (capitalAtRisk > 0 && capitalAtRisk < notionalValue * 0.001) {
+      console.log(`[ROI Debug] Rejecting small adjustedCost/initialRisk: ${capitalAtRisk} for trade ${trade.symbol}`)
+      capitalAtRisk = 0
+    }
+    
+    // If no valid capital at risk, calculate based on instrument type
+    if (capitalAtRisk <= 0) {
+      if (instrument.includes('stock') || instrument.includes('equity')) {
+        // Cash equities: conservative assumption is full notional at risk (no leverage info available)
+        capitalAtRisk = notionalValue
+      } else if (instrument.includes('future')) {
+        // Futures: use initial margin
+        capitalAtRisk = this.getFuturesInitialMargin(symbol, notionalValue)
+      } else if (instrument.includes('forex') || instrument.includes('fx') || instrument.includes('currency')) {
+        // Forex: margin-based on lot size and leverage
+        capitalAtRisk = this.getForexMargin(symbol, quantity, entryPrice)
+      } else if (instrument.includes('option')) {
+        // Options: long = premium paid; short = margin estimate (20% notional min $500)
+        if (trade.side === 'LONG') {
+          capitalAtRisk = notionalValue // premium
+        } else {
+          capitalAtRisk = Math.max(notionalValue * 0.2, 500)
+        }
+      } else if (instrument.includes('cfd')) {
+        // CFDs often 10:1 leverage => 10% margin typical
+        capitalAtRisk = Math.max(notionalValue * 0.1, 50)
+      } else if (instrument.includes('crypto')) {
+        // Crypto spot: full notional; margin products default to 20% if initialRisk absent
+        capitalAtRisk = Math.max(notionalValue, 10)
+      } else {
+        // Default fallback
+        capitalAtRisk = Math.max(notionalValue * 0.1, 50)
+      }
+    }
+    
+    // Aggressive minimum capital at risk to prevent extreme ROI
+    const minCapitalAtRisk = Math.max(
+      notionalValue * 0.01,     // At least 1% of notional
+      Math.abs(netPnl) * 0.1,   // At least 10% of P&L magnitude
+      10                        // Absolute minimum $10
+    )
+    
+    capitalAtRisk = Math.max(capitalAtRisk, minCapitalAtRisk)
+    
+    // Debug logging for significant P&L trades
+    if (Math.abs(netPnl) > 100) {
+      console.log(`[ROI Debug] ${trade.symbol}: P&L=${netPnl}, Entry=${entryPrice}, Qty=${quantity}, Instrument=${instrument}, Notional=${notionalValue}, CapitalAtRisk=${capitalAtRisk}`)
+    }
+    
+    return capitalAtRisk > 0 ? netPnl / capitalAtRisk : 0
+  }
+
+  // Get realistic initial margin requirements for futures contracts
+  private static getFuturesInitialMargin(symbol: string, notionalValue: number): number {
+    // Common futures contracts and their typical initial margin requirements
+    const marginMap: Record<string, number> = {
+      // E-mini indices
+      'NQ': 17000,    // E-mini NASDAQ-100
+      'ES': 13200,    // E-mini S&P 500
+      'YM': 8800,     // E-mini Dow Jones
+      'RTY': 5500,    // E-mini Russell 2000
+      
+      // Energy
+      'CL': 4500,     // Crude Oil
+      'NG': 1800,     // Natural Gas
+      'RB': 4200,     // RBOB Gasoline
+      'HO': 4200,     // Heating Oil
+      
+      // Metals
+      'GC': 8500,     // Gold
+      'SI': 14000,    // Silver
+      'HG': 3200,     // Copper
+      'PL': 1100,     // Platinum
+      
+      // Agricultural
+      'ZC': 1500,     // Corn
+      'ZS': 3300,     // Soybeans
+      'ZW': 1200,     // Wheat
+      'KC': 1800,     // Coffee
+      'SB': 1100,     // Sugar
+      'CT': 2300,     // Cotton
+      
+      // Currencies
+      'EUR': 2300,    // Euro
+      'GBP': 2600,    // British Pound
+      'JPY': 1800,    // Japanese Yen
+      'CAD': 1900,    // Canadian Dollar
+      'AUD': 1800,    // Australian Dollar
+      'CHF': 2200,    // Swiss Franc
+      
+      // Bonds/Interest Rates
+      'ZN': 1500,     // 10-Year Treasury Note
+      'ZB': 3200,     // 30-Year Treasury Bond
+      'ZF': 1100,     // 5-Year Treasury Note
+      'ZT': 800,      // 2-Year Treasury Note
+      
+      // Crypto (if available)
+      'BTC': 25000,   // Bitcoin
+      'ETH': 3500,    // Ethereum
+    }
+    
+    // Try exact symbol match first
+    if (marginMap[symbol]) {
+      return marginMap[symbol]
+    }
+
+    // Micro contract scaling: common micros are 1/10th size of e-minis
+    const microScale = (base: number) => Math.max(Math.round(base / 10), 300)
+    if (symbol.startsWith('MNQ')) return microScale(17000)
+    if (symbol.startsWith('MES')) return microScale(13200)
+    if (symbol.startsWith('MYM')) return microScale(8800)
+    if (symbol.startsWith('M2K') || symbol.startsWith('MRTY')) return microScale(5500)
+    
+    // Try partial matches for common patterns
+    if (symbol.startsWith('NQ') || symbol.includes('NASDAQ')) return 17000
+    if (symbol.startsWith('ES') || symbol.includes('SP500')) return 13200
+    if (symbol.startsWith('YM') || symbol.includes('DOW')) return 8800
+    if (symbol.startsWith('RTY') || symbol.includes('RUSSELL')) return 5500
+    if (symbol.startsWith('CL') || symbol.includes('CRUDE')) return 4500
+    if (symbol.startsWith('GC') || symbol.includes('GOLD')) return 8500
+    if (symbol.startsWith('SI') || symbol.includes('SILVER')) return 14000
+    if (symbol.startsWith('BTC') || symbol.includes('BITCOIN')) return 25000
+    if (symbol.startsWith('ETH') || symbol.includes('ETHEREUM')) return 3500
+    
+    // Fallback based on notional value categories
+    if (notionalValue > 500000) return Math.max(notionalValue * 0.05, 15000) // Large contracts
+    if (notionalValue > 100000) return Math.max(notionalValue * 0.08, 8000)  // Medium contracts
+    if (notionalValue > 50000) return Math.max(notionalValue * 0.12, 3000)   // Small contracts
+    
+    // Final fallback - conservative estimate
+    return Math.max(notionalValue * 0.15, 1000)
+  }
+
+  // Estimate Forex margin requirement using common conventions
+  // Assumptions: 1 standard lot = 100,000 units; default leverage 50:1; quantity is number of lots
+  private static getForexMargin(symbol: string, lots: number, price: number): number {
+    const unitsPerLot = 100_000 // standard lot
+    const leverage = 50 // default US retail leverage
+    const notional = Math.max(lots, 0.01) * unitsPerLot * Math.max(price, 0)
+    const margin = notional / leverage
+    return Math.max(margin, 50)
+  }
+
+  // Compute instrument-aware notional value used for risk heuristics
+  private static computeInstrumentNotional(params: { entryPrice: number; quantity: number; instrument: string; symbol: string; side?: 'LONG' | 'SHORT' }): number {
+    const { entryPrice, quantity, instrument } = params
+    if (instrument.includes('option')) {
+      // Equity options: 100-share multiplier
+      return Math.abs(entryPrice) * Math.max(quantity, 1) * 100
+    }
+    // Default: price * quantity
+    return Math.abs(entryPrice) * Math.max(quantity, 1)
+  }
+
+  // Get all trades with recalculated ROI
   static getAllTrades(): Trade[] {
     this.initialize()
-    return [...this.trades]
+    return this.trades.map(trade => ({
+      ...trade,
+      netRoi: this.calculateTradeROI(trade)
+    }))
   }
 
   // Replace all trades (used for fresh imports)
@@ -519,26 +691,140 @@ export class DataStore {
       return undefined
     }
 
-    const costBasis = (() => {
-      const adjusted = trade.adjustedCost
-      if (typeof adjusted === 'number' && adjusted > 0) return adjusted
+    const capitalAtRisk = (() => {
+      // Get basic trade parameters
       const qty = typeof trade.contractsTraded === 'number' && trade.contractsTraded > 0 ? trade.contractsTraded : 1
-      const entry = typeof trade.entryPrice === 'number' ? Math.abs(trade.entryPrice) : 0
-      const basis = entry * qty
-      return basis > 0 ? basis : 0
+      const entryPrice = typeof trade.entryPrice === 'number' ? Math.abs(trade.entryPrice) : 0
+      const instrumentType = trade.instrumentType?.toLowerCase() || 'stock'
+      
+      // Calculate notional value first
+      const notionalValue = entryPrice * qty
+      
+      // Debug logging for problematic ROI calculations
+      const debugROI = Math.abs(trade.netPnl || 0) > 100 && notionalValue > 1000
+      
+      if (debugROI) {
+        console.log(`ROI Debug for trade ${trade.id}:`, {
+          entryPrice,
+          qty,
+          notionalValue,
+          netPnl: trade.netPnl,
+          adjustedCost: trade.adjustedCost,
+          initialRisk: trade.initialRisk,
+          instrumentType
+        })
+      }
+      
+      // AGGRESSIVE FIX: For any trade with significant notional value, 
+      // ensure capital at risk is never unreasonably small
+      const minCapitalAtRisk = Math.max(notionalValue * 0.01, Math.abs(trade.netPnl || 0) * 0.1, 10)
+      
+      // Priority 1: Use adjustedCost if provided and reasonable
+      const adjusted = trade.adjustedCost
+      if (typeof adjusted === 'number' && adjusted > 0) {
+        // Much stricter sanity check
+        if (adjusted >= minCapitalAtRisk) {
+          if (debugROI) console.log(`Using adjustedCost: ${adjusted}`)
+          return adjusted
+        } else {
+          if (debugROI) console.log(`Rejecting adjustedCost ${adjusted}, too small vs min ${minCapitalAtRisk}`)
+        }
+      }
+      
+      // Calculate Capital at Risk based on instrument type
+      let calculatedCapital = 0
+      
+      switch (instrumentType) {
+        case 'futures':
+        case 'future':
+          if (trade.initialRisk && typeof trade.initialRisk === 'number' && trade.initialRisk >= minCapitalAtRisk) {
+            calculatedCapital = trade.initialRisk
+          } else {
+            calculatedCapital = Math.max(notionalValue * 0.1, minCapitalAtRisk)
+          }
+          break
+          
+        case 'option':
+        case 'options':
+          if (trade.side === 'LONG') {
+            calculatedCapital = Math.max(notionalValue, minCapitalAtRisk)
+          } else {
+            if (trade.initialRisk && typeof trade.initialRisk === 'number' && trade.initialRisk >= minCapitalAtRisk) {
+              calculatedCapital = trade.initialRisk
+            } else {
+              calculatedCapital = Math.max(notionalValue * 0.2, minCapitalAtRisk)
+            }
+          }
+          break
+          
+        case 'forex':
+        case 'fx':
+          if (trade.initialRisk && typeof trade.initialRisk === 'number' && trade.initialRisk >= minCapitalAtRisk) {
+            calculatedCapital = trade.initialRisk
+          } else {
+            calculatedCapital = Math.max(notionalValue * 0.02, minCapitalAtRisk)
+          }
+          break
+          
+        case 'cfd':
+        case 'cfds':
+          if (trade.initialRisk && typeof trade.initialRisk === 'number' && trade.initialRisk >= minCapitalAtRisk) {
+            calculatedCapital = trade.initialRisk
+          } else {
+            calculatedCapital = Math.max(notionalValue * 0.1, minCapitalAtRisk)
+          }
+          break
+          
+        case 'crypto':
+        case 'cryptocurrency':
+          if (trade.initialRisk && typeof trade.initialRisk === 'number' && trade.initialRisk >= minCapitalAtRisk) {
+            calculatedCapital = trade.initialRisk
+          } else {
+            calculatedCapital = Math.max(notionalValue, minCapitalAtRisk)
+          }
+          break
+          
+        default:
+          // Stocks / Cash Equity: Use full notional value
+          calculatedCapital = Math.max(notionalValue, minCapitalAtRisk)
+      }
+      
+      if (debugROI) {
+        console.log(`Final capital at risk: ${calculatedCapital}`)
+        console.log(`Expected ROI: ${((trade.netPnl || 0) / calculatedCapital * 100).toFixed(2)}%`)
+      }
+      
+      return calculatedCapital
     })()
 
-    const computedRoiPct = (() => {
+    const computedRoiRatio = (() => {
       const provided = parseProvidedRoiToPercent(trade.netRoi)
-      if (provided !== undefined) return provided
-      if (typeof trade.netPnl === 'number' && costBasis > 0) return (trade.netPnl / costBasis) * 100
-      return 0
+      if (provided !== undefined) return provided / 100
+      
+      // Enhanced ROI calculation with better error handling
+      if (typeof trade.netPnl !== 'number') return 0
+      
+      if (capitalAtRisk <= 0) {
+        // Handle edge cases where capital at risk is zero or negative
+        console.warn(`Trade ${trade.id}: Invalid capital at risk (${capitalAtRisk}), cannot calculate ROI`)
+        return 0
+      }
+      
+      const roiRatio = (trade.netPnl / capitalAtRisk)
+      
+      // Validate the result
+      if (!isFinite(roiRatio)) {
+        console.warn(`Trade ${trade.id}: ROI calculation resulted in non-finite value`)
+        return 0
+      }
+      
+      return roiRatio
     })()
 
     const realizedBestExitPnl = typeof trade.bestExitPnl === 'number' ? trade.bestExitPnl : trade.netPnl
     const realizedBestExitPercent = typeof trade.bestExitPercent === 'string'
       ? trade.bestExitPercent
-      : `${computedRoiPct.toFixed(2)}%`
+      : `${(computedRoiRatio * 100).toFixed(2)}%`
     const realizedBestExitPrice = typeof trade.bestExitPrice === 'number' ? trade.bestExitPrice : trade.exitPrice
     const realizedBestExitTime = typeof trade.bestExitTime === 'string' && trade.bestExitTime.length > 0
       ? trade.bestExitTime
@@ -550,8 +836,8 @@ export class DataStore {
       openDate: openYMD,
       closeDate: closeYMD,
       status: trade.netPnl >= 0 ? 'WIN' : 'LOSS',
-      // netRoi is stored as a percentage number (e.g., 12.5 means 12.5%)
-      netRoi: computedRoiPct,
+      // netRoi is stored as a ratio (e.g., 0.125 means 12.5%)
+      netRoi: computedRoiRatio,
       commissions: trade.commissions || 0,
       grossPnl: trade.grossPnl || trade.netPnl,
       side: trade.side || 'LONG',

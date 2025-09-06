@@ -49,17 +49,21 @@ function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('tradestial_sidebar_collapsed')
-      return saved ? JSON.parse(saved) : true
-    }
-    return true
-  })
+  const [isCollapsed, setIsCollapsed] = useState(true) // Always start with true for SSR
+  const [isMounted, setIsMounted] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  // Handle client-side hydration and load saved state
+  useEffect(() => {
+    setIsMounted(true)
+    const saved = localStorage.getItem('tradestial_sidebar_collapsed')
+    if (saved) {
+      setIsCollapsed(JSON.parse(saved))
+    }
+  }, [])
 
   // Load user profile
   useEffect(() => {
@@ -172,8 +176,8 @@ export function Sidebar() {
         </div>
 {!isCollapsed && (
           <motion.div
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: "auto" }}
+            initial={isMounted ? { opacity: 0, width: 0 } : false}
+            animate={isMounted ? { opacity: 1, width: "auto" } : { opacity: 1, width: "auto" }}
             exit={{ opacity: 0, width: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="ml-3 flex-1 overflow-hidden"
