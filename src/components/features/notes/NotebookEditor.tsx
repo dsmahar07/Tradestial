@@ -10,7 +10,10 @@ import {
   Bold,
   Italic,
   Underline,
+  Strikethrough,
   Link,
+  Image,
+  Smile,
   Code,
   Camera,
   AlignLeft,
@@ -21,7 +24,6 @@ import {
   Quote,
   Hash,
   CheckSquare,
-  Smile,
   Copy,
   FileText,
   Trash2,
@@ -32,7 +34,13 @@ import {
   Save,
   MoreVertical,
   Palette,
-  Type
+  Type,
+  Sparkles,
+  Loader2,
+  CheckCircle,
+  Lightbulb,
+  TrendingUp,
+  FileDown
 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { Button } from '@/components/ui/button'
@@ -54,13 +62,18 @@ import { Separator } from '@/components/ui/separator'
 import { Note } from '@/app/notes/page'
 import type { TradeJournalingTemplate } from '@/lib/templates'
 import type { TemplateInstance } from '@/types/templates'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from 'react'
 import { EmojiPicker } from '@/components/ui/emoji-picker'
 import { ImageMentionPicker, MediaItem } from '@/components/features/notes/ImageMentionPicker'
 import { cn } from '@/lib/utils'
 import { encodeNoteToToken } from '@/lib/note-share'
 import { DataStore } from '@/services/data-store.service'
 import { accountService } from '@/services/account.service'
+import { aiEnhancementService, type EnhancementOptions } from '@/services/ai-enhancement.service'
+import { tradeSummaryService } from '@/services/trade-summary.service'
+import { useToast } from '@/components/ui/notification-toast'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface NotebookEditorProps {
   note: Note | null
@@ -93,6 +106,8 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const [tempTitle, setTempTitle] = useState('')
   const [content, setContent] = useState('')
   const [showStats, setShowStats] = useState(false)
+  // Guard to prevent empty saves during the first tick of entering edit mode
+  const isSettingUpEdit = useRef(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [shareUrl, setShareUrl] = useState<string>('')
@@ -110,6 +125,11 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const [mentionStartPos, setMentionStartPos] = useState<number | null>(null)
   const [showTemplateEditor, setShowTemplateEditor] = useState(false)
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  // AI Enhancement state
+  const [isEnhancing, setIsEnhancing] = useState(false)
+  const [showEnhancementOptions, setShowEnhancementOptions] = useState(false)
+  const [isGeneratingTradeSummary, setIsGeneratingTradeSummary] = useState(false)
+  const { success, error, info } = useToast()
 
   // Clipboard helper to avoid runtime errors in non-secure/unsupported contexts
   const safeCopyToClipboard = useCallback(async (text: string) => {
@@ -305,6 +325,128 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     setSelectedTemplate(null)
   }
 
+  // AI Enhancement handlers
+  const handleAIEnhancement = async (type: EnhancementOptions['type']) => {
+    if (!note || !content.trim()) return
+
+    setIsEnhancing(true)
+    setShowEnhancementOptions(false)
+
+    // Show info toast about enhancement starting
+    info('AI Enhancement Started', 'Processing your text with Kimi K2 AI...', 3000)
+
+    try {
+      const result = await aiEnhancementService.enhanceText(content, { 
+        type, 
+        context: 'trade-journal' 
+      })
+      
+      console.log('DEBUG AI Enhancement result:', {
+        originalContent: content,
+        enhancedText: result.enhancedText,
+        noteId: note.id
+      })
+      
+      // Update both local state and persist immediately to ensure consistency
+      setContent(result.enhancedText)
+      if (onUpdateNote) {
+        onUpdateNote(note.id, result.enhancedText)
+      }
+      
+      // Force exit edit mode to show the enhanced preview
+      setIsEditing(false)
+
+      // Show success toast
+      success('Enhancement Complete', 'Your text has been successfully enhanced!', 4000)
+    } catch (err) {
+      console.error('AI Enhancement failed:', err)
+      
+      // Show error toast with helpful message
+      error(
+        'Enhancement Failed', 
+        'Unable to enhance text. Please check your API key and try again.', 
+        6000
+      )
+    } finally {
+      setIsEnhancing(false)
+    }
+  }
+
+  // Daily Trade Summary handler
+  const handleDailyTradeSummary = async () => {
+    if (!note) return
+
+    setIsGeneratingTradeSummary(true)
+    setShowEnhancementOptions(false)
+
+    // Get today's date or use note's date if available
+    const today = new Date().toISOString().split('T')[0]
+    const targetDate = note.title.match(/\d{4}-\d{2}-\d{2}/) ? note.title.match(/\d{4}-\d{2}-\d{2}/)![0] : today
+
+    info('Generating Trade Summary', 'Analyzing your trades and creating comprehensive daily report...', 4000)
+
+    try {
+      // Get all trades from DataStore
+      let allTrades = []
+      try {
+        allTrades = DataStore.getAllTrades()
+        console.log('Retrieved trades:', allTrades.length)
+      } catch (dataError) {
+        console.error('Error accessing DataStore:', dataError)
+        error('Data Access Error', 'Unable to access trade data. Please ensure trades are imported.', 6000)
+        return
+      }
+
+      const tradesForDate = tradeSummaryService.getTradesForDate(allTrades, targetDate)
+      console.log(`Trades for ${targetDate}:`, tradesForDate.length)
+
+      if (tradesForDate.length === 0) {
+        error('No Trades Found', `No trades found for ${targetDate}. Please import trades or select a different date.`, 6000)
+        return
+      }
+
+      const result = await tradeSummaryService.generateDailySummary({
+        date: targetDate,
+        trades: tradesForDate,
+        notes: content.trim() || undefined
+      })
+
+      // Replace content with comprehensive AI-generated summary
+      const summaryContent = `# Daily Trading Summary - ${targetDate}
+
+${result.summary}
+
+---
+
+**Quick Stats:**
+- Total Trades: ${result.analysis.totalTrades}
+- Win Rate: ${result.analysis.winRate}%
+- Net P&L: $${result.analysis.netPnL}
+- Profit Factor: ${result.analysis.profitFactor}
+- Average R-Multiple: ${result.analysis.avgRMultiple}
+
+*Generated by AI on ${new Date().toLocaleString()}*`
+
+      setContent(summaryContent)
+      if (onUpdateNote) {
+        onUpdateNote(note.id, summaryContent)
+      }
+
+      success('Trade Summary Generated', `Analyzed ${result.tradesAnalyzed} trades and created comprehensive daily report!`, 5000)
+    } catch (err) {
+      console.error('Trade Summary failed:', err)
+      
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      error(
+        'Summary Generation Failed', 
+        `Error: ${errorMessage}`, 
+        8000
+      )
+    } finally {
+      setIsGeneratingTradeSummary(false)
+    }
+  }
+
   const handleDateSelect = (selectedDate: Date) => {
     if (note) {
       if (useDatePicker && onDateChange) {
@@ -460,34 +602,39 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     }
   }, [])
 
-  // Load note content when note changes
+  // Load note content ONLY when switching to a different note
+  const previousNoteId = useRef<string | null>(null)
   useEffect(() => {
     if (note) {
       const noteContent = note.content || ''
-      setContent(noteContent)
-      setIsEditing(false) // Reset editing state when switching notes
+      const isNewNote = previousNoteId.current !== note.id
+      console.log('DEBUG useEffect note switch:', {
+        noteId: note.id,
+        noteContent: noteContent.substring(0, 100) + '...',
+        currentLocalContent: content.substring(0, 100) + '...',
+        isEnhancing,
+        isEditing,
+        isNewNote
+      })
+      // Only load content when switching to a completely different note
+      if (isNewNote) {
+        setContent(noteContent)
+        setIsEditing(false)
+        previousNoteId.current = note.id
+      }
     } else {
       setContent('')
       setIsEditing(false)
+      previousNoteId.current = null
     }
-  }, [note?.id, note?.content]) // Only watch for note changes, not editing state
+  }, [note?.id, note?.content, isEnhancing, isEditing])
 
-  // Manage editor innerHTML directly to prevent content loss
-  useEffect(() => {
-    if (editorRef.current && content && !isEditing) {
-      // Only update innerHTML if it's different and we're not actively editing
-      const sanitized = sanitizeHtml(content)
-      if (editorRef.current.innerHTML !== sanitized) {
-        editorRef.current.innerHTML = sanitized
-      }
-    } else if (editorRef.current && !content && !isEditing) {
-      editorRef.current.innerHTML = ''
-    }
-  }, [content, isEditing, sanitizeHtml])
+  // Avoid mutating the editor DOM outside of React while not editing.
+  // Preview is rendered below via convertMarkdownToHTML, so no DOM writes here.
 
   // Auto-save functionality with debouncing
   useEffect(() => {
-    if (note && content && content !== note.content && isEditing && content.trim() !== '' && content !== '<p><br></p>') {
+    if (note && !isSettingUpEdit.current && content && content !== note.content && isEditing && content.trim() !== '' && content !== '<p><br></p>') {
       const timeoutId = setTimeout(() => {
         onUpdateNote?.(note.id, content)
         setLastSaved(new Date())
@@ -497,55 +644,162 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     }
   }, [content, note?.id, onUpdateNote, isEditing])
 
+  // Function to convert markdown to HTML for WYSIWYG editing
+  const convertMarkdownToHTML = (markdown: string): string => {
+    return markdown
+      // Headers
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mb-3 text-gray-900 dark:text-white">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">$1</h1>')
+      // Highlights first so they survive list/formatting
+      .replace(/==(.*?)==/g, '<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">$1</mark>')
+      // Bullet points (* or - at start of line)
+      .replace(/^\s*\* (.*$)/gm, '<li class="text-gray-900 dark:text-white">$1</li>')
+      .replace(/^\s*- (.*$)/gm, '<li class="text-gray-900 dark:text-white">$1</li>')
+      // Wrap each li in a ul (simple approach; consecutive lists will render fine visually)
+      .replace(/(<li[^>]*>.*?<\/li>)/g, '<ul class="list-disc list-inside mb-3 space-y-1 text-gray-900 dark:text-white">$1<\/ul>')
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-gray-900 dark:text-white">$1</strong>')
+      // Italics (avoid matching list markers by requiring non-space before *)
+      .replace(/(^|\S)\*(.*?)\*/g, (_m, p1, p2) => `${p1}<em class="italic text-gray-900 dark:text-white">${p2}<\/em>`)
+      // Paragraphs for remaining bare lines
+      .replace(/^(?!<\/?(h1|h2|h3|ul|li|blockquote|pre|code|p)\b)(.+)$/gm, '<p class="mb-3 text-gray-900 dark:text-white">$2<\/p>')
+      // Clean up empty paragraphs
+      .replace(/<p class="mb-3 text-gray-900 dark:text-white"><\/p>/g, '')
+  }
+
+  // Do not mutate editor innerHTML on entering edit mode to keep typing smooth.
+
+  // Function to convert HTML back to markdown
+  const convertHTMLToMarkdown = (html: string): string => {
+    return html
+      // Headers
+      .replace(/<h1[^>]*>(.*?)<\/h1>/g, '# $1')
+      .replace(/<h2[^>]*>(.*?)<\/h2>/g, '## $1')
+      .replace(/<h3[^>]*>(.*?)<\/h3>/g, '### $1')
+      // Bold
+      .replace(/<strong[^>]*>(.*?)<\/strong>/g, '**$1**')
+      // Italics
+      .replace(/<em[^>]*>(.*?)<\/em>/g, '*$1*')
+      // Highlights
+      .replace(/<mark[^>]*>(.*?)<\/mark>/g, '==$1==')
+      // List items
+      .replace(/<li[^>]*>(.*?)<\/li>/g, '* $1')
+      // Remove list wrappers
+      .replace(/<\/?ul[^>]*>/g, '')
+      // Paragraphs
+      .replace(/<p[^>]*>(.*?)<\/p>/g, '$1')
+      // Clean up extra whitespace
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim()
+  }
+
   const handleEditorClick = () => {
     if (!isEditing) {
+      // Mark setup phase to avoid input/autosave race conditions
+      isSettingUpEdit.current = true
       setIsEditing(true)
-      if (editorRef.current) {
-        // Clear any placeholder content and focus
-        if (!content || content.trim() === '') {
-          editorRef.current.innerHTML = ''
-        }
-        editorRef.current.focus()
-        // Place cursor at end
-        const range = document.createRange()
-        const sel = window.getSelection()
-        range.selectNodeContents(editorRef.current)
-        range.collapse(false)
-        sel?.removeAllRanges()
-        sel?.addRange(range)
-      }
     }
   }
 
+  // Synchronously prefill editor before paint to avoid empty flash
+  useLayoutEffect(() => {
+    if (isEditing && isSettingUpEdit.current && editorRef.current) {
+      // Always prioritize local content state over note.content to preserve enhancements
+      const currentContent = content || note?.content || ''
+      console.log('DEBUG useLayoutEffect entering edit mode:', {
+        isEditing,
+        isSettingUpEdit: isSettingUpEdit.current,
+        localContent: content.substring(0, 100) + '...',
+        noteContent: note?.content?.substring(0, 100) + '...',
+        currentContent: currentContent.substring(0, 100) + '...',
+        noteId: note?.id
+      })
+      // For WYSIWYG editing, render enhanced content as HTML but make it editable
+      editorRef.current.innerHTML = sanitizeHtml(convertMarkdownToHTML(currentContent))
+      // place caret at end
+      const range = document.createRange()
+      const sel = window.getSelection()
+      range.selectNodeContents(editorRef.current)
+      range.collapse(false)
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+      // End setup phase
+      isSettingUpEdit.current = false
+    }
+  }, [isEditing, content, note?.content])
+
   const handleEditorInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     if (!note) return
+    // Skip input handling during the initial setup to avoid empty saves
+    if (isSettingUpEdit.current) return
 
     try {
       const target = e.currentTarget
       if (target) {
-        let newContent = sanitizeHtml(target.innerHTML || '')
-
-        // Normalize content to preserve emojis and clean up browser-specific HTML
-        // Remove zero-width spaces and other invisible characters that browsers might add
-        newContent = newContent.replace(/[\u200B-\u200D\uFEFF]/g, '')
+        // Convert HTML back to markdown for storage while preserving WYSIWYG experience
+        const htmlContent = target.innerHTML || ''
+        const markdownContent = convertHTMLToMarkdown(htmlContent)
 
         // Only update if content actually changed and we're in editing mode
-        if (newContent !== content && isEditing) {
-          setContent(newContent)
+        if (markdownContent !== content && isEditing) {
+          setContent(markdownContent)
         }
       }
     } catch (error) {
       console.error('Error in handleEditorInput:', error)
     }
-  }, [content, note, isEditing, sanitizeHtml])
+  }, [content, note, isEditing])
 
   const handleEditorBlur = useCallback((e: React.FocusEvent) => {
-    // Only set editing to false if focus is leaving the editor entirely
+    // Only save and exit editing if focus is leaving the editor entirely
     const relatedTarget = e.relatedTarget as HTMLElement
-    if (!relatedTarget || !editorRef.current?.contains(relatedTarget)) {
-      setTimeout(() => setIsEditing(false), 100) // Small delay to prevent flicker
+    
+    // Check if focus is moving to toolbar buttons, dropdowns, or other editor controls
+    const isToolbarElement = relatedTarget && (
+      relatedTarget.closest('[role="toolbar"]') ||
+      relatedTarget.closest('button') ||
+      relatedTarget.closest('[data-toolbar]') ||
+      relatedTarget.closest('.toolbar') ||
+      relatedTarget.closest('[data-radix-popper-content-wrapper]') || // Radix dropdown content
+      relatedTarget.closest('[data-radix-dropdown-menu-content]') ||
+      relatedTarget.closest('[role="menu"]') ||
+      relatedTarget.closest('[role="menuitem"]') ||
+      relatedTarget.closest('.dropdown-menu') ||
+      relatedTarget.hasAttribute('data-toolbar-button') ||
+      relatedTarget.tagName === 'BUTTON'
+    )
+    
+    // Also check if we're interacting with AI enhancement elements
+    const isAIElement = relatedTarget && (
+      relatedTarget.closest('[data-ai-enhancement]') ||
+      relatedTarget.closest('.ai-enhancement-dropdown') ||
+      relatedTarget.id?.includes('ai-') ||
+      relatedTarget.className?.includes('ai-')
+    )
+    
+    // Don't exit edit mode if clicking on toolbar, AI elements, or if no related target
+    const shouldStayInEditMode = !relatedTarget || isToolbarElement || isAIElement ||
+      editorRef.current?.contains(relatedTarget)
+    
+    if (!shouldStayInEditMode) {
+      // Convert final HTML content to markdown before saving
+      if (editorRef.current && note) {
+        const htmlContent = editorRef.current.innerHTML || ''
+        const markdownContent = convertHTMLToMarkdown(htmlContent)
+        
+        // Prevent accidental empty overwrite unless user truly cleared it
+        if (markdownContent.trim() === '' && content.trim() !== '') {
+          // Restore previous content and skip saving empty
+          editorRef.current.innerHTML = sanitizeHtml(convertMarkdownToHTML(content))
+        } else if (markdownContent !== content) {
+          setContent(markdownContent)
+          onUpdateNote?.(note.id, markdownContent)
+        }
+      }
+      setTimeout(() => setIsEditing(false), 150) // Increased delay to prevent premature exit
     }
-  }, [])
+  }, [content, note, onUpdateNote])
 
   const handleEditorPaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
@@ -566,7 +820,6 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           const safe = sanitizeHtml(htmlPaste)
           document.execCommand('insertHTML', false, safe)
         } else if (plainPaste) {
-
           // For plain text, check if it contains emojis and convert them to Apple emojis
           const emojiRegex = /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]/gu
 
@@ -577,7 +830,6 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             })
             document.execCommand('insertHTML', false, sanitizeHtml(convertedContent))
           } else {
-
             // Regular text, insert as text node
             const textNode = document.createTextNode(plainPaste)
             range.insertNode(textNode)
@@ -589,25 +841,26 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           }
         }
 
-        // Update content with delay
+        // Update content with delay - convert HTML to markdown for storage
         setTimeout(() => {
           if (editorRef.current) {
-            const newContent = sanitizeHtml(editorRef.current.innerHTML)
-            setContent(newContent)
+            const htmlContent = editorRef.current.innerHTML
+            const markdownContent = convertHTMLToMarkdown(htmlContent)
+            setContent(markdownContent)
             setIsEditing(true)
           }
         }, 0)
       }
     } catch (error) {
-
       console.error('Error handling paste:', error)
       // Fallback to default paste behavior
       try {
         document.execCommand('paste')
         setTimeout(() => {
           if (editorRef.current) {
-            const newContent = sanitizeHtml(editorRef.current.innerHTML)
-            setContent(newContent)
+            const htmlContent = editorRef.current.innerHTML
+            const markdownContent = convertHTMLToMarkdown(htmlContent)
+            setContent(markdownContent)
             setIsEditing(true)
           }
         }, 0)
@@ -676,22 +929,29 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     if (!editorRef.current || !note) return
 
     try {
-      // Ensure editor is focused
+      // Ensure editor is focused and in editing mode
+      if (!isEditing) {
+        setIsEditing(true)
+        // Wait for editor to be ready
+        setTimeout(() => formatText(command, value), 50)
+        return
+      }
+
       editorRef.current.focus()
 
       // Save current selection
       const selection = window.getSelection()
-
       if (!selection || selection.rangeCount === 0) return
 
       // Execute the command
       document.execCommand(command, false, value)
 
-      // Get the updated content and update state
+      // Get the updated content and convert back to markdown for storage
       setTimeout(() => {
         if (editorRef.current) {
-          const newContent = sanitizeHtml(editorRef.current.innerHTML)
-          setContent(newContent)
+          const htmlContent = editorRef.current.innerHTML
+          const markdownContent = convertHTMLToMarkdown(htmlContent)
+          setContent(markdownContent)
           setIsEditing(true)
         }
       }, 10)
@@ -699,7 +959,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     } catch (error) {
       console.error(`Error executing command ${command}:`, error)
     }
-  }, [note, sanitizeHtml])
+  }, [note, isEditing, convertHTMLToMarkdown])
 
   const handleImageSelect = useCallback((image: MediaItem) => {
     if (!editorRef.current || !note) return
@@ -815,76 +1075,6 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
     setMentionStartPos(null)
   }, [note, sanitizeHtml])
 
-  const handleImagePickerClose = useCallback(() => {
-    setShowImagePicker(false)
-    setImageSearchQuery('')
-    setMentionStartPos(null)
-    if (editorRef.current) {
-      editorRef.current.focus()
-    }
-  }, [])
-
-  const setHighlight = useCallback((color: string) => {
-    if (!editorRef.current || !note) return
-
-    try {
-      editorRef.current.focus()
-      // hiliteColor works in most modern browsers; fallback to backColor
-      document.execCommand('hiliteColor', false, color)
-      document.execCommand('backColor', false, color)
-
-      setTimeout(() => {
-        if (editorRef.current) {
-          const newContent = sanitizeHtml(editorRef.current.innerHTML)
-          setContent(newContent)
-          setIsEditing(true)
-        }
-      }, 10)
-    } catch (error) {
-      console.error('Error setting highlight:', error)
-    }
-  }, [note, sanitizeHtml])
-
-  const toggleQuote = useCallback(() => {
-    if (!editorRef.current || !note) return
-
-    try {
-      editorRef.current.focus()
-      const selection = window.getSelection()
-      if (!selection || selection.rangeCount === 0) return
-
-      const range = selection.getRangeAt(0)
-      const container = range.commonAncestorContainer
-      
-      // Find if we're inside a blockquote
-      let blockquote = container.nodeType === Node.ELEMENT_NODE ? 
-        container as Element : container.parentElement
-      
-      while (blockquote && blockquote !== editorRef.current) {
-        if (blockquote.tagName === 'BLOCKQUOTE') break
-        blockquote = blockquote.parentElement
-      }
-
-      if (blockquote && blockquote.tagName === 'BLOCKQUOTE') {
-        // Remove blockquote - replace with paragraph
-        document.execCommand('formatBlock', false, 'p')
-      } else {
-        // Add blockquote
-        document.execCommand('formatBlock', false, 'blockquote')
-      }
-
-      setTimeout(() => {
-        if (editorRef.current) {
-          const newContent = sanitizeHtml(editorRef.current.innerHTML)
-          setContent(newContent)
-          setIsEditing(true)
-        }
-      }, 10)
-    } catch (error) {
-      console.error('Error toggling quote:', error)
-    }
-  }, [note, sanitizeHtml])
-
   // Helper function to convert emoji to Apple emoji image HTML
   const getAppleEmojiHTML = useCallback((emoji: string) => {
     // Handle compound emojis (with variation selectors) properly
@@ -916,7 +1106,6 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
   const isDev = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production'
 
   const insertContent = useCallback((content: string) => {
-
     if (!editorRef.current || !note) {
       if (isDev) console.debug('insertContent: missing editor or note', { editor: !!editorRef.current, note: !!note })
       return
@@ -944,9 +1133,10 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       // Force content update
       setTimeout(() => {
         if (editorRef.current) {
-          const newContent = sanitizeHtml(editorRef.current.innerHTML)
-          if (isDev) console.debug('Content after insert:', newContent)
-          setContent(newContent)
+          const htmlContent = editorRef.current.innerHTML
+          const markdownContent = convertHTMLToMarkdown(htmlContent)
+          if (isDev) console.debug('Content after insert:', markdownContent)
+          setContent(markdownContent)
         }
       }, 0)
 
@@ -979,35 +1169,37 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 selection.addRange(range)
               }
             } else {
-              // Insert as text
-              const textNode = document.createTextNode(content)
-
-              range.insertNode(textNode)
-
-              range.setStartAfter(textNode)
-              range.collapse(true)
-              selection.removeAllRanges()
-              selection.addRange(range)
+              // Insert as text or HTML
+              const tempDiv = document.createElement('div')
+              tempDiv.innerHTML = sanitizeHtml(content)
+              
+              while (tempDiv.firstChild) {
+                range.insertNode(tempDiv.firstChild)
+              }
             }
-          }
 
-          const newContent = sanitizeHtml(editorRef.current.innerHTML)
-          if (isDev) console.debug('Fallback content after insert:', newContent)
-          setContent(newContent)
-          setIsEditing(true)
+            // Update content
+            setTimeout(() => {
+              if (editorRef.current) {
+                const htmlContent = editorRef.current.innerHTML
+                const markdownContent = convertHTMLToMarkdown(htmlContent)
+                setContent(markdownContent)
+              }
+            }, 0)
+          }
         }
       } catch (fallbackError) {
-        if (isDev) console.error('Ultimate fallback failed:', fallbackError)
+        if (isDev) console.error('Fallback insert also failed:', fallbackError)
       }
     }
-  }, [note, getAppleEmojiHTML, sanitizeHtml])
+  }, [note, sanitizeHtml, getAppleEmojiHTML, convertHTMLToMarkdown, isDev])
 
   const handleImageUpload = useCallback(() => {
-    if (!editorRef.current || !note) return
-
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
+    input.style.display = 'none'
+
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (file && file.size <= 5 * 1024 * 1024) { // 5MB limit
@@ -1024,28 +1216,142 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         if (isDev) console.debug('Please select an image file under 5MB')
       }
     }
-    input.click()
-  }, [note, insertContent])
 
-  const handleEmojiInsert = useCallback(() => {
+    document.body.appendChild(input)
+    input.click()
+    document.body.removeChild(input)
+  }, [insertContent, isDev])
+
+  const handleImagePickerClose = useCallback(() => {
+    setShowImagePicker(false)
+    setImageSearchQuery('')
+    setMentionStartPos(null)
+    if (editorRef.current) {
+      editorRef.current.focus()
+    }
+  }, [])
+
+  const setHighlight = useCallback((color: string) => {
+    if (!editorRef.current || !note) return
+
+    try {
+      // Ensure editor is in edit mode and focused
+      if (!isEditing) {
+        setIsEditing(true)
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.focus()
+            document.execCommand('hiliteColor', false, color)
+            
+            setTimeout(() => {
+              if (editorRef.current) {
+                const htmlContent = editorRef.current.innerHTML
+                const markdownContent = convertHTMLToMarkdown(htmlContent)
+                setContent(markdownContent)
+              }
+            }, 10)
+          }
+        }, 10)
+      } else {
+        editorRef.current.focus()
+        document.execCommand('hiliteColor', false, color)
+        
+        setTimeout(() => {
+          if (editorRef.current) {
+            const htmlContent = editorRef.current.innerHTML
+            const markdownContent = convertHTMLToMarkdown(htmlContent)
+            setContent(markdownContent)
+          }
+        }, 10)
+      }
+    } catch (error) {
+      console.error('Error setting highlight:', error)
+    }
+  }, [note, isEditing, convertHTMLToMarkdown])
+
+  const toggleQuote = useCallback(() => {
+    if (!editorRef.current || !note) return
+
+    try {
+      editorRef.current.focus()
+      const selection = window.getSelection()
+      if (!selection || selection.rangeCount === 0) return
+
+      const range = selection.getRangeAt(0)
+      const container = range.commonAncestorContainer
+      
+      // Find if we're inside a blockquote
+      let blockquote = container.nodeType === Node.ELEMENT_NODE ? 
+        container as Element : container.parentElement
+      
+      while (blockquote && blockquote !== editorRef.current) {
+        if (blockquote.tagName === 'BLOCKQUOTE') break
+        blockquote = blockquote.parentElement
+      }
+
+      if (blockquote && blockquote.tagName === 'BLOCKQUOTE') {
+        // Remove blockquote - replace with paragraph
+        document.execCommand('formatBlock', false, 'p')
+      } else {
+        // Add blockquote
+        document.execCommand('formatBlock', false, 'blockquote')
+      }
+
+      setTimeout(() => {
+        if (editorRef.current) {
+          const htmlContent = editorRef.current.innerHTML
+          const markdownContent = convertHTMLToMarkdown(htmlContent)
+          setContent(markdownContent)
+          setIsEditing(true)
+        }
+      }, 10)
+    } catch (error) {
+      console.error('Error toggling quote:', error)
+    }
+  }, [note, convertHTMLToMarkdown])
+
+  const insertRandomEmoji = useCallback(() => {
     const emojis = ['😀', '😂', '😍', '🤔', '👍', '❤️', '🎉', '🔥', '💡', '✅', '❌', '⭐', '📝', '💼', '🚀']
     const emoji = emojis[Math.floor(Math.random() * emojis.length)]
     insertContent(emoji)
   }, [insertContent])
 
   const handleLinkInsert = useCallback(() => {
-    const url = prompt('Enter URL:')
-    if (url) {
-      const u = url.trim()
-      const lower = u.toLowerCase()
-      if (lower.startsWith('http://') || lower.startsWith('https://')) {
-        const selection = window.getSelection()
-        const selectedText = selection?.toString() || u
-        const linkHtml = `<a href="${u}" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;" target="_blank">${selectedText}</a>`
-        insertContent(linkHtml)
+    if (!editorRef.current || !note) return
+
+    // Ensure editor is in edit mode
+    if (!isEditing) {
+      setIsEditing(true)
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.focus()
+          const url = prompt('Enter URL:')
+          if (url && url.trim()) {
+            const u = url.trim()
+            const lower = u.toLowerCase()
+            if (lower.startsWith('http://') || lower.startsWith('https://')) {
+              const selection = window.getSelection()
+              const selectedText = selection?.toString() || u
+              const linkHtml = `<a href="${u}" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;" target="_blank">${selectedText}</a>`
+              insertContent(linkHtml)
+            }
+          }
+        }
+      }, 10)
+    } else {
+      const url = prompt('Enter URL:')
+      if (url && url.trim()) {
+        const u = url.trim()
+        const lower = u.toLowerCase()
+        if (lower.startsWith('http://') || lower.startsWith('https://')) {
+          const selection = window.getSelection()
+          const selectedText = selection?.toString() || u
+          const linkHtml = `<a href="${u}" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;" target="_blank">${selectedText}</a>`
+          insertContent(linkHtml)
+        }
       }
     }
-  }, [insertContent])
+  }, [insertContent, note, isEditing])
 
   if (!note) {
     return (
@@ -1650,9 +1956,9 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
       </div>
 
-      {/* Simple Toolbar */}
-      <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]">
-        <div className="flex items-center space-x-4">
+      {/* Toolbar */}
+      <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#0f0f0f]" data-toolbar="true">
+        <div className="flex items-center space-x-4" data-toolbar="true">
           {/* Simple Undo/Redo */}
           <FancyButton.Root
             variant="basic"
@@ -1661,6 +1967,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             onClick={() => formatText('undo')}
             title="Undo"
             disabled={!note}
+            data-toolbar-button="true"
           >
             <Undo className="w-4 h-4" />
           </FancyButton.Root>
@@ -1671,6 +1978,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             onClick={() => formatText('redo')}
             title="Redo"
             disabled={!note}
+            data-toolbar-button="true"
           >
             <Redo className="w-4 h-4" />
           </FancyButton.Root>
@@ -1685,6 +1993,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 size="xsmall"
                 className="h-8 px-3 text-sm min-w-[100px] justify-between"
                 disabled={!note}
+                data-toolbar-button="true"
               >
                 {fontFamily}
                 <ChevronDown className="w-3 h-3 ml-1" />
@@ -1718,8 +2027,35 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                         'Courier New': '"Courier New", Courier, monospace'
                       }
 
-                      editorRef.current.style.fontFamily = fontFamilyMap[font] || font
-                      editorRef.current.focus()
+                      // Ensure editor is in edit mode
+                      if (!isEditing) {
+                        setIsEditing(true)
+                        setTimeout(() => {
+                          if (editorRef.current) {
+                            editorRef.current.focus()
+                            document.execCommand('fontName', false, fontFamilyMap[font] || font)
+                            
+                            setTimeout(() => {
+                              if (editorRef.current) {
+                                const htmlContent = editorRef.current.innerHTML
+                                const markdownContent = convertHTMLToMarkdown(htmlContent)
+                                setContent(markdownContent)
+                              }
+                            }, 10)
+                          }
+                        }, 10)
+                      } else {
+                        editorRef.current.focus()
+                        document.execCommand('fontName', false, fontFamilyMap[font] || font)
+                        
+                        setTimeout(() => {
+                          if (editorRef.current) {
+                            const htmlContent = editorRef.current.innerHTML
+                            const markdownContent = convertHTMLToMarkdown(htmlContent)
+                            setContent(markdownContent)
+                          }
+                        }, 10)
+                      }
                     }
                   }}
                   className={fontFamily === font ? "bg-blue-50 dark:bg-blue-900/50 dark:text-white" : "dark:text-white"}
@@ -1744,6 +2080,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 size="xsmall"
                 className="h-8 px-3 text-sm min-w-[70px] justify-between"
                 disabled={!note}
+                data-toolbar-button="true"
               >
                 {fontSize}
                 <ChevronDown className="w-3 h-3 ml-1" />
@@ -1756,10 +2093,56 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                   onClick={() => {
                     setFontSize(size)
                     if (editorRef.current) {
-                      editorRef.current.style.fontSize = size
-                      const newContent = sanitizeHtml(editorRef.current.innerHTML)
-                      setContent(newContent)
-                      setIsEditing(true)
+                      // Ensure editor is in edit mode
+                      if (!isEditing) {
+                        setIsEditing(true)
+                        setTimeout(() => {
+                          if (editorRef.current) {
+                            editorRef.current.focus()
+                            document.execCommand('fontSize', false, '7') // Use a large size then override with CSS
+                            
+                            // Apply the specific size via CSS
+                            const selection = window.getSelection()
+                            if (selection && selection.rangeCount > 0) {
+                              const range = selection.getRangeAt(0)
+                              const selectedContent = range.extractContents()
+                              const span = document.createElement('span')
+                              span.style.fontSize = size
+                              span.appendChild(selectedContent)
+                              range.insertNode(span)
+                            }
+                            
+                            setTimeout(() => {
+                              if (editorRef.current) {
+                                const htmlContent = editorRef.current.innerHTML
+                                const markdownContent = convertHTMLToMarkdown(htmlContent)
+                                setContent(markdownContent)
+                              }
+                            }, 10)
+                          }
+                        }, 10)
+                      } else {
+                        editorRef.current.focus()
+                        
+                        // Apply font size to selected text
+                        const selection = window.getSelection()
+                        if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+                          const range = selection.getRangeAt(0)
+                          const selectedContent = range.extractContents()
+                          const span = document.createElement('span')
+                          span.style.fontSize = size
+                          span.appendChild(selectedContent)
+                          range.insertNode(span)
+                          
+                          setTimeout(() => {
+                            if (editorRef.current) {
+                              const htmlContent = editorRef.current.innerHTML
+                              const markdownContent = convertHTMLToMarkdown(htmlContent)
+                              setContent(markdownContent)
+                            }
+                          }, 10)
+                        }
+                      }
                     }
                   }}
                   className={`rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-[#1a1a1a] ${fontSize === size ? "bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : "text-gray-700 dark:text-gray-300"}`}
@@ -1780,6 +2163,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             onClick={() => formatText('bold')}
             title="Bold"
             disabled={!note}
+            data-toolbar-button="true"
           >
             <Bold className="w-4 h-4" />
           </FancyButton.Root>
@@ -1790,6 +2174,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             onClick={() => formatText('italic')}
             title="Italic"
             disabled={!note}
+            data-toolbar-button="true"
           >
             <Italic className="w-4 h-4" />
           </FancyButton.Root>
@@ -1800,6 +2185,7 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             onClick={() => formatText('underline')}
             title="Underline"
             disabled={!note}
+            data-toolbar-button="true"
           >
             <Underline className="w-4 h-4" />
           </FancyButton.Root>
@@ -1813,13 +2199,14 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 className="h-8 w-8 p-0"
                 title="Text Color"
                 disabled={!note}
+                data-toolbar-button="true"
               >
                 <Type className="w-4 h-4" />
               </FancyButton.Root>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="p-3 grid grid-cols-4 gap-2 w-40 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg">
               {['#335CFF','#FB3748','#F6B51E','#7D52F4','#47C2FF','#FB4BA3','#22D3BB'].map(c => (
-                <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => formatText('foreColor', c)} />
+                <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => formatText('foreColor', c)} data-toolbar-button="true" />
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1833,13 +2220,14 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
                 className="h-8 w-8 p-0"
                 title="Highlight Text"
                 disabled={!note}
+                data-toolbar-button="true"
               >
                 <Palette className="w-4 h-4" />
               </FancyButton.Root>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="p-3 grid grid-cols-4 gap-2 w-40 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg">
               {['#335CFF','#FB3748','#F6B51E','#7D52F4','#47C2FF','#FB4BA3','#22D3BB'].map(c => (
-                <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} />
+                <button key={c} className="h-6 w-6 rounded-sm border border-gray-200 dark:border-[#2a2a2a]" style={{ backgroundColor: c }} onClick={() => setHighlight(c)} data-toolbar-button="true" />
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1854,9 +2242,128 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
             onClick={handleLinkInsert}
             title="Insert Link"
             disabled={!note}
+            data-toolbar-button="true"
           >
             <Link className="w-4 h-4" />
           </FancyButton.Root>
+
+          <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
+
+          {/* AI Enhancement Dropdown */}
+          <DropdownMenu open={showEnhancementOptions} onOpenChange={setShowEnhancementOptions}>
+            <DropdownMenuTrigger asChild>
+              <FancyButton.Root
+                variant="basic"
+                size="xsmall"
+                className={cn(
+                  "h-8 px-3 flex items-center gap-1.5 relative overflow-hidden transition-all duration-200",
+                  "bg-gradient-to-r from-blue-50 via-purple-50 to-orange-50",
+                  "dark:from-blue-950/30 dark:via-purple-950/30 dark:to-orange-950/30",
+                  "border border-blue-200/50 dark:border-blue-800/50",
+                  "hover:shadow-md hover:shadow-blue-500/20 dark:hover:shadow-blue-500/10",
+                  "hover:border-blue-300 dark:hover:border-blue-700",
+                  showEnhancementOptions && "shadow-lg shadow-blue-500/30 border-blue-400 dark:border-blue-600"
+                )}
+                title="AI Enhancement"
+                disabled={!note || !content.trim() || isEnhancing}
+                data-toolbar-button="true"
+              >
+                {isEnhancing ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-blue-600" />
+                )}
+                <span className="text-xs font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">
+                  AI Enhance
+                </span>
+              </FancyButton.Root>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-56 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] shadow-lg rounded-lg"
+              data-ai-enhancement="true"
+            >
+              <DropdownMenuItem 
+                onClick={() => handleAIEnhancement('professional')}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                data-ai-enhancement="true"
+              >
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                <div>
+                  <div className="font-medium">Make Professional</div>
+                  <div className="text-xs text-gray-500">Improve tone and structure</div>
+                </div>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={() => handleAIEnhancement('trading-review')}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                data-ai-enhancement="true"
+              >
+                <FileText className="w-4 h-4 text-green-500" />
+                <div>
+                  <div className="font-medium">Trading Review</div>
+                  <div className="text-xs text-gray-500">Enhance trade analysis</div>
+                </div>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={() => handleAIEnhancement('grammar')}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                data-ai-enhancement="true"
+              >
+                <Edit3 className="w-4 h-4 text-orange-500" />
+                <div>
+                  <div className="font-medium">Fix Grammar</div>
+                  <div className="text-xs text-gray-500">Correct spelling & grammar</div>
+                </div>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={() => handleAIEnhancement('clarity')}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                data-ai-enhancement="true"
+              >
+                <Type className="w-4 h-4 text-purple-500" />
+                <div>
+                  <div className="font-medium">Improve Clarity</div>
+                  <div className="text-xs text-gray-500">Simplify and clarify</div>
+                </div>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                onClick={() => handleAIEnhancement('summarize')}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                data-ai-enhancement="true"
+              >
+                <Copy className="w-4 h-4 text-gray-500" />
+                <div>
+                  <div className="font-medium">Summarize</div>
+                  <div className="text-xs text-gray-500">Create concise summary</div>
+                </div>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                onClick={handleDailyTradeSummary}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] cursor-pointer"
+                disabled={isGeneratingTradeSummary}
+                data-ai-enhancement="true"
+              >
+                {isGeneratingTradeSummary ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                ) : (
+                  <TrendingUp className="w-4 h-4 text-blue-500" />
+                )}
+                <div>
+                  <div className="font-medium">Daily Trade Report</div>
+                  <div className="text-xs text-gray-500">AI-powered trading summary</div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="w-px h-6 bg-gray-300 dark:bg-[#404040] mx-2" />
 
@@ -2000,93 +2507,131 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
           </div>
         ) : (
           <div className="relative h-full">
-            <div
-              ref={editorRef}
-              contentEditable={!!note}
-              className={cn(
-                "min-h-full outline-none leading-relaxed transition-colors",
-                "text-gray-900 dark:text-white",
-                "focus:ring-0 focus:outline-none",
-                "prose prose-gray dark:prose-invert max-w-none",
-                "break-words whitespace-pre-wrap",
-                // Ensure emoji images display inline properly
-                "[&_img[alt]]:inline-block [&_img[alt]]:align-text-bottom [&_img[alt]]:w-5 [&_img[alt]]:h-5 [&_img[alt]]:mx-0.5"
-              )}
-              style={{
-                fontFamily: fontFamily === 'Inter' ? 'Inter, sans-serif' :
-                  fontFamily === 'SF Pro' ? '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' :
-                    fontFamily === 'Times New Roman' ? '"Times New Roman", Times, serif' :
-                      fontFamily === 'Courier New' ? '"Courier New", Courier, monospace' :
-                        fontFamily,
-                fontSize: fontSize,
-                minHeight: '400px',
-                maxHeight: 'none',
-                height: 'auto',
-                direction: 'ltr',
-                textAlign: 'left',
-                writingMode: 'horizontal-tb',
-                unicodeBidi: 'embed',
-                lineHeight: '1.6',
-                // Ensure proper Unicode and emoji rendering
-                fontFeatureSettings: '"liga" 1, "kern" 1',
-                textRendering: 'optimizeLegibility',
-                /* inherit font smoothing from global settings */
-              }}
-              suppressContentEditableWarning={true}
-              onInput={handleEditorInput}
-              onKeyDown={handleEditorKeyDown}
-              onFocus={() => {
-                setIsEditing(true)
-              }}
-              onPaste={handleEditorPaste}
-              onBlur={handleEditorBlur}
-              onDragOver={(e) => {
-                e.preventDefault()
-                e.dataTransfer.dropEffect = 'move'
-              }}
-              onDrop={(e) => {
-                e.preventDefault()
-                const html = e.dataTransfer.getData('text/html')
-                if (html && html.includes('image-mention')) {
-                  // Get drop position
-                  const range = document.caretRangeFromPoint(e.clientX, e.clientY)
-                  if (range) {
-                    const selection = window.getSelection()
-                    selection?.removeAllRanges()
-                    selection?.addRange(range)
-                    
-                    // Insert the dragged mention at drop position
-                    const tempDiv = document.createElement('div')
-                    tempDiv.innerHTML = html
-                    const mentionElement = tempDiv.firstChild as HTMLElement
-                    
-                    if (mentionElement) {
-                      range.insertNode(mentionElement)
-                      range.setStartAfter(mentionElement)
-                      range.collapse(true)
+            {/* Markdown Preview Mode */}
+            {!isEditing && content && (
+              <div
+                className={cn(
+                  "min-h-full outline-none leading-relaxed transition-colors cursor-text",
+                  "text-gray-900 dark:text-white",
+                  "prose prose-gray dark:prose-invert max-w-none",
+                  "break-words"
+                )}
+                style={{
+                  fontFamily: fontFamily === 'Inter' ? 'Inter, sans-serif' :
+                    fontFamily === 'SF Pro' ? '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' :
+                      fontFamily === 'Times New Roman' ? '"Times New Roman", Times, serif' :
+                        fontFamily === 'Courier New' ? '"Courier New", Courier, monospace' :
+                          fontFamily,
+                  fontSize: fontSize,
+                  minHeight: '400px',
+                  lineHeight: '1.6',
+                }}
+                onClick={handleEditorClick}
+              >
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeHtml(convertMarkdownToHTML(content))
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Raw Markdown Editor Mode */}
+            {(isEditing || !content) && (
+              <div
+                ref={editorRef}
+                contentEditable={!!note}
+                className={cn(
+                  "min-h-full outline-none leading-relaxed transition-colors",
+                  "text-gray-900 dark:text-white",
+                  "focus:ring-0 focus:outline-none",
+                  "prose prose-gray dark:prose-invert max-w-none",
+                  "break-words whitespace-pre-wrap",
+                  // Ensure emoji images display inline properly
+                  "[&_img[alt]]:inline-block [&_img[alt]]:align-text-bottom [&_img[alt]]:w-5 [&_img[alt]]:h-5 [&_img[alt]]:mx-0.5"
+                )}
+                style={{
+                  fontFamily: fontFamily === 'Inter' ? 'Inter, sans-serif' :
+                    fontFamily === 'SF Pro' ? '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' :
+                      fontFamily === 'Times New Roman' ? '"Times New Roman", Times, serif' :
+                        fontFamily === 'Courier New' ? '"Courier New", Courier, monospace' :
+                          fontFamily,
+                  fontSize: fontSize,
+                  minHeight: '400px',
+                  maxHeight: 'none',
+                  height: 'auto',
+                  direction: 'ltr',
+                  textAlign: 'left',
+                  writingMode: 'horizontal-tb',
+                  unicodeBidi: 'embed',
+                  lineHeight: '1.6',
+                  // Ensure proper Unicode and emoji rendering
+                  fontFeatureSettings: '"liga" 1, "kern" 1',
+                  textRendering: 'optimizeLegibility',
+                  /* inherit font smoothing from global settings */
+                }}
+                suppressContentEditableWarning={true}
+                onInput={handleEditorInput}
+                onKeyDown={handleEditorKeyDown}
+                onFocus={() => {
+                  setIsEditing(true)
+                }}
+                onPaste={handleEditorPaste}
+                onBlur={handleEditorBlur}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const html = e.dataTransfer.getData('text/html')
+                  if (html && html.includes('image-mention')) {
+                    // Get drop position
+                    const range = document.caretRangeFromPoint(e.clientX, e.clientY)
+                    if (range) {
+                      const selection = window.getSelection()
                       selection?.removeAllRanges()
                       selection?.addRange(range)
                       
-                      // Update content
-                      setTimeout(() => {
-                        if (editorRef.current) {
-                          const newContent = sanitizeHtml(editorRef.current.innerHTML)
-                          setContent(newContent)
-                          setIsEditing(true)
-                        }
-                      }, 10)
+                      // Insert the dragged mention at drop position
+                      const tempDiv = document.createElement('div')
+                      tempDiv.innerHTML = html
+                      const mentionElement = tempDiv.firstChild as HTMLElement
+                      
+                      if (mentionElement) {
+                        range.insertNode(mentionElement)
+                        range.setStartAfter(mentionElement)
+                        range.collapse(true)
+                        selection?.removeAllRanges()
+                        selection?.addRange(range)
+                        
+                        // Update content
+                        setTimeout(() => {
+                          if (editorRef.current) {
+                            const newContent = sanitizeHtml(editorRef.current.innerHTML)
+                            setContent(newContent)
+                            setIsEditing(true)
+                          }
+                        }, 10)
+                      }
                     }
                   }
-                }
-              }}
-              onClick={() => {
-                if (showImagePicker) {
-                  setShowImagePicker(false)
-                  setImageSearchQuery('')
-                  setMentionStartPos(null)
-                }
-              }}
-            />
+                }}
+                onClick={() => {
+                  if (showImagePicker) {
+                    setShowImagePicker(false)
+                    setImageSearchQuery('')
+                    setMentionStartPos(null)
+                  }
+                }}
+              >
+                {!content && (
+                  <div className="text-gray-400 dark:text-gray-500 pointer-events-none">
+                    Start typing your notes here...
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
