@@ -1,5 +1,8 @@
 /* Inter is now loaded via next/font in layout.tsx for better performance and hinting */
 
+/* Import Codec Pro font for branding */
+@import url('https://fonts.googleapis.com/css2?family=Codec+Pro:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

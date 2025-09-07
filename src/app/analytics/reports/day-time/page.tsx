@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { AnalyticsTabNavigation } from '@/components/ui/analytics-tab-navigation'
-import { PerformanceChart } from '@/components/analytics/performance-chart'
+import { OptimizedPerformanceChart } from '@/components/analytics/optimized-performance-chart'
 import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { cn } from '@/lib/utils'
@@ -498,7 +498,7 @@ export default function DayTimePage() {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PerformanceChart
+              <OptimizedPerformanceChart
                 data={leftData as any}
                 onDataRequest={onDataRequest}
                 contextInfo={{
@@ -543,7 +543,7 @@ export default function DayTimePage() {
                   },
                 }}
               />
-              <PerformanceChart
+              <OptimizedPerformanceChart
                 data={rightData as any}
                 onDataRequest={onDataRequest}
                 contextInfo={{

@@ -182,8 +182,8 @@ export function Sidebar() {
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="ml-3 flex-1 overflow-hidden"
           >
-            <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 via-pink-500 to-violet-600 bg-clip-text text-transparent whitespace-nowrap">
-              TRADESTIAL
+            <h1 className="text-xl font-bold font-codec-pro bg-gradient-to-r from-orange-500 via-pink-500 to-violet-600 bg-clip-text text-transparent whitespace-nowrap">
+              Tradestial
             </h1>
           </motion.div>
         )}

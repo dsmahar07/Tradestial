@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { PerformanceChart } from './performance-chart'
+import { OptimizedPerformanceChart } from './optimized-performance-chart'
 import { MetricGrid } from './metric-card'
 import { StialScale } from './stial-scale'
 import { PerformanceTabs } from './performance-tabs'
@@ -638,8 +638,8 @@ export function PerformancePage({ data }: PerformancePageProps) {
       
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PerformanceChart data={actualData.charts.avgPlannedRMultiple} onDataRequest={onDataRequest} />
-        <PerformanceChart data={actualData.charts.avgLoss} onDataRequest={onDataRequest} />
+        <OptimizedPerformanceChart data={actualData.charts.avgPlannedRMultiple} onDataRequest={onDataRequest} />
+        <OptimizedPerformanceChart data={actualData.charts.avgLoss} onDataRequest={onDataRequest} />
       </div>
 
       {/* Tabs */}

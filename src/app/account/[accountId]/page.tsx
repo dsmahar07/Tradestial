@@ -15,6 +15,7 @@ import { ChevronDown, MoreVertical, Edit, Trash2, Upload, DollarSign } from 'luc
 import * as FileUpload from '@/components/ui/file-upload'
 import * as Notification from '@/components/ui/notification'
 import * as Modal from '@/components/ui/modal'
+import { useToast } from '@/components/ui/notification-toast'
 
 // Local controls (minimal, no shadcn)
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -224,16 +225,8 @@ export default function AccountDetailsPage() {
   const [showBalanceAdjust, setShowBalanceAdjust] = useState(false);
   const [newStartingBalance, setNewStartingBalance] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [toasts, setToasts] = useState<Array<{ id: number; status: 'success' | 'warning' | 'error' | 'information' | 'feature' | 'default'; title: string; description?: string }>>([])
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-
-  const addToast = (
-    status: 'success' | 'warning' | 'error' | 'information' | 'feature' | 'default',
-    title: string,
-    description?: string,
-  ) => {
-    setToasts((prev) => [...prev, { id: Date.now() + Math.floor(Math.random() * 1000), status, title, description }])
-  }
+  const { success, error, warning, info, ToastContainer } = useToast()
 
   useEffect(() => {
     if (!accountId) return;
@@ -288,7 +281,7 @@ export default function AccountDetailsPage() {
       const lines = text.split('\n').filter(line => line.trim());
       
       if (lines.length < 2) {
-        addToast('warning', 'Invalid CSV', 'CSV must include a header and at least one data row.');
+        warning('Invalid CSV', 'CSV must include a header and at least one data row.');
         return;
       }
 
@@ -323,13 +316,13 @@ export default function AccountDetailsPage() {
 
       if (trades.length > 0) {
         await accountService.addTradesToAccount(account.id, trades);
-        addToast('success', 'Import complete', `Imported ${trades.length} trade${trades.length !== 1 ? 's' : ''}.`);
+        success('Import complete', `Imported ${trades.length} trade${trades.length !== 1 ? 's' : ''}.`);
       } else {
-        addToast('information', 'No trades imported', 'No valid rows were found in the CSV.');
+        info('No trades imported', 'No valid rows were found in the CSV.');
       }
-    } catch (error) {
-      console.error('Error parsing CSV:', error);
-      addToast('error', 'CSV parsing failed', 'Please check the file format and try again.');
+    } catch (err) {
+      console.error('Error parsing CSV:', err);
+      error('CSV parsing failed', 'Please check the file format and try again.');
     }
 
     setShowCsvUpload(false);
@@ -350,7 +343,7 @@ export default function AccountDetailsPage() {
 
     const newBalance = parseFloat(newStartingBalance);
     if (isNaN(newBalance)) {
-      addToast('warning', 'Invalid amount', 'Please enter a valid number for the starting balance.')
+      warning('Invalid amount', 'Please enter a valid number for the starting balance.')
       return;
     }
 
@@ -550,24 +543,8 @@ export default function AccountDetailsPage() {
             </Modal.Footer>
           </Modal.Content>
         </Modal.Root>
-        {/* Notifications */}
-        <Notification.Provider swipeDirection="right">
-          {toasts.map((t) => (
-            <Notification.Root
-              key={t.id}
-              status={t.status}
-              variant={t.status === 'success' ? 'filled' : 'soft'}
-              duration={3000}
-              title={t.title}
-              description={t.description}
-              onOpenChange={(open) => {
-                if (!open) setToasts((prev) => prev.filter((x) => x.id !== t.id))
-              }}
-              open
-            />
-          ))}
-          <Notification.Viewport />
-        </Notification.Provider>
+        {/* Toast Notifications */}
+        <ToastContainer />
       </div>
     </div>
   )

@@ -191,40 +191,36 @@ export default function UploadPage() {
   }
 
   const processFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      toastWarning('Invalid file type', 'Please select a .csv file')
-      return
-    }
-
+    if (isImportingRef.current) return
+    isImportingRef.current = true
     setIsProcessing(true)
-    
+
     try {
-      // Validate timezone offset before processing
-      if (isNaN(selectedTimezone)) {
-        toastWarning('Invalid timezone', 'Please select a valid timezone before uploading')
-        setIsProcessing(false)
+      // Validate file type
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        toastError('Invalid file type', 'Please select a CSV file.')
         return
       }
 
-      // Strict CSV header validation for selected broker
-      const { ok, message } = await validateHeadersForSelectedBroker(file, selectedBroker.id)
-      if (!ok) {
-        toastWarning('Invalid CSV format for ' + selectedBroker.name, message || 'The uploaded file does not match the required header format.')
-        setIsProcessing(false)
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        toastError('File too large', 'Please select a file smaller than 10MB.')
         return
       }
 
-      // Use the CSV import service to process the file with timezone settings
-      const result = await CSVImportService.importCSV(
-        file,
-        selectedBroker.id,
-        undefined, // accountId - not needed for new imports
-        {
-          timezoneOffsetMinutes: selectedTimezone
-        }
-      )
+      // Detect broker type based on headers
+      const isTradovate = await validateTradovatePerformanceHeaders(file)
+      const isTradingView = await validateTradingViewHeaders(file)
       
-      if (result.success && result.trades.length > 0) {
+      if (!isTradovate && !isTradingView) {
+        toastError('Unsupported format', 'This CSV format is not supported. Please use TradingView or Tradovate exports.')
+        return
+      }
+
+      // Import the file
+      const result = await CSVImportService.importCSV(file, selectedTimezone.toString())
+      
+      if (result.success && result.trades && result.trades.length > 0) {
         // Create a new trading account
         const newAccount = await accountService.createAccount(
           `${selectedBroker.name} Account`,

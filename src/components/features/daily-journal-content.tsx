@@ -492,6 +492,9 @@ export function DailyJournalContent() {
   }
 
   const getAvatarColor = (symbol: string) => {
+    if (!symbol || typeof symbol !== 'string') {
+      return 'bg-gray-500' // Default color for invalid symbols
+    }
     const colors = [
       'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500',
       'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-gray-500'
@@ -501,6 +504,9 @@ export function DailyJournalContent() {
   }
 
   const getInitials = (symbol: string) => {
+    if (!symbol || typeof symbol !== 'string') {
+      return 'XX' // Default initials for invalid symbols
+    }
     return symbol.substring(0, 2).toUpperCase()
   }
 

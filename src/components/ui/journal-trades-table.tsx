@@ -40,11 +40,14 @@ const formatPrice = (value: number): string => {
 }
 
 const getAvatarColor = (symbol: string) => {
+  if (!symbol || typeof symbol !== 'string') {
+    return 'bg-gray-500' // Default color for invalid symbols
+  }
   const colors = [
     'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
     'bg-indigo-500', 'bg-yellow-500', 'bg-red-500', 'bg-teal-500'
   ]
-  const hash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const hash = symbol.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
   return colors[hash % colors.length]
 }
 

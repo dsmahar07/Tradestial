@@ -472,8 +472,8 @@ export function DashboardContent() {
       <DailyCheckListDialog 
         open={isDailyChecklistOpen} 
         onClose={() => setIsDailyChecklistOpen(false)}
-        manualRules={[]}
-        onUpdateManualRules={() => {}}
+        manualRules={manualRules}
+        onUpdateManualRules={setManualRules}
       />
 
       {/* Mood Selection Modal */}

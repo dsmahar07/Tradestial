@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { Palette, HelpCircle, CreditCard, Upload, HardDrive } from 'lucide-react'
 import { userProfileService, UserProfile } from '@/services/user-profile.service'
+import { useToast } from '@/components/ui/notification-toast'
 
 // Custom SVG Icons
 const ProfileIcon = ({ className }: { className?: string }) => (
@@ -65,9 +66,9 @@ export default function SettingsPage() {
   // Profile state
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { success, error, warning, ToastContainer } = useToast()
   
   // Form state
   const [formData, setFormData] = useState({
@@ -76,33 +77,52 @@ export default function SettingsPage() {
     tradingExperience: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'professional'
   })
   
-  // Calculate localStorage usage
+  // Calculate localStorage usage with error handling
   const calculateStorageUsage = () => {
-    let totalSize = 0
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
-        const value = localStorage.getItem(key)
-        if (value) {
-          totalSize += key.length + value.length
+    try {
+      let totalSize = 0
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const value = localStorage.getItem(key)
+          if (value) {
+            totalSize += key.length + value.length
+          }
         }
       }
+      return totalSize
+    } catch (err) {
+      console.error('Error calculating storage usage:', err)
+      return 0
     }
-    return totalSize
   }
 
   // Load user profile and calculate storage on component mount
   useEffect(() => {
-    const profile = userProfileService.getUserProfile()
-    setUserProfile(profile)
-    setFormData({
-      fullName: profile.fullName,
-      email: profile.email,
-      tradingExperience: profile.tradingExperience
-    })
-    
-    // Calculate storage usage
-    const usedBytes = calculateStorageUsage()
-    setStorageUsage(prev => ({ ...prev, used: usedBytes }))
+    try {
+      const profile = userProfileService.getUserProfile()
+      if (profile) {
+        setUserProfile(profile)
+        setFormData({
+          fullName: profile.fullName || '',
+          email: profile.email || '',
+          tradingExperience: profile.tradingExperience || 'intermediate'
+        })
+      } else {
+        // Handle case where no profile exists
+        setFormData({
+          fullName: '',
+          email: '',
+          tradingExperience: 'intermediate'
+        })
+      }
+      
+      // Calculate storage usage
+      const usedBytes = calculateStorageUsage()
+      setStorageUsage(prev => ({ ...prev, used: usedBytes }))
+    } catch (err) {
+      console.error('Error loading user profile:', err)
+      error('Profile Load Error', 'Failed to load user profile. Please refresh the page.')
+    }
   }, [])
 
   const isDarkMode = theme === 'dark'
@@ -112,6 +132,17 @@ export default function SettingsPage() {
     const file = event.target.files?.[0]
     if (!file) return
     
+    // Validate file size and type
+    if (file.size > 5 * 1024 * 1024) {
+      error('File Too Large', 'Please select an image smaller than 5MB.')
+      return
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      error('Invalid File Type', 'Please select a valid image file.')
+      return
+    }
+    
     setIsLoading(true)
     setErrors({})
     
@@ -119,10 +150,11 @@ export default function SettingsPage() {
       const base64Image = await userProfileService.uploadProfilePicture(file)
       const updatedProfile = userProfileService.updateUserProfile({ profilePicture: base64Image })
       setUserProfile(updatedProfile)
-      setSaveMessage('Profile picture updated successfully!')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      setErrors({ profilePicture: error instanceof Error ? error.message : 'Failed to upload image' })
+      success('Profile Updated', 'Profile picture updated successfully!')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload image'
+      setErrors({ profilePicture: errorMessage })
+      error('Upload Failed', errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -142,32 +174,40 @@ export default function SettingsPage() {
     const newErrors: Record<string, string> = {}
     
     // Validate full name
-    if (!userProfileService.validateFullName(formData.fullName)) {
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required'
+    } else if (!userProfileService.validateFullName(formData.fullName)) {
       newErrors.fullName = 'Name must be between 2 and 50 characters'
     }
     
     // Validate email
-    if (!userProfileService.validateEmail(formData.email)) {
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email address is required'
+    } else if (!userProfileService.validateEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address'
     }
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+      warning('Validation Error', 'Please fix the errors below before saving.')
       return
     }
     
     setIsLoading(true)
+    setErrors({})
+    
     try {
       const updatedProfile = userProfileService.updateUserProfile({
-        fullName: formData.fullName,
-        email: formData.email,
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
         tradingExperience: formData.tradingExperience
       })
       setUserProfile(updatedProfile)
-      setSaveMessage('Profile updated successfully!')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      setErrors({ general: 'Failed to save changes. Please try again.' })
+      success('Profile Updated', 'Your profile has been updated successfully!')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save changes. Please try again.'
+      setErrors({ general: errorMessage })
+      error('Save Failed', errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -177,13 +217,12 @@ export default function SettingsPage() {
   const handleCancel = () => {
     if (userProfile) {
       setFormData({
-        fullName: userProfile.fullName,
-        email: userProfile.email,
-        tradingExperience: userProfile.tradingExperience
+        fullName: userProfile.fullName || '',
+        email: userProfile.email || '',
+        tradingExperience: userProfile.tradingExperience || 'intermediate'
       })
     }
     setErrors({})
-    setSaveMessage('')
   }
 
   return (
@@ -313,12 +352,7 @@ export default function SettingsPage() {
 
                         <Separator.Root className="h-px bg-gray-200 dark:bg-gray-700" />
 
-                        {/* Success/Error Messages */}
-                        {saveMessage && (
-                          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                            <p className="text-sm text-green-700 dark:text-green-300">{saveMessage}</p>
-                          </div>
-                        )}
+                        {/* Error Messages */}
                         {errors.general && (
                           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                             <p className="text-sm text-red-700 dark:text-red-300">{errors.general}</p>
@@ -751,7 +785,6 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     </Tabs.Content>
-
                   </div>
                 </div>
               </div>
@@ -759,6 +792,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   )
 }

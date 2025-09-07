@@ -260,22 +260,22 @@ export default function TradesPage() {
     return `${sign}$${absolute.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
-  const getInitials = (symbol: string) => {
-    return symbol.slice(0, 2).toUpperCase()
-  }
-
   const getAvatarColor = (symbol: string) => {
+    if (!symbol || typeof symbol !== 'string') {
+      return 'bg-gray-500' // Default color for invalid symbols
+    }
     const colors = [
       'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 
       'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-orange-500'
     ]
-    const index = symbol.charCodeAt(0) % colors.length
-    return colors[index]
+    const hash = symbol.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+    return colors[hash % colors.length]
   }
 
-  if (isLoading) {
-    return <PageLoading />
+  const getInitials = (symbol: string) => {
+    return symbol?.slice(0, 2).toUpperCase() || 'XX'
   }
+
 
   return (
     <div className="flex min-h-screen">
