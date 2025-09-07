@@ -327,13 +327,20 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
 
   // AI Enhancement handlers
   const handleAIEnhancement = async (type: EnhancementOptions['type']) => {
-    if (!note || !content.trim()) return
+    if (!note) return
+
+    // Special handling for summarize - use full trading report
+    if (type === 'summarize') {
+      return handleFullTradingReportSummary()
+    }
+
+    if (!content.trim()) return
 
     setIsEnhancing(true)
     setShowEnhancementOptions(false)
 
     // Show info toast about enhancement starting
-    info('AI Enhancement Started', 'Processing your text with Kimi K2 AI...', 3000)
+    info('AI Enhancement Started', 'Processing your text with Llama 4 Maverick AI...', 3000)
 
     try {
       const result = await aiEnhancementService.enhanceText(content, { 
@@ -366,6 +373,153 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
         'Enhancement Failed', 
         'Unable to enhance text. Please check your API key and try again.', 
         6000
+      )
+    } finally {
+      setIsEnhancing(false)
+    }
+  }
+
+  // Full Trading Report Summary handler
+  const handleFullTradingReportSummary = async () => {
+    if (!note) return
+
+    setIsEnhancing(true)
+    setShowEnhancementOptions(false)
+
+    info('Generating Full Trading Report Summary', 'Analyzing all your trades and performance data...', 4000)
+
+    try {
+      // Get all trades from DataStore
+      let allTrades = []
+      try {
+        allTrades = DataStore.getAllTrades()
+        console.log('Retrieved all trades for summary:', allTrades.length)
+      } catch (dataError) {
+        console.error('Error accessing DataStore:', dataError)
+        error('Data Access Error', 'Unable to access trade data. Please ensure trades are imported.', 6000)
+        return
+      }
+
+      if (allTrades.length === 0) {
+        error('No Trades Found', 'No trades found in your account. Please import trades first.', 6000)
+        return
+      }
+
+      // Calculate comprehensive statistics
+      const totalTrades = allTrades.length
+      const winners = allTrades.filter((t: any) => (t.netPnl || 0) > 0).length
+      const losers = allTrades.filter((t: any) => (t.netPnl || 0) < 0).length
+      const breakeven = totalTrades - winners - losers
+      const winRate = totalTrades > 0 ? Math.round((winners / totalTrades) * 100) : 0
+      
+      const totalPnL = allTrades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)
+      const grossPnL = allTrades.reduce((sum: number, t: any) => sum + (t.grossPnl || t.netPnl || 0), 0)
+      const totalCommissions = allTrades.reduce((sum: number, t: any) => sum + (t.commissions || 0), 0)
+      const totalVolume = allTrades.reduce((sum: number, t: any) => sum + (t.contractsTraded || 0), 0)
+      
+      const avgWin = winners > 0 ? allTrades.filter((t: any) => (t.netPnl || 0) > 0).reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0) / winners : 0
+      const avgLoss = losers > 0 ? Math.abs(allTrades.filter((t: any) => (t.netPnl || 0) < 0).reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)) / losers : 0
+      const profitFactor = avgLoss > 0 ? (avgWin / avgLoss) : 0
+      
+      // Get unique symbols and dates
+      const uniqueSymbols = [...new Set(allTrades.map((t: any) => t.symbol).filter(Boolean))]
+      const tradingDays = [...new Set(allTrades.map((t: any) => {
+        const date = t.entryDate || t.openDate || t.closeDate
+        return date ? date.split('T')[0] : null
+      }).filter(Boolean))].length
+
+      // Create comprehensive trading report
+      const reportContent = `# Complete Trading Performance Report
+
+## 📊 **Executive Summary**
+Your comprehensive trading analysis across **${totalTrades} trades** over **${tradingDays} trading days**.
+
+**Net P&L: ${totalPnL >= 0 ? '+' : ''}$${Math.round(totalPnL).toLocaleString()}**
+**Win Rate: ${winRate}%** (${winners}W / ${losers}L / ${breakeven}BE)
+
+---
+
+## 🎯 **Key Performance Metrics**
+
+### Profitability Analysis
+- **Total Net P&L**: ${totalPnL >= 0 ? '+' : ''}$${Math.round(totalPnL).toLocaleString()}
+- **Gross P&L**: ${grossPnL >= 0 ? '+' : ''}$${Math.round(grossPnL).toLocaleString()}
+- **Total Commissions**: $${Math.round(totalCommissions).toLocaleString()}
+- **Profit Factor**: ${profitFactor.toFixed(2)}
+
+### Trade Statistics
+- **Total Trades**: ${totalTrades.toLocaleString()}
+- **Winning Trades**: ${winners} (${winRate}%)
+- **Losing Trades**: ${losers} (${Math.round((losers/totalTrades)*100)}%)
+- **Breakeven Trades**: ${breakeven}
+- **Average Win**: +$${Math.round(avgWin).toLocaleString()}
+- **Average Loss**: -$${Math.round(avgLoss).toLocaleString()}
+
+### Volume & Activity
+- **Total Volume**: ${totalVolume.toLocaleString()} contracts
+- **Trading Days**: ${tradingDays}
+- **Avg Trades/Day**: ${(totalTrades/Math.max(tradingDays,1)).toFixed(1)}
+- **Instruments Traded**: ${uniqueSymbols.length}
+
+---
+
+## 📈 **Market Analysis**
+
+### Top Instruments
+${uniqueSymbols.slice(0, 5).map(symbol => {
+  const symbolTrades = allTrades.filter((t: any) => t.symbol === symbol)
+  const symbolPnL = symbolTrades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)
+  return `- **${symbol}**: ${symbolTrades.length} trades, ${symbolPnL >= 0 ? '+' : ''}$${Math.round(symbolPnL).toLocaleString()}`
+}).join('\n')}
+
+### Performance Insights
+${totalPnL > 0 
+  ? `✅ **Profitable Trading**: You're showing positive returns with a ${winRate}% win rate.`
+  : `⚠️ **Areas for Improvement**: Focus on risk management and strategy refinement.`
+}
+
+${profitFactor > 1.5 
+  ? `🎯 **Strong Profit Factor**: Your ${profitFactor.toFixed(2)} profit factor indicates good risk-reward management.`
+  : `📊 **Profit Factor**: Consider improving your risk-reward ratio (current: ${profitFactor.toFixed(2)}).`
+}
+
+---
+
+## 🔍 **Recommendations**
+
+### Strengths
+${winRate >= 50 ? '- High win rate indicates good entry timing' : ''}
+${profitFactor > 1.2 ? '- Solid profit factor shows effective risk management' : ''}
+${totalTrades > 100 ? '- Good sample size for statistical significance' : ''}
+
+### Areas to Focus On
+${winRate < 50 ? '- Work on improving entry timing and trade selection' : ''}
+${profitFactor < 1.2 ? '- Focus on better risk-reward ratios' : ''}
+${avgLoss > avgWin ? '- Consider tighter stop losses or wider profit targets' : ''}
+
+---
+
+*Report generated on ${new Date().toLocaleDateString()} • Data includes ${totalTrades} trades*
+*Powered by Tradestial AI Analytics*`
+
+      // Update content with comprehensive report
+      setContent(reportContent)
+      if (onUpdateNote) {
+        onUpdateNote(note.id, reportContent)
+      }
+
+      // Force exit edit mode to show the report
+      setIsEditing(false)
+
+      success('Trading Report Generated', `Analyzed ${totalTrades} trades and created comprehensive performance summary!`, 5000)
+    } catch (err) {
+      console.error('Full Trading Report Summary failed:', err)
+      
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      error(
+        'Report Generation Failed', 
+        `Error: ${errorMessage}`, 
+        8000
       )
     } finally {
       setIsEnhancing(false)
