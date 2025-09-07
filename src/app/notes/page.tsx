@@ -11,6 +11,7 @@ import JournalTradesTable from '@/components/ui/journal-trades-table'
 
 import { useConfirmation } from '@/components/ui/confirmation-modal'
 import { useToast } from '@/components/ui/notification-toast'
+import { cn } from '@/lib/utils'
 import { TradeJournalingTemplate, defaultTemplates } from '@/lib/templates'
 import type { TemplateInstance } from '@/types/templates'
 import { useState, useEffect, useMemo } from 'react'
@@ -28,6 +29,7 @@ export interface Note {
   folder: string
   tags: string[]
   color?: string // Color for the note badge/tag
+  isBookmarked?: boolean // Bookmark status
   template?: {
     templateId: string
     customFields?: any[]
@@ -65,22 +67,84 @@ export interface Folder {
   name: string
   order: number
   color?: string
+  parentId?: string // For nested folders
+  isExpanded?: boolean // For folder tree state
 }
 
 export default function NotesPage() {
   usePageTitle('Notes')
   const searchParams = useSearchParams()
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
-  const [selectedFolder, setSelectedFolder] = useState('All notes')
+  const [selectedFolder, setSelectedFolder] = useState('All Notes')
   const { confirm, ConfirmationModal } = useConfirmation()
   const { success, error, warning, ToastContainer } = useToast()
-  const [folders, setFolders] = useState<Folder[]>([
-    { id: 'all-notes', name: 'All notes', order: 0, color: '#3b82f6' },
-    { id: 'trade-notes', name: 'Trade Notes', order: 1, color: '#10b981' },
-    { id: 'daily-journal', name: 'Daily Journal', order: 2, color: '#f59e0b' },
-    { id: 'sessions-recap', name: 'Sessions Recap', order: 3, color: '#8b5cf6' },
-    { id: 'my-notes', name: 'My notes', order: 4, color: '#ec4899' },
-  ])
+  // Function to get a random color for new notes
+  const getRandomNoteColor = () => {
+    const colors = [
+      '#3b82f6', // Blue
+      '#ef4444', // Red
+      '#10b981', // Green
+      '#f59e0b', // Yellow
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#f97316', // Orange
+      '#84cc16', // Lime
+      '#ec4899', // Pink
+      '#6b7280', // Gray
+      '#14b8a6', // Teal
+      '#a855f7'  // Violet
+    ]
+    return colors[Math.floor(Math.random() * colors.length)]
+  }
+
+  // Function to get next available folder color (different from existing folders)
+  const getNextFolderColor = () => {
+    const folderColors = [
+      '#3b82f6', // Blue
+      '#10b981', // Green
+      '#f59e0b', // Yellow
+      '#ef4444', // Red
+      '#8b5cf6', // Purple
+      '#06b6d4', // Cyan
+      '#f97316', // Orange
+      '#84cc16', // Lime
+      '#ec4899', // Pink
+      '#14b8a6', // Teal
+      '#a855f7', // Violet
+      '#6b7280'  // Gray
+    ]
+    
+    // Get colors already used by existing folders
+    const usedColors = folders.map(folder => folder.color).filter(Boolean)
+    
+    // Find first unused color
+    const availableColor = folderColors.find(color => !usedColors.includes(color))
+    
+    // If all colors are used, return a random one
+    return availableColor || folderColors[Math.floor(Math.random() * folderColors.length)]
+  }
+
+  const [folders, setFolders] = useState<Folder[]>(() => {
+    // Load folders from localStorage on initialization
+    if (typeof window !== 'undefined') {
+      const savedFolders = localStorage.getItem('tradestial_folders')
+      if (savedFolders) {
+        try {
+          return JSON.parse(savedFolders)
+        } catch (error) {
+          console.error('Error loading folders from localStorage:', error)
+        }
+      }
+    }
+    // Default folders if no saved folders
+    return [
+      { id: 'all-notes', name: 'All Notes', order: 0, color: '#3b82f6' },
+      { id: 'my-notes', name: 'My notes', order: 1, color: '#10b981' },
+      { id: 'daily-journal', name: 'Daily Journal', order: 2, color: '#f59e0b' },
+      { id: 'trade-notes', name: 'Trade Notes', order: 3, color: '#ef4444' },
+      { id: 'sessions-recap', name: 'Sessions Recap', order: 4, color: '#8b5cf6' }
+    ]
+  })
   const [notes, setNotes] = useState<Note[]>(() => {
     // Load notes from localStorage on initialization
     if (typeof window !== 'undefined') {
@@ -107,7 +171,7 @@ export default function NotesPage() {
       updatedAt: new Date().toISOString(),
       folder: 'All notes',
       tags: [],
-      color: '#3b82f6' // Default blue color
+      color: getRandomNoteColor()
     }]
   })
   const [templates, setTemplates] = useState<TradeJournalingTemplate[]>(defaultTemplates)
@@ -115,6 +179,8 @@ export default function NotesPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false)
+  // Sidebar collapsed state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const tags = useMemo(() => {
     const set = new Set<string>()
     for (const n of notes) {
@@ -144,9 +210,53 @@ export default function NotesPage() {
   // Save notes to localStorage whenever notes change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('tradestial_notes', JSON.stringify(notes))
+      try {
+        // Create a safe copy of notes without circular references
+        const safeNotes = notes.map(note => ({
+          ...note,
+          // Only keep essential tradingData fields, exclude complex objects
+          tradingData: note.tradingData ? {
+            netPnl: note.tradingData.netPnl,
+            isProfit: note.tradingData.isProfit,
+            date: note.tradingData.date,
+            // Exclude chartData and trades which may contain circular references
+            stats: note.tradingData.stats ? {
+              totalTrades: note.tradingData.stats.totalTrades,
+              winners: note.tradingData.stats.winners,
+              losers: note.tradingData.stats.losers,
+              winrate: note.tradingData.stats.winrate,
+              profitFactor: note.tradingData.stats.profitFactor,
+              grossPnl: note.tradingData.stats.grossPnl,
+              volume: note.tradingData.stats.volume
+            } : undefined
+          } : undefined
+        }))
+        localStorage.setItem('tradestial_notes', JSON.stringify(safeNotes))
+      } catch (error) {
+        console.error('Error saving notes to localStorage:', error)
+      }
     }
   }, [notes])
+
+  // Save folders to localStorage whenever folders change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Create a safe copy of folders without any potential circular references
+        const safeFolders = folders.map(folder => ({
+          id: folder.id,
+          name: folder.name,
+          order: folder.order,
+          color: folder.color,
+          parentId: folder.parentId,
+          isExpanded: folder.isExpanded
+        }))
+        localStorage.setItem('tradestial_folders', JSON.stringify(safeFolders))
+      } catch (error) {
+        console.error('Error saving folders to localStorage:', error)
+      }
+    }
+  }, [folders])
 
   // Refresh trigger when DataStore updates
   const [dataTick, setDataTick] = useState(0)
@@ -390,7 +500,7 @@ export default function NotesPage() {
       updatedAt: now.toISOString(),
       folder: selectedFolder === 'All notes' ? 'My notes' : selectedFolder,
       tags: [],
-      color: '#3b82f6' // Default blue color
+      color: getRandomNoteColor()
     }
     setNotes(prev => [newNote, ...prev])
     setSelectedNote(newNote)
@@ -486,40 +596,41 @@ export default function NotesPage() {
     success('Template applied!', `${template.name} template applied instantly - ready to edit!`)
   }
 
-  const handleUpdateNote = (id: string, content: string, title?: string, color?: string, tags?: string[], sharing?: { isShared: boolean; shareToken?: string; isAnonymous: boolean; sharedAt?: string }) => {
-    console.log('Updating note:', id, 'with content length:', content.length)
+  const handleUpdateNote = (id: string, content: string, title?: string, color?: string) => {
     setNotes(prev => prev.map(note => 
       note.id === id 
         ? { 
             ...note, 
             content, 
-            updatedAt: new Date().toISOString(),
-            // Only update title if explicitly provided
-            ...(title !== undefined && { title }),
-            // Only update color if explicitly provided
-            ...(color !== undefined && { color }),
-            // Only update tags if explicitly provided
-            ...(tags !== undefined && { tags }),
-            // Only update sharing if explicitly provided
-            ...(sharing !== undefined && { sharing })
+            title: title || note.title,
+            color: color || note.color,
+            updatedAt: new Date().toISOString() 
           }
         : note
     ))
-    // Update selected note state to stay in sync
-    if (selectedNote?.id === id) {
-      setSelectedNote(prev => prev ? { 
-        ...prev, 
-        content, 
-        updatedAt: new Date().toISOString(),
-        // Only update title if explicitly provided
-        ...(title !== undefined && { title }),
-        // Only update color if explicitly provided
-        ...(color !== undefined && { color }),
-        // Only update tags if explicitly provided
-        ...(tags !== undefined && { tags }),
-        // Only update sharing if explicitly provided
-        ...(sharing !== undefined && { sharing })
-      } : null)
+  }
+
+  const handleMoveNote = (noteId: string, targetFolder: string) => {
+    setNotes(prev => prev.map(note => 
+      note.id === noteId 
+        ? { ...note, folder: targetFolder, updatedAt: new Date().toISOString() }
+        : note
+    ))
+    success('Note moved', `Note moved to "${targetFolder}" folder`)
+  }
+
+  const handleToggleBookmark = (noteId: string) => {
+    setNotes(prev => prev.map(note => 
+      note.id === noteId 
+        ? { ...note, isBookmarked: !note.isBookmarked, updatedAt: new Date().toISOString() }
+        : note
+    ))
+    const note = notes.find(n => n.id === noteId)
+    if (note) {
+      success(
+        note.isBookmarked ? 'Bookmark removed' : 'Note bookmarked',
+        note.isBookmarked ? 'Note removed from bookmarks' : 'Note added to bookmarks'
+      )
     }
   }
 
@@ -622,14 +733,17 @@ export default function NotesPage() {
     setSelectedNote(null)
   }
 
-  const handleAddFolder = () => {
+  const handleAddFolder = (parentId?: string) => {
     const newFolder: Folder = {
       id: Date.now().toString(),
-      name: 'New Folder',
+      name: parentId ? 'New Subfolder' : 'New Folder',
       order: folders.length,
-      color: '#3b82f6'
+      color: getNextFolderColor(),
+      parentId: parentId,
+      isExpanded: true
     }
     setFolders(prev => [...prev, newFolder])
+    success('Folder created', `${parentId ? 'Subfolder' : 'Folder'} created successfully!`)
   }
 
   // Handle tag selection from sidebar
@@ -641,45 +755,47 @@ export default function NotesPage() {
   }
 
   const handleDeleteFolder = (folderId: string, folderName: string) => {
-    // Only 'My notes' can be deleted
+    // Prevent deletion of system folders
     if (folderId === 'all-notes') {
-      warning('Action not allowed', '"All notes" cannot be deleted.')
+      warning('Action not allowed', '"All Notes" cannot be deleted.')
       return
     }
-    if (folderName !== 'My notes') {
-      warning('Action not allowed', 'Only the "My notes" folder can be deleted.')
-      return
-    }
-
-    // Check how many notes are in this folder
+    
+    // Allow deletion of any user-created folders and subfolders
     const folderToDelete = folders.find(f => f.id === folderId)
-    const notesInFolder = notes.filter(note => note.folder === folderToDelete?.name)
+    if (!folderToDelete) {
+      warning('Error', 'Folder not found.')
+      return
+    }
+    
+    // Check how many notes are in this folder
+    const notesInFolder = notes.filter(note => note.folder === folderToDelete.name)
 
     confirm({
       title: 'Delete Folder',
-      message: `Are you sure you want to delete "${folderName}"? ${notesInFolder.length > 0 ? `All ${notesInFolder.length} notes in this folder will be moved to "My notes".` : 'This folder is empty.'}`,
+      message: `Are you sure you want to delete "${folderName}"? ${notesInFolder.length > 0 ? `All ${notesInFolder.length} notes in this folder will be moved to "All Notes".` : 'This folder is empty.'}`,
       type: 'danger',
       confirmText: 'Delete',
       onConfirm: () => {
-        setFolders(prev => prev.filter(folder => folder.id !== folderId))
+        // Remove the folder and any subfolders
+        setFolders(prev => prev.filter(folder => folder.id !== folderId && folder.parentId !== folderId))
 
-        // If we're deleting the currently selected folder, switch to "All notes"
-        if (folderToDelete && selectedFolder === folderToDelete.name) {
-          setSelectedFolder('All notes')
+        // Move notes to "All Notes" folder
+        if (notesInFolder.length > 0) {
+          setNotes(prev => prev.map(note => 
+            note.folder === folderToDelete.name 
+              ? { ...note, folder: 'All Notes' }
+              : note
+          ))
+        }
+
+        // If we're deleting the currently selected folder, switch to "All Notes"
+        if (selectedFolder === folderToDelete.name) {
+          setSelectedFolder('All Notes')
           setSelectedNote(null)
         }
 
-        // Move notes from deleted folder to "My notes"
-        setNotes(prev => prev.map(note => 
-          note.folder === folderToDelete?.name 
-            ? { ...note, folder: 'My notes' }
-            : note
-        ))
-
-        // Only show notification if folder had notes
-        if (notesInFolder.length > 0) {
-          warning('Folder deleted', `"${folderName}" deleted. ${notesInFolder.length} notes moved to "My notes".`)
-        }
+        success('Folder deleted', `"${folderName}" has been deleted successfully.`)
       }
     })
   }
@@ -688,9 +804,9 @@ export default function NotesPage() {
     const oldFolder = folders.find(f => f.id === folderId)
     if (!oldFolder) return
     
-    // Only allow renaming 'My notes'
-    if (oldFolder.name !== 'My notes') {
-      warning('Action not allowed', 'Only the "My notes" folder can be renamed.')
+    // Allow renaming any user-created folder (not system folders)
+    if (folderId === 'all-notes') {
+      warning('Action not allowed', '"All Notes" cannot be renamed.')
       return
     }
 
@@ -758,6 +874,10 @@ export default function NotesPage() {
     setIsFullscreen(!isFullscreen)
   }
 
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed)
+  }
+
   if (isFullscreen) {
     // Fullscreen mode - show entire notes widget
     return (
@@ -766,9 +886,9 @@ export default function NotesPage() {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="fixed inset-0 z-50 bg-white dark:bg-[#0f0f0f] flex flex-col"
       >
-        <motion.div
+        {/* Fullscreen mode - show entire notes widget */}
+        <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
@@ -779,7 +899,10 @@ export default function NotesPage() {
           
           <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* Left Sidebar */}
-            <div className="w-64 pr-4 border-r border-gray-200 dark:border-[#404040] flex-shrink-0 h-full">
+            <div className={cn(
+              "flex-shrink-0 h-full transition-all duration-300",
+              isSidebarCollapsed ? "w-20" : "w-64"
+            )}>
               <NotebookSidebar 
                 selectedFolder={selectedFolder}
                 folders={folders}
@@ -792,6 +915,7 @@ export default function NotesPage() {
                 tags={tags}
                 selectedTag={selectedTag}
                 onTagSelect={handleTagSelect}
+                isCollapsed={isSidebarCollapsed}
               />
             </div>
             
@@ -802,12 +926,17 @@ export default function NotesPage() {
                 selectedTag={selectedTag}
                 selectedNote={selectedNote}
                 notes={notes}
+                folders={folders}
                 onNoteSelect={handleNoteSelect}
                 onCreateNote={handleCreateNote}
                 onDeleteNote={handleDeleteNote}
                 onUpdateNote={handleUpdateNote}
+                onMoveNote={handleMoveNote}
+                onToggleBookmark={handleToggleBookmark}
                 onReorderNotes={handleReorderNotes}
                 onDeleteAllNotes={handleDeleteAllNotes}
+                onToggleCollapse={toggleSidebarCollapse}
+                isSidebarCollapsed={isSidebarCollapsed}
               />
             </div>
             
@@ -899,7 +1028,10 @@ export default function NotesPage() {
             
             <div className="flex flex-1 min-h-0 overflow-hidden">
               {/* Left Sidebar with right spacing */}
-              <div className="pr-4 border-r border-gray-200 dark:border-[#404040]">
+              <div className={cn(
+                "flex-shrink-0 h-full transition-all duration-300",
+                isSidebarCollapsed ? "w-20" : "w-64"
+              )}>
                 <NotebookSidebar 
                   selectedFolder={selectedFolder}
                   folders={folders}
@@ -912,22 +1044,30 @@ export default function NotesPage() {
                   tags={tags}
                   selectedTag={selectedTag}
                   onTagSelect={handleTagSelect}
+                  isCollapsed={isSidebarCollapsed}
                 />
               </div>
               
               {/* Middle Panel */}
-              <NotebookMiddlePanel 
-                selectedFolder={selectedFolder}
-                selectedTag={selectedTag}
-                selectedNote={selectedNote}
-                notes={notes}
-                onNoteSelect={handleNoteSelect}
-                onCreateNote={handleCreateNote}
-                onDeleteNote={handleDeleteNote}
-                onUpdateNote={handleUpdateNote}
-                onReorderNotes={handleReorderNotes}
-                onDeleteAllNotes={handleDeleteAllNotes}
-              />
+              <div className="w-80 flex-shrink-0 border-r border-gray-200 dark:border-[#404040] h-full">
+                <NotebookMiddlePanel 
+                  selectedFolder={selectedFolder}
+                  selectedTag={selectedTag}
+                  selectedNote={selectedNote}
+                  notes={notes}
+                  folders={folders}
+                  onNoteSelect={handleNoteSelect}
+                  onCreateNote={handleCreateNote}
+                  onDeleteNote={handleDeleteNote}
+                  onUpdateNote={handleUpdateNote}
+                  onMoveNote={handleMoveNote}
+                  onToggleBookmark={handleToggleBookmark}
+                  onReorderNotes={handleReorderNotes}
+                  onDeleteAllNotes={handleDeleteAllNotes}
+                  onToggleCollapse={toggleSidebarCollapse}
+                  isSidebarCollapsed={isSidebarCollapsed}
+                />
+              </div>
               
               {/* Right Editor Panel */}
               {(() => {

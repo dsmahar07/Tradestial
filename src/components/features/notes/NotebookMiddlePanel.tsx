@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Plus, MoreHorizontal, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Share2, Users } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Share2, Users, Menu, X, MoreVertical, Bookmark, FolderOpen } from 'lucide-react'
 import { Root as FancyButton } from '@/components/ui/fancy-button'
 import {
   DropdownMenu,
@@ -8,8 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { AdvancedColorPicker } from '@/components/ui/advanced-color-picker'
-import { Note } from '@/app/notes/page'
+import { Note, Folder } from '@/app/notes/page'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 
@@ -42,13 +43,17 @@ interface NotebookMiddlePanelProps {
   selectedTag?: string | null
   selectedNote: Note | null
   notes: Note[]
+  folders: Folder[]
   onNoteSelect: (note: Note) => void
   onCreateNote: () => void
   onDeleteNote: (id: string, noteTitle: string) => void
   onUpdateNote: (id: string, content: string, title?: string, color?: string) => void
+  onMoveNote: (noteId: string, targetFolder: string) => void
+  onToggleBookmark: (noteId: string) => void
   onReorderNotes: (startIndex: number, endIndex: number) => void
   onDeleteAllNotes?: () => void
   onToggleCollapse?: () => void
+  isSidebarCollapsed?: boolean
 }
 
 export function NotebookMiddlePanel({ 
@@ -56,13 +61,17 @@ export function NotebookMiddlePanel({
   selectedTag = null,
   selectedNote, 
   notes, 
+  folders,
   onNoteSelect, 
-  onCreateNote,
-  onDeleteNote,
-  onUpdateNote,
-  onReorderNotes,
-  onDeleteAllNotes,
-  onToggleCollapse
+  onCreateNote, 
+  onDeleteNote, 
+  onUpdateNote, 
+  onMoveNote,
+  onToggleBookmark,
+  onReorderNotes, 
+  onDeleteAllNotes, 
+  onToggleCollapse, 
+  isSidebarCollapsed 
 }: NotebookMiddlePanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null)
@@ -114,10 +123,14 @@ export function NotebookMiddlePanel({
 
   const filteredNotes = notes.filter(note => {
     const matchesTag = !selectedTag || note.tags?.includes(selectedTag)
-    const matchesFolder = selectedTag ? true : (selectedFolder === 'All notes' || note.folder === selectedFolder)
+    const matchesFolder = selectedTag ? true : 
+      selectedFolder === 'All notes' || 
+      selectedFolder === 'Bookmarked' ? true : 
+      note.folder === selectedFolder
+    const matchesBookmark = selectedFolder === 'Bookmarked' ? note.isBookmarked === true : true
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          note.content.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesTag && matchesFolder && matchesSearch
+    return matchesTag && matchesFolder && matchesBookmark && matchesSearch
   })
 
   const formatDate = (dateString: string) => {
@@ -130,10 +143,25 @@ export function NotebookMiddlePanel({
   }
 
   return (
-    <div className="w-80 bg-white dark:bg-[#0f0f0f] border-r border-gray-200 dark:border-[#404040] flex flex-col">
+    <div className="h-full bg-white dark:bg-[#0f0f0f] border-r border-gray-200 dark:border-[#404040] flex flex-col">
       {/* Header with back arrow and New note */}
-      <div className="p-4 bg-white dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-[#404040]">
+      <div className="p-4 bg-white dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-[#404040] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {isSidebarCollapsed ? (
+                  <Menu className="w-4 h-4" />
+                ) : (
+                  <X className="w-4 h-4" />
+                )}
+              </button>
+            )}
+          </div>
           <FancyButton
             variant="basic"
             size="small"
@@ -143,27 +171,29 @@ export function NotebookMiddlePanel({
           >
             <Plus className="w-4 h-4" />
           </FancyButton>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2A2A2A] rounded-md transition-colors">
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
-              <DropdownMenuItem 
-                className="text-red-600 dark:text-red-400 dark:hover:bg-[#2A2A2A]"
-                onClick={() => {
-                  if (filteredNotes.length > 0) {
-                    onDeleteAllNotes?.()
-                  }
-                }}
-                disabled={filteredNotes.length === 0}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete All Notes
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2A2A2A] rounded-md transition-colors">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#0f0f0f] border-gray-200 dark:border-[#404040]">
+                <DropdownMenuItem 
+                  className="text-red-600 dark:text-red-400 dark:hover:bg-[#2A2A2A]"
+                  onClick={() => {
+                    if (filteredNotes.length > 0) {
+                      onDeleteAllNotes?.()
+                    }
+                  }}
+                  disabled={filteredNotes.length === 0}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Notes
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Search bar */}
@@ -182,11 +212,11 @@ export function NotebookMiddlePanel({
 
 
       {/* Notes List */}
-      <div className="flex-1 overflow-y-auto rounded-bl-none">
+<div className="flex-1 overflow-y-auto min-h-0">
         {filteredNotes.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <Edit3 className="w-16 h-16 mx-auto mb-6 opacity-40" />
-            <p className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No notes found</p>
+            <p className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">No notes found</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Create a new note to get started with your ideas</p>
           </div>
         ) : (
@@ -199,7 +229,7 @@ export function NotebookMiddlePanel({
               onDragEnd={handleNoteDragEnd}
               onDrop={(e) => handleNoteDrop(e, index)}
               className={cn(
-                "p-4 border-b border-gray-200 dark:border-[#404040] hover:bg-white dark:hover:bg-[#171717] transition-all duration-300 ease-in-out group relative rounded-lg transform",
+                "p-3 border-b border-gray-200 dark:border-[#404040] hover:bg-white dark:hover:bg-[#171717] transition-all duration-300 ease-in-out group relative rounded-lg transform",
                                   selectedNote?.id === note.id 
                     ? "bg-gray-50 dark:bg-[#171717] shadow-md" 
                     : "bg-white dark:bg-[#0f0f0f] hover:shadow-sm",
@@ -255,7 +285,10 @@ export function NotebookMiddlePanel({
                   onClick={() => onNoteSelect(note)}
                 >
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white leading-tight break-words">{note.title}</h3>
+                    <h3 className="font-semibold text-base text-gray-600 dark:text-gray-300 leading-tight break-words">{note.title}</h3>
+                    {note.isBookmarked && (
+                      <Bookmark className="w-4 h-4 fill-current text-yellow-500" />
+                    )}
                     {note.sharing?.isShared && (
                       <div className="flex items-center gap-1">
                         {note.sharing.isAnonymous ? (
@@ -281,31 +314,70 @@ export function NotebookMiddlePanel({
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <FancyButton
-                    variant="basic"
-                    size="xsmall"
-                    className="!h-8 !w-8 !p-0"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation()
-                      setShowAdvancedColorPicker(note.id)
-                    }}
-                    title="Change note color"
-                  >
-                    <Palette className="w-4 h-4" />
-                  </FancyButton>
-                  <FancyButton
-                    variant="basic"
-                    size="xsmall"
-                    className="!h-8 !w-8 !p-0 !text-red-500 dark:!text-red-400 hover:!text-red-700 dark:hover:!text-red-300 hover:!bg-red-50 dark:hover:!bg-red-900/20"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation()
-                      onDeleteNote(note.id, note.title)
-                    }}
-                    title="Delete note"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </FancyButton>
+                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <DropdownMenuPrimitive.Root>
+                    <DropdownMenuPrimitive.Trigger asChild>
+                      <button
+                        className="h-6 w-6 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-1 transition-colors flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="w-3 h-3" />
+                      </button>
+                    </DropdownMenuPrimitive.Trigger>
+                    <DropdownMenuPrimitive.Portal>
+                      <DropdownMenuPrimitive.Content
+                        className="min-w-[160px] bg-white dark:bg-[#1A1A1A] rounded-md p-1 shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                        sideOffset={5}
+                      >
+                        <DropdownMenuPrimitive.Item
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-[#2A2A2A] text-gray-700 dark:text-gray-300 outline-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onToggleBookmark(note.id)
+                          }}
+                        >
+                          <Bookmark className={cn("w-4 h-4", note.isBookmarked ? "fill-current text-yellow-500" : "")} />
+                          {note.isBookmarked ? 'Remove Bookmark' : 'Bookmark'}
+                        </DropdownMenuPrimitive.Item>
+                        <DropdownMenuPrimitive.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                        {folders.filter(f => f.name !== note.folder).slice(0, 3).map((folder) => (
+                          <DropdownMenuPrimitive.Item
+                            key={folder.id}
+                            className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-[#2A2A2A] text-gray-700 dark:text-gray-300 outline-none"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMoveNote(note.id, folder.name)
+                            }}
+                          >
+                            <FolderOpen className="w-4 h-4" />
+                            Move to {folder.name}
+                          </DropdownMenuPrimitive.Item>
+                        ))}
+                        <DropdownMenuPrimitive.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                        <DropdownMenuPrimitive.Item
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-[#2A2A2A] text-gray-700 dark:text-gray-300 outline-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowAdvancedColorPicker(note.id)
+                          }}
+                        >
+                          <Palette className="w-4 h-4" />
+                          Change Color
+                        </DropdownMenuPrimitive.Item>
+                        <DropdownMenuPrimitive.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                        <DropdownMenuPrimitive.Item
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 outline-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteNote(note.id, note.title)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </DropdownMenuPrimitive.Item>
+                      </DropdownMenuPrimitive.Content>
+                    </DropdownMenuPrimitive.Portal>
+                  </DropdownMenuPrimitive.Root>
                 </div>
               </div>
 

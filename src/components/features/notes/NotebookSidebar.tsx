@@ -1,12 +1,14 @@
 'use client'
 
-import { Plus, FolderOpen, Folder, MoreHorizontal, ChevronDown, ChevronRight, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Hash } from 'lucide-react'
+import { Search, Plus, MoreHorizontal, Edit3, Trash2, GripVertical, Palette, ChevronLeft, Share2, Users, Menu, X, MoreVertical, ChevronDown, ChevronRight, FolderPlus, Bookmark } from 'lucide-react'
+import { FolderIcon } from '@/components/ui/folder-icon'
 import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { cn } from '@/lib/utils'
 import { AdvancedColorPicker } from '@/components/ui/advanced-color-picker'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useState, useEffect } from 'react'
 import { Folder as FolderType } from '@/app/notes/page'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
 // Color options for folders
 const folderColors = [
@@ -32,7 +34,7 @@ interface NotebookSidebarProps {
   selectedFolder: string
   folders: FolderType[]
   onFolderSelect: (folder: string) => void
-  onAddFolder: () => void
+  onAddFolder: (parentId?: string) => void
   onDeleteFolder: (folderId: string, folderName: string) => void
   onRenameFolder: (folderId: string, newName: string) => void
   onReorderFolders: (startIndex: number, endIndex: number) => void
@@ -63,10 +65,10 @@ export function NotebookSidebar({
   const [expandedSections, setExpandedSections] = useState<string[]>(['folders', 'tags'])
   const [editingFolder, setEditingFolder] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-
   const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState<string | null>(null)
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
   const [draggedOver, setDraggedOver] = useState<number | null>(null)
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [showSubfolders, setShowSubfolders] = useState(true)
 
   const toggleSection = (section: string) => {
@@ -75,6 +77,191 @@ export function NotebookSidebar({
         ? prev.filter(s => s !== section)
         : [...prev, section]
     )
+  }
+
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId)
+      } else {
+        newSet.add(folderId)
+      }
+      return newSet
+    })
+  }
+
+  const renderFolderTree = (folderList: FolderType[], depth: number): React.ReactElement[] => {
+    return folderList.map((folder, index) => {
+      const hasChildren = folders.some(f => f.parentId === folder.id)
+      const isExpanded = expandedFolders.has(folder.id)
+      const children = folders.filter(f => f.parentId === folder.id)
+      
+      if (isCollapsed) {
+        return (
+          <Tooltip key={folder.id} content={folder.name} side="right">
+            <div
+              className={cn(
+                "w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200 ease-in-out cursor-pointer border-l-4",
+                selectedFolder === folder.name ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]"
+              )}
+              style={{
+                borderLeftColor: folder.color || '#3b82f6'
+              }}
+              onClick={() => {
+                onFolderSelect(folder.name)
+              }}
+            >
+              <FolderIcon 
+                size="md" 
+                className={cn(
+                  selectedFolder === folder.name ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"
+                )}
+              />
+            </div>
+          </Tooltip>
+        )
+      }
+
+      return (
+        <div key={folder.id}>
+          <div
+            draggable={folder.id !== 'all-notes'}
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDragEnd={handleDragEnd}
+            onDrop={(e) => handleDrop(e, index)}
+            className={cn(
+              "w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out group relative border-l-4 cursor-pointer",
+              selectedFolder === folder.name
+                ? "bg-gray-100 dark:bg-[#2A2A2A] text-gray-900 dark:text-white font-medium"
+                : "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]",
+              draggedItem === index && "opacity-60 scale-95 rotate-2 shadow-xl z-50",
+              draggedOver === index && draggedItem !== index && "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 scale-105 shadow-lg"
+            )}
+            style={{
+              borderLeftColor: folder.color || '#3b82f6',
+              paddingLeft: `${12 + depth * 16}px`
+            }}
+            onClick={() => {
+              onFolderSelect(folder.name)
+            }}
+          >
+            <div className="flex items-center gap-2 flex-1">
+              {hasChildren && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleFolder(folder.id)
+                  }}
+                  className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                </button>
+              )}
+              <FolderIcon 
+                size="md" 
+                className={cn(
+                  selectedFolder === folder.name ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300"
+                )}
+              />
+              {editingFolder === folder.id ? (
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={handleSaveEdit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveEdit()
+                    if (e.key === 'Escape') handleCancelEdit()
+                  }}
+                  className="flex-1 bg-transparent border-b border-blue-500 outline-none text-gray-900 dark:text-white"
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span className="flex-1 text-left font-semibold text-gray-600 dark:text-gray-300">
+                  {folder.name}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button
+                    className="h-6 w-6 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-1 transition-colors flex items-center justify-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="w-3 h-3" />
+                  </button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    className="min-w-[160px] bg-white dark:bg-[#1A1A1A] rounded-md p-1 shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                    sideOffset={5}
+                  >
+                    <DropdownMenu.Item
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-[#2A2A2A] text-gray-700 dark:text-gray-300 outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAddFolder(folder.id)
+                      }}
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      Add Subfolder
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-[#2A2A2A] text-gray-700 dark:text-gray-300 outline-none"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowAdvancedColorPicker(folder.id)
+                      }}
+                    >
+                      <Palette className="w-4 h-4" />
+                      Change Color
+                    </DropdownMenu.Item>
+                    {folder.name !== 'All Notes' && (
+                      <>
+                        <DropdownMenu.Item
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-[#2A2A2A] text-gray-700 dark:text-gray-300 outline-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartEdit(folder)
+                          }}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          Rename
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                        <DropdownMenu.Item
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 outline-none"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteFolder(folder.id, folder.name)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </DropdownMenu.Item>
+                      </>
+                    )}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
+            </div>
+          </div>
+          {hasChildren && isExpanded && (
+            <div className="ml-4">
+              {renderFolderTree(children, depth + 1)}
+            </div>
+          )}
+        </div>
+      )
+    })
   }
 
   const handleStartEdit = (folder: FolderType) => {
@@ -130,15 +317,15 @@ export function NotebookSidebar({
 
   return (
     <div className={cn(
-      "bg-white dark:bg-[#0f0f0f] flex flex-col rounded-bl-xl transition-all duration-300 h-full",
+      "bg-white dark:bg-[#0f0f0f] flex flex-col rounded-bl-xl transition-all duration-300 h-full relative border-r border-gray-200 dark:border-[#404040]",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      {/* Add folder button */}
+      {/* Header with Add folder button */}
       <div className="px-4 pt-4 pb-4">
         {isCollapsed ? (
           <Tooltip content="Add folder" side="right">
             <FancyButton
-              onClick={onAddFolder}
+              onClick={() => onAddFolder()}
               variant="primary"
               size="small"
               className="w-full h-10 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none !bg-black"
@@ -149,7 +336,7 @@ export function NotebookSidebar({
           </Tooltip>
         ) : (
           <FancyButton
-            onClick={onAddFolder}
+            onClick={() => onAddFolder()}
             variant="primary"
             size="small"
             className="w-full relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none !bg-black"
@@ -157,6 +344,48 @@ export function NotebookSidebar({
             <Plus className="w-4 h-4 mr-2 relative z-10" />
             <span className="relative z-10">Add folder</span>
           </FancyButton>
+        )}
+      </div>
+
+      {/* Bookmarked Notes Filter */}
+      <div className="px-4 mb-4">
+        {isCollapsed ? (
+          <Tooltip content="Bookmarked Notes" side="right">
+            <div 
+              className={cn(
+                "w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200 ease-in-out cursor-pointer border-l-4",
+                selectedFolder === 'Bookmarked' ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-500" : "text-gray-600 dark:text-[#CCCCCC] hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/10 border-transparent"
+              )}
+              onClick={() => {
+                if (selectedFolder === 'Bookmarked') {
+                  onFolderSelect('All Notes')
+                } else {
+                  onFolderSelect('Bookmarked')
+                }
+              }}
+            >
+              <Bookmark className={cn("w-5 h-5", selectedFolder === 'Bookmarked' ? "fill-current" : "")} />
+            </div>
+          </Tooltip>
+        ) : (
+          <div
+            className={cn(
+              "w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out cursor-pointer border-l-4",
+              selectedFolder === 'Bookmarked'
+                ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 font-medium border-yellow-500"
+                : "text-gray-600 dark:text-[#CCCCCC] hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/10 border-transparent"
+            )}
+            onClick={() => {
+              if (selectedFolder === 'Bookmarked') {
+                onFolderSelect('All Notes')
+              } else {
+                onFolderSelect('Bookmarked')
+              }
+            }}
+          >
+            <Bookmark className={cn("w-4 h-4", selectedFolder === 'Bookmarked' ? "fill-current" : "")} />
+            <span className="flex-1 text-left font-semibold">Bookmarked Notes</span>
+          </div>
         )}
       </div>
 
@@ -178,202 +407,7 @@ export function NotebookSidebar({
 
         {(expandedSections.includes('folders') || isCollapsed) && (
           <div className={cn("space-y-1", !isCollapsed && "mt-2")}>
-            {folders.map((folder, index) => {
-              // Hide subfolders when collapsed under All notes
-              if (folder.id !== 'all-notes' && !showSubfolders) return null
-              if (isCollapsed) {
-                // Collapsed view - show only icons with tooltips
-                return (
-                  <Tooltip key={folder.id} content={folder.name} side="right">
-                    <div
-                      className={cn(
-                        "w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200 ease-in-out cursor-pointer relative",
-                        (folder.id !== 'all-notes' && selectedFolder === folder.name)
-                          ? "bg-gray-100 dark:bg-[#2A2A2A] text-gray-900 dark:text-white"
-                          : "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]"
-                      )}
-                      onClick={() => {
-                        if (folder.id === 'all-notes') {
-                          setShowSubfolders(prev => !prev)
-                        } else {
-                          onFolderSelect(folder.name)
-                        }
-                      }}
-                    >
-                      {/* Color indicator */}
-                      <div 
-                        className="absolute left-1 top-1/2 transform -translate-y-1/2 w-1 h-6 rounded-full"
-                        style={{ backgroundColor: folder.color || '#3b82f6' }}
-                      />
-                      
-                      {folder.id === 'all-notes' ? (
-                        <FolderOpen className="w-5 h-5" />
-                      ) : (
-                        <Folder className="w-5 h-5" />
-                      )}
-                    </div>
-                  </Tooltip>
-                )
-              }
-
-              // Expanded view - full folder item
-              return (
-                <div
-                  key={folder.id}
-                  draggable={folder.id !== 'all-notes'}
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  onDrop={(e) => handleDrop(e, index)}
-                  className={cn(
-                    "w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out group relative border-l-4 cursor-pointer",
-                    folder.id !== 'all-notes' && selectedFolder === folder.name
-                      ? "bg-gray-100 dark:bg-[#2A2A2A] text-gray-900 dark:text-white font-medium"
-                      : "text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]",
-                    draggedItem === index && "opacity-60 scale-95 rotate-2 shadow-xl z-50",
-                    draggedOver === index && draggedItem !== index && "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 scale-105 shadow-lg"
-                  )}
-                  style={{
-                    borderLeftColor: folder.color || '#3b82f6'
-                  }}
-                  onClick={() => {
-                    if (folder.id === 'all-notes') {
-                      setShowSubfolders(prev => !prev)
-                    }
-                  }}
-                >
-                  {folder.id === 'all-notes' ? (
-                    <>
-                      <div className="flex items-center gap-2 flex-1">
-                        {showSubfolders ? (
-                          <ChevronDown className="w-4 h-4 flex-shrink-0" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 flex-shrink-0" />
-                        )}
-                        <FolderOpen className="w-4 h-4 flex-shrink-0" />
-                        {editingFolder === folder.id ? (
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            onBlur={handleSaveEdit}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveEdit()
-                              if (e.key === 'Escape') handleCancelEdit()
-                            }}
-                            className="flex-1 bg-transparent border-b border-blue-500 outline-none text-gray-900 dark:text-white"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        ) : (
-                          <span className="flex-1 text-left" onClick={(e) => e.stopPropagation()}>
-                            {folder.name}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        {/* Color picker button */}
-                        <button
-                          className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setShowAdvancedColorPicker(folder.id)
-                          }}
-                          title="Change folder color"
-                        >
-                          <Palette className="w-3 h-3" />
-                        </button>
-
-                        {/* Edit button for All notes */}
-                        <button
-                          className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleStartEdit(folder)
-                          }}
-                          title="Rename folder"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Drag handle */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-grab active:cursor-grabbing hover:scale-110">
-                        <GripVertical className="w-3 h-3 text-gray-400 hover:text-gray-600" />
-                      </div>
-
-                      <Folder className="w-4 h-4 flex-shrink-0" />
-
-                      {editingFolder === folder.id ? (
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onBlur={handleSaveEdit}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit()
-                            if (e.key === 'Escape') handleCancelEdit()
-                          }}
-                          className="flex-1 bg-transparent border-b border-blue-500 outline-none text-gray-900 dark:text-white"
-                          autoFocus
-                        />
-                      ) : (
-                        <span
-                          className="flex-1 text-left cursor-pointer"
-                          onClick={() => onFolderSelect(folder.name)}
-                        >
-                          {folder.name}
-                        </span>
-                      )}
-
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        {/* Color picker button */}
-                        <button
-                          className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setShowAdvancedColorPicker(folder.id)
-                          }}
-                          title="Change folder color"
-                        >
-                          <Palette className="w-3 h-3" />
-                        </button>
-
-                        {/* Edit button */}
-                        {folder.name === 'My notes' && (
-                          <button
-                            className="h-5 w-5 rounded hover:bg-gray-200 dark:hover:bg-[#2A2A2A] p-0.5 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleStartEdit(folder)
-                            }}
-                            title="Rename folder"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </button>
-                        )}
-
-                        {/* Delete button */}
-                        {folder.name === 'My notes' && (
-                          <button
-                            className="h-5 w-5 rounded hover:bg-red-200 dark:hover:bg-red-900 p-0.5 transition-colors text-red-500"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onDeleteFolder(folder.id, folder.name)
-                            }}
-                            title="Delete folder"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            })}
+            {renderFolderTree(folders.filter(f => !f.parentId), 0)}
           </div>
         )}
       </div>
@@ -399,8 +433,8 @@ export function NotebookSidebar({
             {isCollapsed ? (
               // Collapsed view - show tags icon
               <Tooltip content="Tags" side="right">
-                <div className="w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200 ease-in-out cursor-pointer text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]">
-                  <Hash className="w-5 h-5" />
+                <div className="w-full flex items-center justify-center p-5 rounded-lg transition-all duration-200 ease-in-out cursor-pointer text-gray-600 dark:text-[#CCCCCC] hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#222222]">
+                  <Menu className="w-5 h-5" />
                 </div>
               </Tooltip>
             ) : (

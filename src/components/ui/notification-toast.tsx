@@ -129,7 +129,7 @@ export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const addToast = useCallback((options: ToastOptions) => {
-    const id = Date.now().toString()
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const toast: Toast = {
       ...options,
       id,
