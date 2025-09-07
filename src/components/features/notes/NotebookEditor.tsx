@@ -417,90 +417,205 @@ export function NotebookEditor({ note, onUpdateNote, onDeleteNote, useDatePicker
       const totalCommissions = allTrades.reduce((sum: number, t: any) => sum + (t.commissions || 0), 0)
       const totalVolume = allTrades.reduce((sum: number, t: any) => sum + (t.contractsTraded || 0), 0)
       
-      const avgWin = winners > 0 ? allTrades.filter((t: any) => (t.netPnl || 0) > 0).reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0) / winners : 0
-      const avgLoss = losers > 0 ? Math.abs(allTrades.filter((t: any) => (t.netPnl || 0) < 0).reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)) / losers : 0
+      const winningTrades = allTrades.filter((t: any) => (t.netPnl || 0) > 0)
+      const losingTrades = allTrades.filter((t: any) => (t.netPnl || 0) < 0)
+      
+      const avgWin = winners > 0 ? winningTrades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0) / winners : 0
+      const avgLoss = losers > 0 ? Math.abs(losingTrades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)) / losers : 0
       const profitFactor = avgLoss > 0 ? (avgWin / avgLoss) : 0
       
-      // Get unique symbols and dates
+      // Advanced analytics
+      const largestWin = winningTrades.length > 0 ? Math.max(...winningTrades.map((t: any) => t.netPnl || 0)) : 0
+      const largestLoss = losingTrades.length > 0 ? Math.min(...losingTrades.map((t: any) => t.netPnl || 0)) : 0
+      const maxDrawdown = Math.abs(largestLoss)
+      
+      // Consecutive analysis
+      let currentStreak = 0
+      let maxWinStreak = 0
+      let maxLossStreak = 0
+      let currentWinStreak = 0
+      let currentLossStreak = 0
+      
+      allTrades.forEach((trade: any, index: number) => {
+        const pnl = trade.netPnl || 0
+        if (pnl > 0) {
+          currentWinStreak++
+          currentLossStreak = 0
+          maxWinStreak = Math.max(maxWinStreak, currentWinStreak)
+        } else if (pnl < 0) {
+          currentLossStreak++
+          currentWinStreak = 0
+          maxLossStreak = Math.max(maxLossStreak, currentLossStreak)
+        }
+      })
+      
+      // Risk metrics
+      const riskRewardRatio = avgLoss > 0 ? (avgWin / avgLoss) : 0
+      const expectancy = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss
+      
+      // Time analysis
       const uniqueSymbols = [...new Set(allTrades.map((t: any) => t.symbol).filter(Boolean))]
-      const tradingDays = [...new Set(allTrades.map((t: any) => {
+      const tradingDates = [...new Set(allTrades.map((t: any) => {
         const date = t.entryDate || t.openDate || t.closeDate
         return date ? date.split('T')[0] : null
-      }).filter(Boolean))].length
+      }).filter(Boolean))]
+      const tradingDays = tradingDates.length
+      
+      // Performance by symbol
+      const symbolPerformance = uniqueSymbols.map(symbol => {
+        const symbolTrades = allTrades.filter((t: any) => t.symbol === symbol)
+        const symbolPnL = symbolTrades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)
+        const symbolWinRate = symbolTrades.length > 0 ? Math.round((symbolTrades.filter((t: any) => (t.netPnl || 0) > 0).length / symbolTrades.length) * 100) : 0
+        return {
+          symbol,
+          trades: symbolTrades.length,
+          pnl: symbolPnL,
+          winRate: symbolWinRate
+        }
+      }).sort((a, b) => b.pnl - a.pnl)
+      
+      // Trading frequency analysis
+      const avgTradesPerDay = tradingDays > 0 ? (totalTrades / tradingDays) : 0
 
-      // Create comprehensive trading report
-      const reportContent = `# Complete Trading Performance Report
+      // Create comprehensive trading report with enhanced insights
+      const reportContent = `# 📊 Complete Trading Performance Analysis
 
-## 📊 **Executive Summary**
-Your comprehensive trading analysis across **${totalTrades} trades** over **${tradingDays} trading days**.
+## 🎯 **Executive Summary**
+Comprehensive analysis of **${totalTrades} trades** executed over **${tradingDays} trading days** across **${uniqueSymbols.length} instruments**.
 
-**Net P&L: ${totalPnL >= 0 ? '+' : ''}$${Math.round(totalPnL).toLocaleString()}**
-**Win Rate: ${winRate}%** (${winners}W / ${losers}L / ${breakeven}BE)
-
----
-
-## 🎯 **Key Performance Metrics**
-
-### Profitability Analysis
-- **Total Net P&L**: ${totalPnL >= 0 ? '+' : ''}$${Math.round(totalPnL).toLocaleString()}
-- **Gross P&L**: ${grossPnL >= 0 ? '+' : ''}$${Math.round(grossPnL).toLocaleString()}
-- **Total Commissions**: $${Math.round(totalCommissions).toLocaleString()}
-- **Profit Factor**: ${profitFactor.toFixed(2)}
-
-### Trade Statistics
-- **Total Trades**: ${totalTrades.toLocaleString()}
-- **Winning Trades**: ${winners} (${winRate}%)
-- **Losing Trades**: ${losers} (${Math.round((losers/totalTrades)*100)}%)
-- **Breakeven Trades**: ${breakeven}
-- **Average Win**: +$${Math.round(avgWin).toLocaleString()}
-- **Average Loss**: -$${Math.round(avgLoss).toLocaleString()}
-
-### Volume & Activity
-- **Total Volume**: ${totalVolume.toLocaleString()} contracts
-- **Trading Days**: ${tradingDays}
-- **Avg Trades/Day**: ${(totalTrades/Math.max(tradingDays,1)).toFixed(1)}
-- **Instruments Traded**: ${uniqueSymbols.length}
+### 💰 **Financial Performance**
+- **Net P&L:** ${totalPnL >= 0 ? '🟢 +' : '🔴 '}$${Math.round(totalPnL).toLocaleString()}
+- **Gross P&L:** $${Math.round(grossPnL).toLocaleString()}
+- **Total Commissions:** $${Math.round(totalCommissions).toLocaleString()} (${grossPnL !== 0 ? Math.round((totalCommissions / Math.abs(grossPnL)) * 100) : 0}% of gross)
+- **Win Rate:** ${winRate}% (${winners}W / ${losers}L / ${breakeven}BE)
 
 ---
 
-## 📈 **Market Analysis**
+## 📈 **Advanced Performance Metrics**
 
-### Top Instruments
-${uniqueSymbols.slice(0, 5).map(symbol => {
-  const symbolTrades = allTrades.filter((t: any) => t.symbol === symbol)
-  const symbolPnL = symbolTrades.reduce((sum: number, t: any) => sum + (t.netPnl || 0), 0)
-  return `- **${symbol}**: ${symbolTrades.length} trades, ${symbolPnL >= 0 ? '+' : ''}$${Math.round(symbolPnL).toLocaleString()}`
-}).join('\n')}
+| **Core Metrics** | **Value** | **Risk Metrics** | **Value** |
+|------------------|-----------|------------------|-----------|
+| **Profit Factor** | ${profitFactor.toFixed(2)} | **Risk/Reward Ratio** | ${riskRewardRatio.toFixed(2)} |
+| **Average Win** | $${Math.round(avgWin).toLocaleString()} | **Expectancy** | $${expectancy.toFixed(2)} |
+| **Average Loss** | $${Math.round(avgLoss).toLocaleString()} | **Largest Win** | $${Math.round(largestWin).toLocaleString()} |
+| **Total Volume** | ${totalVolume.toLocaleString()} contracts | **Largest Loss** | $${Math.round(largestLoss).toLocaleString()} |
 
-### Performance Insights
-${totalPnL > 0 
-  ? `✅ **Profitable Trading**: You're showing positive returns with a ${winRate}% win rate.`
-  : `⚠️ **Areas for Improvement**: Focus on risk management and strategy refinement.`
-}
-
-${profitFactor > 1.5 
-  ? `🎯 **Strong Profit Factor**: Your ${profitFactor.toFixed(2)} profit factor indicates good risk-reward management.`
-  : `📊 **Profit Factor**: Consider improving your risk-reward ratio (current: ${profitFactor.toFixed(2)}).`
-}
+### 🔥 **Streak Analysis**
+- **Max Win Streak:** ${maxWinStreak} consecutive wins
+- **Max Loss Streak:** ${maxLossStreak} consecutive losses
+- **Current Performance:** ${currentWinStreak > 0 ? `${currentWinStreak} win streak` : currentLossStreak > 0 ? `${currentLossStreak} loss streak` : 'No active streak'}
 
 ---
 
-## 🔍 **Recommendations**
+## 🎯 **Symbol Performance Breakdown**
 
-### Strengths
-${winRate >= 50 ? '- High win rate indicates good entry timing' : ''}
-${profitFactor > 1.2 ? '- Solid profit factor shows effective risk management' : ''}
-${totalTrades > 100 ? '- Good sample size for statistical significance' : ''}
+${symbolPerformance.slice(0, 5).map((sym, index) => 
+  `**${index + 1}. ${sym.symbol}** | ${sym.trades} trades | ${sym.pnl >= 0 ? '+' : ''}$${Math.round(sym.pnl).toLocaleString()} | ${sym.winRate}% win rate`
+).join('\n')}
 
-### Areas to Focus On
-${winRate < 50 ? '- Work on improving entry timing and trade selection' : ''}
-${profitFactor < 1.2 ? '- Focus on better risk-reward ratios' : ''}
-${avgLoss > avgWin ? '- Consider tighter stop losses or wider profit targets' : ''}
+### 📊 **Trading Activity Analysis**
+- **Average Trades/Day:** ${avgTradesPerDay.toFixed(1)} trades
+- **Most Active Period:** ${tradingDays} days of trading activity
+- **Diversification:** ${uniqueSymbols.length} different instruments traded
 
 ---
 
-*Report generated on ${new Date().toLocaleDateString()} • Data includes ${totalTrades} trades*
-*Powered by Tradestial AI Analytics*`
+## 🧠 **Detailed Performance Insights**
+
+### ${totalPnL > 0 ? '🟢 **Profitable Trading Performance**' : '🔴 **Performance Requires Attention**'}
+
+**Win Rate Analysis:**
+${winRate >= 65 ? '✅ **Excellent** - Your 65%+ win rate shows superior trade selection and timing' : 
+  winRate >= 55 ? '✅ **Good** - Your 55%+ win rate indicates solid trading skills with room for optimization' :
+  winRate >= 45 ? '⚠️ **Average** - Your win rate suggests inconsistent trade selection - focus on quality setups' :
+  '❌ **Needs Improvement** - Win rate below 45% indicates fundamental issues with strategy or execution'}
+
+**Profit Factor Assessment:**
+${profitFactor >= 2.0 ? '🌟 **Outstanding** - Profit factor above 2.0 shows exceptional risk management' :
+  profitFactor >= 1.5 ? '✅ **Strong** - Solid profit factor indicates good balance between wins and losses' :
+  profitFactor >= 1.2 ? '⚠️ **Acceptable** - Profit factor is positive but could be optimized' :
+  profitFactor >= 1.0 ? '⚠️ **Marginal** - Barely profitable - immediate strategy review needed' :
+  '❌ **Unprofitable** - Losses exceed wins - fundamental strategy overhaul required'}
+
+**Risk Management Evaluation:**
+${riskRewardRatio >= 2.0 ? '🛡️ **Excellent Risk Control** - Your 2:1+ risk/reward ratio is exceptional' :
+  riskRewardRatio >= 1.5 ? '✅ **Good Risk Management** - Solid risk/reward discipline' :
+  riskRewardRatio >= 1.0 ? '⚠️ **Adequate** - Risk/reward is positive but could be improved' :
+  '❌ **Poor Risk Control** - Average losses exceed average wins - tighten stop losses'}
+
+---
+
+## 🚀 **Specific Action Plan & Recommendations**
+
+### 🎯 **Immediate Actions (Next 1-2 Weeks)**
+
+${totalPnL <= 0 ? 
+`**🚨 Priority: Stop the Bleeding**
+1. **Pause Trading** - Take a break to analyze what's not working
+2. **Review Last 10 Trades** - Identify common patterns in losses
+3. **Reduce Position Size** - Cut risk by 50% until consistency returns
+4. **Focus on 1-2 Best Setups** - Eliminate low-probability trades` :
+
+`**💪 Optimize Your Success**
+1. **Document Winning Patterns** - Record what's working well
+2. **Gradual Scale-Up** - Consider 10-20% position size increase
+3. **Maintain Discipline** - Don't deviate from proven strategies
+4. **Track Daily Performance** - Monitor for any degradation`}
+
+### 📈 **Medium-Term Improvements (Next Month)**
+
+${winRate < 50 ? 
+`**🎯 Trade Selection Enhancement**
+- **Setup Refinement:** Only trade A+ setups that meet all criteria
+- **Market Timing:** Focus on optimal market conditions for your strategy
+- **Backtest Analysis:** Review historical data for pattern validation
+- **Entry Precision:** Work on better entry timing and execution` : 
+
+`**🔧 Performance Optimization**
+- **Strategy Refinement:** Fine-tune your best performing setups
+- **Market Expansion:** Consider adding complementary instruments
+- **Risk Scaling:** Optimize position sizing based on setup confidence
+- **Performance Tracking:** Implement detailed trade journaling`}
+
+${profitFactor < 1.3 ? 
+`**⚖️ Risk/Reward Optimization**
+- **Stop Loss Review:** Analyze if stops are too tight or too wide
+- **Profit Target Analysis:** Ensure you're capturing adequate moves
+- **Exit Strategy:** Improve partial profit-taking and trailing stops
+- **Trade Management:** Better position management during winning trades` : ''}
+
+### 🎓 **Long-Term Development (Next Quarter)**
+
+**📚 Skill Development Areas:**
+${maxLossStreak > 5 ? '- **Emotional Control:** Work on managing losing streaks and avoiding revenge trading' : ''}
+${avgTradesPerDay > 10 ? '- **Quality over Quantity:** Reduce overtrading and focus on best opportunities' : ''}
+${symbolPerformance.length > 10 ? '- **Focus Strategy:** Consider specializing in your most profitable instruments' : ''}
+- **Advanced Analysis:** Implement more sophisticated performance metrics
+- **Market Adaptation:** Develop strategies for different market conditions
+- **Technology Upgrade:** Consider better tools for analysis and execution
+
+**🎯 Performance Targets:**
+- **Win Rate Target:** ${winRate < 55 ? '55%+' : winRate < 65 ? '65%+' : 'Maintain 65%+'}
+- **Profit Factor Goal:** ${profitFactor < 1.5 ? '1.5+' : profitFactor < 2.0 ? '2.0+' : 'Maintain 2.0+'}
+- **Risk/Reward Target:** ${riskRewardRatio < 1.5 ? '1.5:1' : riskRewardRatio < 2.0 ? '2.0:1' : 'Maintain 2.0:1+'}
+
+---
+
+## 📋 **Next Steps Checklist**
+
+${totalPnL <= 0 ? '🚨 **Recovery Mode**' : '📈 **Growth Mode**'}
+
+- [ ] ${totalPnL <= 0 ? 'Complete trading pause and strategy review' : 'Document current successful strategies'}
+- [ ] ${winRate < 50 ? 'Analyze last 20 trades for pattern identification' : 'Identify top 3 most profitable setups'}
+- [ ] ${profitFactor < 1.2 ? 'Revise risk management rules' : 'Optimize position sizing strategy'}
+- [ ] ${maxLossStreak > 3 ? 'Develop emotional control protocols' : 'Create performance scaling guidelines'}
+- [ ] Set up weekly performance review schedule
+- [ ] ${totalCommissions / Math.abs(grossPnL) > 0.1 ? 'Review commission costs and broker options' : 'Monitor commission impact monthly'}
+
+---
+
+*📅 Analysis generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}*
+*🔄 Recommended review frequency: Weekly for first month, then bi-weekly*`
 
       // Update content with comprehensive report
       setContent(reportContent)
