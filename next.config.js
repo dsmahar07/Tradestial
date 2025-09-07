@@ -1,27 +1,34 @@
 /** @type {import('next').NextConfig} */
+const { securityHeaders } = require('./src/lib/security-headers.js')
+
 const nextConfig = {
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@heroicons/react', 'recharts'],
+  reactStrictMode: true,
+  poweredByHeader: false,
+  swcMinify: true,
+  images: {
+    domains: ['localhost'],
+    formats: ['image/webp', 'image/avif'],
   },
-  turbopack: {
-    rules: {
-      '*.svg': ['@svgr/webpack', 'asset'],
-    },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ]
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  images: {
-    formats: ['image/webp', 'image/avif'],
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@heroicons/react', 'recharts'],
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
     ignoreBuildErrors: false,
   },
-  poweredByHeader: false,
-  reactStrictMode: true,
 }
 
 module.exports = nextConfig

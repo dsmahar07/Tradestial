@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { AccountSelector } from "@/components/ui/account-selector"
 import { FilterMenu, defaultFilterGroups, FilterGroup } from "@/components/ui/filter-menu"
+import { AskStial } from "@/components/ui/ask-stial"
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
@@ -116,13 +117,14 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="bg-gray-50 dark:bg-[#171717] px-6 py-2">
+    <header className="bg-[#F5F5F5] dark:bg-[#171717] px-6 py-2">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h1 className="text-2xl"><span className="font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">{title}</span></h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{description}</p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
+          <AskStial />
           {shouldShowFilters() && (
             <FilterMenu 
               groups={filterGroups.map(group => ({

@@ -1148,7 +1148,7 @@ export class ReactiveAnalyticsService {
     const riskRewardRatio = avgLossAmount > 0 ? avgWinAmount / avgLossAmount : 0
     const expectancy = (winRate / 100) * avgWinAmount - ((100 - winRate) / 100) * avgLossAmount
     const sharpeRatio = this.calculateSharpeRatio(trades)
-    const avgTradeDuration = 0 // TODO: Implement trade duration calculation
+    const avgTradeDuration = this.calculateAverageTradeDuration(trades)
 
     // R-Multiple metrics using per-trade metadata
     const rMultipleMetrics = calculateRMultipleMetrics(trades, (tradeId: string) => {
@@ -1383,6 +1383,11 @@ export class ReactiveAnalyticsService {
     return out
   }
 
+  /**
+   * Calculate Sharpe Ratio for trading performance
+   * @param trades - Array of trades to analyze
+   * @returns Sharpe ratio (risk-adjusted return metric)
+   */
   private calculateSharpeRatio(trades: Trade[]): number {
     if (trades.length < 2) return 0
     
@@ -1398,27 +1403,37 @@ export class ReactiveAnalyticsService {
       }
       
       const date = dateToUse.split('T')[0]
-      if (!date) return
-      
       dailyReturns[date] = (dailyReturns[date] || 0) + trade.netPnl
     })
     
     const returns = Object.values(dailyReturns)
     if (returns.length < 2) return 0
     
-    // Calculate mean return
-    const meanReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length
-    
-    // Calculate standard deviation of returns
-    const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - meanReturn, 2), 0) / (returns.length - 1)
+    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
+    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
     const stdDev = Math.sqrt(variance)
     
-    if (stdDev === 0) return 0
+    return stdDev > 0 ? avgReturn / stdDev : 0
+  }
+
+  /**
+   * Calculate average trade duration in hours
+   * @param trades - Array of trades to analyze
+   * @returns Average duration in hours between entry and exit
+   */
+  private calculateAverageTradeDuration(trades: Trade[]): number {
+    if (trades.length === 0) return 0
     
-    // Sharpe ratio = (mean return - risk-free rate) / std dev
-    // Assuming risk-free rate = 0 for simplicity
-    // Annualize by multiplying by sqrt(252) for daily returns
-    return (meanReturn / stdDev) * Math.sqrt(252)
+    const durations = trades
+      .filter(t => t.openDate && t.closeDate)
+      .map(t => {
+        const entry = new Date(t.openDate)
+        const exit = new Date(t.closeDate)
+        return (exit.getTime() - entry.getTime()) / (1000 * 60 * 60) // Duration in hours
+      })
+    
+    if (durations.length === 0) return 0
+    return durations.reduce((sum, d) => sum + d, 0) / durations.length
   }
 
   private calculateDailyPnLData(trades: Trade[]): Array<{ date: string; pnl: number }> {

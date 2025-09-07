@@ -8,13 +8,13 @@ import { analyticsNavigationConfig } from '@/config/analytics-navigation'
 
 export function AnalyticsPageClient() {
   const handleTabChange = (tabId: string) => {
-    // Handle tab changes here if needed
-    // TODO: Implement tab change logic when navigation is needed
+    // Tab change logic handled by AnalyticsNavigation component
+    // Navigation state managed internally
   }
 
   const handleDropdownItemClick = (tabId: string, itemId: string) => {
-    // Handle dropdown item selection
-    // TODO: Implement dropdown navigation logic
+    // Dropdown navigation handled by AnalyticsNavigation component
+    // Routes are defined in analytics-navigation.ts config
   }
   
   return (
