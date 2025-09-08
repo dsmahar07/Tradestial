@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
-import { NotebookEditor } from '@/components/features/notes/NotebookEditor'
+import { NotebookEditorRefactored as NotebookEditor } from '@/components/features/notes/NotebookEditorRefactored'
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { usePageTitle } from '@/hooks/use-page-title'

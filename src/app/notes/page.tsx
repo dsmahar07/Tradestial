@@ -5,7 +5,7 @@ import { DashboardHeader } from '@/components/layout/header'
 import { NotebookTopSearch } from '@/components/features/notes/NotebookTopSearch'
 import { NotebookSidebar } from '@/components/features/notes/NotebookSidebar'
 import { NotebookMiddlePanel } from '@/components/features/notes/NotebookMiddlePanel'
-import { NotebookEditor } from '@/components/features/notes/NotebookEditor'
+import { NoteEditorComponent as NotebookEditor } from '@/components/features/notes/NoteEditorComponent'
 import JournalHeaderStats from '@/components/ui/journal-header-stats'
 import JournalTradesTable from '@/components/ui/journal-trades-table'
 
@@ -886,13 +886,14 @@ export default function NotesPage() {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="fixed inset-0 z-50"
       >
         {/* Fullscreen mode - show entire notes widget */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="h-full flex flex-col bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] overflow-hidden"
+          className="h-screen w-screen flex flex-col bg-white dark:bg-[#0f0f0f] overflow-hidden"
         >
           {/* Top Search Bar */}
           <NotebookTopSearch onToggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
@@ -920,7 +921,7 @@ export default function NotesPage() {
             </div>
             
             {/* Middle Panel */}
-            <div className="w-80 flex-shrink-0 border-r border-gray-200 dark:border-[#404040]">
+            <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-[#404040]">
               <NotebookMiddlePanel 
                 selectedFolder={selectedFolder}
                 selectedTag={selectedTag}
@@ -1016,7 +1017,7 @@ export default function NotesPage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
+        <main className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-6 bg-[#f5f5f5] dark:bg-[#171717]">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1049,7 +1050,7 @@ export default function NotesPage() {
               </div>
               
               {/* Middle Panel */}
-              <div className="w-80 flex-shrink-0 border-r border-gray-200 dark:border-[#404040] h-full">
+              <div className="w-64 flex-shrink-0 border-r border-gray-200 dark:border-[#404040] h-full">
                 <NotebookMiddlePanel 
                   selectedFolder={selectedFolder}
                   selectedTag={selectedTag}
