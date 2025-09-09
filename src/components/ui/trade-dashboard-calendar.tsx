@@ -208,11 +208,11 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       canvas.height = 900 * 2
       ctx.scale(2, 2) // Scale for high DPI
 
-      // Draw gradient background
+      // Draw gradient background (same as header title text)
       const gradient = ctx.createLinearGradient(0, 0, 1400, 900)
-      gradient.addColorStop(0, '#0F172A')
-      gradient.addColorStop(0.5, '#1E40AF')
-      gradient.addColorStop(1, '#06B6D4')
+      gradient.addColorStop(0, '#4F7DFF')
+      gradient.addColorStop(0.5, '#8B5CF6')
+      gradient.addColorStop(1, '#F6B51E')
       ctx.fillStyle = gradient
       ctx.fillRect(0, 0, 1400, 900)
 
