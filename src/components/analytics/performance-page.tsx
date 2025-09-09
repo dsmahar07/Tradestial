@@ -418,6 +418,8 @@ export function PerformancePage({ data }: PerformancePageProps) {
       chartType = 'shortWinRateOverTime'
     } else if (name.includes('avg win')) {
       chartType = 'dailyAvgWin'
+    } else if (name.includes('avg loss')) {
+      chartType = 'dailyAvgLoss'
     } else if (name.includes('profit factor')) {
       chartType = 'profitFactorOverTime'
     } else if (name.includes('expectancy')) {
