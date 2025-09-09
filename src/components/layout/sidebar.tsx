@@ -167,7 +167,7 @@ export function Sidebar() {
       <div className="py-4 flex items-center px-5 relative">
         <div className="w-8 h-8 relative flex-shrink-0">
           <Image
-            src="/new-tradestial-logo.png"
+            src="/Branding/Tradestial.png"
             alt="Tradestial Logo"
             width={32}
             height={32}

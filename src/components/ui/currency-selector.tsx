@@ -25,23 +25,26 @@ export function CurrencySelector({
 }: CurrencySelectorProps) {
   const [selectedCurrency, setSelectedCurrency] = useState<string>('USD')
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<number>(0)
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
   useEffect(() => {
     // Initialize and get current currency
-    setSelectedCurrency(CurrencyConversionService.getSelectedCurrency())
+    setSelectedCurrency(CurrencyConversionService.getSelectedCurrency().code)
     setLastUpdate(CurrencyConversionService.getLastUpdateTime())
 
     // Subscribe to currency changes
-    const unsubscribe = CurrencyConversionService.subscribe((currency) => {
-      setSelectedCurrency(currency)
+    const unsubscribe = CurrencyConversionService.subscribe((currency: CurrencyInfo) => {
+      setSelectedCurrency(currency.code)
     })
 
     return unsubscribe
   }, [])
 
-  const handleCurrencyChange = (currency: string) => {
-    CurrencyConversionService.setSelectedCurrency(currency)
+  const handleCurrencyChange = (currencyCode: string) => {
+    const currencyInfo = CurrencyConversionService.getCurrencyInfo(currencyCode)
+    if (currencyInfo) {
+      CurrencyConversionService.setSelectedCurrency(currencyInfo)
+    }
   }
 
   const handleRefreshRates = async () => {
@@ -120,7 +123,7 @@ export function CurrencySelector({
                 Select Currency
               </DropdownMenuLabel>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                Updated: {formatLastUpdate(lastUpdate)}
+                Last updated: {lastUpdate.toLocaleTimeString()}
                 {isStale && (
                   <span className="text-yellow-600 dark:text-yellow-400 ml-1">
                     (Stale)
@@ -148,7 +151,7 @@ export function CurrencySelector({
 
           {/* Currency list */}
           <div className="space-y-1 max-h-[300px] overflow-y-auto">
-            {CurrencyConversionService.SUPPORTED_CURRENCIES.map((currency: CurrencyInfo) => (
+            {CurrencyConversionService.getSupportedCurrencies().map((currency: CurrencyInfo) => (
               <DropdownMenuItem
                 key={currency.code}
                 className="flex items-center gap-3 px-3 py-2 cursor-pointer"

@@ -10,7 +10,7 @@ export function useEventListener<K extends keyof WindowEventMap>(
   options?: boolean | AddEventListenerOptions
 ) {
   // Create a ref that stores handler
-  const savedHandler = useRef<(event: WindowEventMap[K]) => void>();
+  const savedHandler = useRef<(event: WindowEventMap[K]) => void>(handler);
 
   // Update ref.current value if handler changes
   useEffect(() => {
@@ -49,7 +49,7 @@ export function useCustomEventListener<T = any>(
   handler: (event: CustomEvent<T>) => void,
   element?: Element | Window | Document | null
 ) {
-  const savedHandler = useRef<(event: CustomEvent<T>) => void>();
+  const savedHandler = useRef<(event: CustomEvent<T>) => void>(handler);
 
   useEffect(() => {
     savedHandler.current = handler;

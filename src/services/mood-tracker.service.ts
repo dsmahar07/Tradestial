@@ -78,12 +78,18 @@ export class MoodTrackerService {
   } {
     const entries = this.getAllMoodEntries()
     const moodDistribution: Record<MoodType, number> = {
+      euphoric: 0,
       excited: 0,
       confident: 0,
+      focused: 0,
+      optimistic: 0,
       neutral: 0,
+      cautious: 0,
       anxious: 0,
       frustrated: 0,
-      overwhelmed: 0
+      stressed: 0,
+      overwhelmed: 0,
+      fearful: 0
     }
 
     entries.forEach(entry => {

@@ -62,16 +62,17 @@ export function StrategyCard({
   highlight,
   runningPnlData = [],
   categories = [],
-  tags = [],
+  tags = {},
   profitTarget,
   stopLoss,
   rating,
   onProfitTargetChange,
   onStopLossChange,
   onRatingChange,
-  onTagAdd,
-  onTagRemove,
-  onCategoryChange,
+  onAddTag,
+  onRemoveTag,
+  onUpdateCategory,
+  onShowColorPicker,
 }: StrategyCardProps) {
   const [renderKey, setRenderKey] = useState(0)
   
@@ -842,7 +843,7 @@ export function StrategyCard({
                   <span className="mr-1 text-gray-500 dark:text-gray-400">$</span>
                   <input
                     value={profitTarget}
-                    onChange={(e) => onProfitTargetChange(e.target.value)}
+                    onChange={(e) => onProfitTargetChange?.(e.target.value)}
                     placeholder="0.00"
                     className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   />
@@ -859,10 +860,7 @@ export function StrategyCard({
                     value={stopLoss}
                     onChange={(e) => {
                       const value = e.target.value
-                      onStopLossChange(value)
-                      if (trade && value) {
-                        setTradeLevels(trade.id, profitTarget, value)
-                      }
+                      onStopLossChange?.(value)
                     }}
                     placeholder="0.00"
                     className="flex-1 bg-transparent outline-none font-bold text-gray-600 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -1006,7 +1004,7 @@ export function StrategyCard({
                           onClick={() => {
                             const currentCategory = categories.find(c => c.id === 'mistakes')
                             const newName = prompt('Enter new name:', currentCategory?.name || 'Mistakes')
-                            if (newName) onUpdateCategory('mistakes', { name: newName })
+                            if (newName) onUpdateCategory?.('mistakes', { name: newName })
                           }}
                           className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
                         >
@@ -1014,7 +1012,7 @@ export function StrategyCard({
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => onShowColorPicker('mistakes')}
+                          onClick={() => onShowColorPicker?.('mistakes')}
                           className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
                         >
                           <SwatchIcon className="w-4 h-4 text-gray-500" />
@@ -1037,7 +1035,7 @@ export function StrategyCard({
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           if (selectedMistakesTag.trim()) {
-                            onAddTag('mistakes', selectedMistakesTag.trim())
+                            onAddTag?.('mistakes', selectedMistakesTag.trim())
                             setSelectedMistakesTag('')
                           }
                         }
@@ -1063,7 +1061,7 @@ export function StrategyCard({
                             >
                               <span className="relative z-10">{tag}</span>
                               <button
-                                onClick={() => onRemoveTag('mistakes', tag)}
+                                onClick={() => onRemoveTag?.('mistakes', tag)}
                                 className="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-colors relative z-10"
                               >
                                 <span className="text-xs">×</span>
@@ -1103,7 +1101,7 @@ export function StrategyCard({
                             <DropdownMenuItem 
                               onClick={() => {
                                 const newName = prompt('Enter new name:', category.name)
-                                if (newName) onUpdateCategory(category.id, { name: newName })
+                                if (newName) onUpdateCategory?.(category.id, { name: newName })
                               }}
                               className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
                             >
@@ -1111,7 +1109,7 @@ export function StrategyCard({
                               Rename
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => onShowColorPicker(category.id as 'mistakes' | 'custom')}
+                              onClick={() => onShowColorPicker?.(category.id as 'mistakes' | 'custom')}
                               className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer"
                             >
                               <SwatchIcon className="w-4 h-4 text-gray-500" />
@@ -1137,7 +1135,7 @@ export function StrategyCard({
                             if (e.key === 'Enter') {
                               const value = (e.target as HTMLInputElement).value
                               if (value.trim()) {
-                                onAddTag(category.id, value.trim())
+                                onAddTag?.(category.id, value.trim())
                                 if (category.id === 'custom') setSelectedCustomTag('')
                               }
                             }
@@ -1163,7 +1161,7 @@ export function StrategyCard({
                                 >
                                   <span className="relative z-10">{tag}</span>
                                   <button
-                                    onClick={() => onRemoveTag(category.id, tag)}
+                                    onClick={() => onRemoveTag?.(category.id, tag)}
                                     className="hover:bg-white hover:bg-opacity-20 rounded-full p-0.5 transition-colors relative z-10"
                                   >
                                     <span className="text-xs">×</span>

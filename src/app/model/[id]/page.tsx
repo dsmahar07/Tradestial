@@ -596,7 +596,7 @@ function StrategyNotes({ strategyId }: { strategyId: string }) {
             note={selected}
             onUpdateNote={updateNote}
             onDeleteNote={(id: string, title: string) => deleteNote(id)}
-            hideNetPnl
+            hideNetPnlSection
           />
         </div>
       </div>

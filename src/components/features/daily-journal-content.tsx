@@ -699,7 +699,7 @@ export function DailyJournalContent() {
                     <div className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                       <div className="w-6 h-6 relative">
                         <Image
-                          src="/new-tradestial-logo.png"
+                          src="/Branding/Tradestial.png"
                           alt="Tradestial Logo"
                           width={24}
                           height={24}
