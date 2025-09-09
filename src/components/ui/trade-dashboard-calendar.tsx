@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DayDetailModal } from '@/components/ui/day-detail-modal'
@@ -55,6 +55,7 @@ const generateTradingDays = (trades: Trade[]): TradingDay[] => {
 
 export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboardCalendarProps) {
   const [trades, setTrades] = useState<Trade[]>([])
+  const calendarRef = useRef<HTMLDivElement | null>(null)
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -178,6 +179,104 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   const handleNextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1))
   const handleToday = () => setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1))
 
+  // Export the calendar card as a PNG on a gradient background
+  const exportCalendarAsImage = async () => {
+    try {
+      const node = calendarRef.current
+      if (!node) return
+
+      // Dynamically import html-to-image on client
+      const { toPng } = await import('html-to-image')
+
+      // Temporarily hide export buttons
+      const hiddenElements: HTMLElement[] = []
+      node.querySelectorAll('.export-hidden').forEach(el => {
+        const element = el as HTMLElement
+        if (element.style.display !== 'none') {
+          hiddenElements.push(element)
+          element.style.display = 'none'
+        }
+      })
+
+      // Create a canvas to compose the final image
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas context not available')
+
+      // Set canvas dimensions
+      canvas.width = 1400 * 2 // 2x for high DPI
+      canvas.height = 900 * 2
+      ctx.scale(2, 2) // Scale for high DPI
+
+      // Draw gradient background
+      const gradient = ctx.createLinearGradient(0, 0, 1400, 900)
+      gradient.addColorStop(0, '#0F172A')
+      gradient.addColorStop(0.5, '#1E40AF')
+      gradient.addColorStop(1, '#06B6D4')
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, 1400, 900)
+
+      // Capture the calendar as PNG
+      const calendarDataUrl = await toPng(node, {
+        cacheBust: false,
+        pixelRatio: 2,
+        quality: 1,
+        skipFonts: true
+      })
+
+      // Load the calendar image
+      const img = new Image()
+      img.onload = () => {
+        // Calculate position to center the calendar
+        const calendarWidth = Math.min(img.width / 2, 1200) // Max width 1200px
+        const calendarHeight = (img.height / 2) * (calendarWidth / (img.width / 2))
+        const x = (1400 - calendarWidth) / 2
+        const y = (900 - calendarHeight) / 2
+
+        // Draw shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.25)'
+        ctx.shadowBlur = 50
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 25
+
+        // Draw the calendar image on the gradient
+        ctx.drawImage(img, x, y, calendarWidth, calendarHeight)
+
+        // Convert canvas to blob and download
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            const monthLabel = `${monthNames[currentMonth]}-${currentYear}`.replace(/\s+/g, '-')
+            a.download = `tradestial-calendar-${monthLabel}.png`
+            a.href = url
+            a.click()
+            URL.revokeObjectURL(url)
+          }
+        }, 'image/png', 1)
+      }
+
+      img.onerror = () => {
+        throw new Error('Failed to load calendar image')
+      }
+
+      img.src = calendarDataUrl
+
+      // Restore hidden elements
+      hiddenElements.forEach(el => {
+        el.style.display = ''
+      })
+
+    } catch (err) {
+      try {
+        // eslint-disable-next-line no-console
+        console.error('[Calendar] Export failed', err)
+      } catch {}
+      setFeedbackMessage('Failed to export image')
+      setTimeout(() => setFeedbackMessage(null), 2000)
+    }
+  }
+
   const monthlyTotal = useMemo(() => {
     return weeklyStats.reduce((sum, w) => sum + w.pnl, 0)
   }, [weeklyStats])
@@ -265,7 +364,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   }
 
   return (
-    <div className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 h-full flex flex-col', className)}>
+    <div ref={calendarRef} className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 h-full flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -305,7 +404,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               <button
                 onClick={handleHeaderIconClick}
                 aria-label="Header action"
-                className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent"
+                className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent export-hidden"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20.5672 14.54V9.46002C20.5665 8.72983 20.3737 8.01267 20.0083 7.38049C19.6429 6.74831 19.1176 6.22334 18.4853 5.85825L14.0819 3.30786C13.449 2.9424 12.7309 2.75 12 2.75C11.2691 2.75 10.551 2.9424 9.91805 3.30786L5.51472 5.85825C4.88235 6.22334 4.35711 6.74831 3.99169 7.38049C3.62627 8.01267 3.43352 8.72983 3.43277 9.46002V14.54C3.43352 15.2702 3.62627 15.9873 3.99169 16.6195C4.35711 17.2517 4.88235 17.7767 5.51472 18.1418L9.91805 20.6921C10.551 21.0576 11.2691 21.25 12 21.25C12.7309 21.25 13.449 21.0576 14.0819 20.6921L18.4853 18.1418C19.1176 17.7767 19.6429 17.2517 20.0083 16.6195C20.3737 15.9873 20.5665 15.2702 20.5672 14.54Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -361,13 +460,13 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
           <button
-            aria-label="Image action"
-            className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent"
+            onClick={exportCalendarAsImage}
+            aria-label="Export calendar as image"
+            className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent export-hidden"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16.2402 3.5H7.74023C4.97881 3.5 2.74023 5.73858 2.74023 8.5V15.5C2.74023 18.2614 4.97881 20.5 7.74023 20.5H16.2402C19.0017 20.5 21.2402 18.2614 21.2402 15.5V8.5C21.2402 5.73858 19.0017 3.5 16.2402 3.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2.99023 17L5.74023 13.8C6.10008 13.4427 6.57234 13.2206 7.07711 13.1714C7.58188 13.1222 8.08815 13.2489 8.51023 13.53C8.93232 13.8112 9.43859 13.9379 9.94335 13.8887C10.4481 13.8395 10.9204 13.6174 11.2802 13.26L13.6102 10.93C14.2797 10.2583 15.1661 9.84625 16.1113 9.76749C17.0564 9.68872 17.9988 9.94835 18.7702 10.5L21.2602 12.43" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7.99008 10.1701C8.90687 10.1701 9.65008 9.42689 9.65008 8.5101C9.65008 7.59331 8.90687 6.8501 7.99008 6.8501C7.07329 6.8501 6.33008 7.59331 6.33008 8.5101C6.33008 9.42689 7.07329 10.1701 7.99008 10.1701Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.83333 19.7083H18.1667C18.9844 19.7083 19.7687 19.3834 20.3469 18.8052C20.9252 18.227 21.25 17.4427 21.25 16.625V9.43051C21.25 8.61276 20.9252 7.82851 20.3469 7.25027C19.7687 6.67203 18.9844 6.34718 18.1667 6.34718H16.7483C16.3396 6.34682 15.9477 6.18416 15.6589 5.89496L14.5078 4.74385C14.2189 4.45465 13.8271 4.29199 13.4183 4.29163H10.5817C10.1729 4.29199 9.78106 4.45465 9.49222 4.74385L8.34111 5.89496C8.05227 6.18416 7.6604 6.34682 7.25167 6.34718H5.83333C5.01558 6.34718 4.23132 6.67203 3.65309 7.25027C3.07485 7.82851 2.75 8.61276 2.75 9.43051V16.625C2.75 17.4427 3.07485 18.227 3.65309 18.8052C4.23132 19.3834 5.01558 19.7083 5.83333 19.7083Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 16.6251C14.2705 16.6251 16.1111 14.7844 16.1111 12.5139C16.1111 10.2434 14.2705 8.40283 12 8.40283C9.7295 8.40283 7.88889 10.2434 7.88889 12.5139C7.88889 14.7844 9.7295 16.6251 12 16.6251Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
         </div>
