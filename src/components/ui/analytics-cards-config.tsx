@@ -1,6 +1,7 @@
 import { NetPnlIcon, OrdersIcon, VisitorsIcon, RefundIcon, StreakIcon, ExpectancyIcon } from './custom-icons'
 import { StreakDisplay } from './streak-display'
 import { DataStore } from '@/services/data-store.service'
+import { maskCurrencyValue, maskPercentageValue } from '@/utils/privacy'
 
 export interface AnalyticsCardConfig {
   title: string
@@ -48,7 +49,7 @@ const TradeCountLabel = ({ tradeCount }: { tradeCount: number }) => (
 )
 
 // Get real-time data from DataStore
-export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCardConfig[] => {
+export const getAnalyticsCardsConfig = (forceReal: boolean = false, isPrivacyMode: boolean = false): AnalyticsCardConfig[] => {
   // Prevent hydration mismatch by always returning empty state on server
   if (typeof window === 'undefined') {
     return getEmptyAnalyticsCards()
@@ -78,7 +79,7 @@ export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCa
   return [
     {
       title: "NET PNL",
-      value: kpis.netPnl.formatted,
+      value: isPrivacyMode ? maskCurrencyValue(kpis.netPnl.value, true) : kpis.netPnl.formatted,
       change: 0,
       changeLabel: "",
       delay: 0,
@@ -105,7 +106,7 @@ export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCa
     },
     {
       title: "Profit Factor",
-      value: kpis.profitFactor.formatted,
+      value: isPrivacyMode ? "***" : kpis.profitFactor.formatted,
       change: 0,
       changeLabel: "",
       delay: 0.2,
@@ -121,7 +122,7 @@ export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCa
     },
     {
       title: "Avg Win/Loss",
-      value: kpis.avgWinLoss.formatted,
+      value: isPrivacyMode ? maskCurrencyValue(kpis.avgWinLoss.value, true) : kpis.avgWinLoss.formatted,
       change: 0,
       changeLabel: "",
       delay: 0.3,
@@ -136,9 +137,9 @@ export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCa
     },
     {
       title: "Current day streak",
-      value: currentStreak.type === 'win' ? `${currentStreak.value} ${currentStreak.value === 1 ? 'day' : 'days'}` : "0 days",
+      value: isPrivacyMode ? "*** days" : (currentStreak.type === 'win' ? `${currentStreak.value} ${currentStreak.value === 1 ? 'day' : 'days'}` : "0 days"),
       change: 0,
-      changeLabel: `${currentStreak.type === 'win' ? 'Winning' : 'No'} days in a row`,
+      changeLabel: isPrivacyMode ? "Privacy mode enabled" : `${currentStreak.type === 'win' ? 'Winning' : 'No'} days in a row`,
       delay: 0.4,
       icon: StreakIcon,
       customIcon: true,
@@ -147,7 +148,7 @@ export const getAnalyticsCardsConfig = (forceReal: boolean = false): AnalyticsCa
     },
     {
       title: "Trade expectancy",
-      value: kpis.tradeExpectancy.formatted,
+      value: isPrivacyMode ? maskCurrencyValue(kpis.tradeExpectancy.value, true) : kpis.tradeExpectancy.formatted,
       change: 0,
       changeLabel: "",
       delay: 0.5,

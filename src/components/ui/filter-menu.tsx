@@ -1,10 +1,18 @@
 'use client'
 
 import * as React from "react"
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { Button } from "@/components/ui/button"
 import { Check, ChevronDown, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
+} from "@/components/ui/fancy-select"
 
 export type FilterOption = {
   id: string
@@ -66,86 +74,85 @@ const filterIcons = {
 }
 
 export function FilterMenu({ groups, className }: FilterMenuProps) {
-  const [open, setOpen] = React.useState(false)
+  // For now, we'll use the first group as the primary filter
+  // This can be extended to support multiple groups if needed
+  const primaryGroup = groups[0]
+  const currentOption = primaryGroup?.options.find(opt => opt.id === primaryGroup.value)
+
+  const handleValueChange = (value: string) => {
+    primaryGroup?.onChange?.(value)
+  }
+
+  if (!primaryGroup) return null
 
   return (
-    <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-      <DropdownMenu.Trigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-9 px-3 gap-2 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800",
-            className
-          )}
-        >
-          <Filter className="h-4 w-4" />
-          <span>Filters</span>
-          <ChevronDown className="h-4 w-4 opacity-50" />
-        </Button>
-      </DropdownMenu.Trigger>
-
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          className="min-w-[280px] bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg p-1 z-50"
-          sideOffset={5}
-          align="end"
-        >
-          {groups.map((group, groupIndex) => (
-            <React.Fragment key={group.id}>
-              {groupIndex > 0 && (
-                <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
-              )}
-              
-              <div className="px-2 py-1.5">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                  {group.label}
+    <Select value={primaryGroup.value || ''} onValueChange={handleValueChange}>
+      <SelectTrigger className={cn("min-w-[140px] max-w-[200px] focus:outline-none focus:ring-0 focus-visible:ring-0", className)}>
+        <SelectValue>
+          <div className="flex items-center gap-2 min-w-0">
+            <Filter className="h-4 w-4 text-gray-500 flex-shrink-0" />
+            <span className="text-sm font-medium truncate">
+              {currentOption?.label || 'Select Filter'}
+            </span>
+          </div>
+        </SelectValue>
+      </SelectTrigger>
+      
+      <SelectContent className="w-[280px]">
+        <SelectGroup>
+          <SelectLabel>{primaryGroup.label}</SelectLabel>
+          {primaryGroup.options.map((option) => (
+            <SelectItem key={option.id} value={option.id} disabled={option.disabled}>
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-shrink-0">
+                  {option.icon || filterIcons[option.id as keyof typeof filterIcons]}
                 </div>
-                
-                <DropdownMenu.RadioGroup
-                  value={group.value}
-                  onValueChange={group.onChange}
-                >
-                  {group.options.map((option) => (
-                    <DropdownMenu.RadioItem
-                      key={option.id}
-                      value={option.id}
-                      disabled={option.disabled}
-                      className={cn(
-                        "flex items-start gap-3 px-2 py-2.5 rounded-md cursor-pointer select-none outline-none",
-                        "hover:bg-gray-50 dark:hover:bg-gray-800",
-                        "focus:bg-gray-50 dark:focus:bg-gray-800",
-                        "data-[state=checked]:bg-blue-50 dark:data-[state=checked]:bg-blue-900/20",
-                        option.disabled && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        {option.icon || filterIcons[option.id as keyof typeof filterIcons]}
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {option.label}
-                          </div>
-                          {option.description && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                              {option.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <DropdownMenu.ItemIndicator className="flex items-center justify-center">
-                        <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      </DropdownMenu.ItemIndicator>
-                    </DropdownMenu.RadioItem>
-                  ))}
-                </DropdownMenu.RadioGroup>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {option.label}
+                  </div>
+                  {option.description && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      {option.description}
+                    </div>
+                  )}
+                </div>
               </div>
-            </React.Fragment>
+            </SelectItem>
           ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+        </SelectGroup>
+        
+        {groups.length > 1 && (
+          <>
+            <SelectSeparator />
+            {groups.slice(1).map((group) => (
+              <SelectGroup key={group.id}>
+                <SelectLabel>{group.label}</SelectLabel>
+                {group.options.map((option) => (
+                  <SelectItem key={option.id} value={option.id} disabled={option.disabled}>
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="flex-shrink-0">
+                        {option.icon || filterIcons[option.id as keyof typeof filterIcons]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {option.label}
+                        </div>
+                        {option.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                            {option.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </>
+        )}
+      </SelectContent>
+    </Select>
   )
 }
 

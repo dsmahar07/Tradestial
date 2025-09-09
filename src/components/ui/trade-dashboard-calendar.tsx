@@ -10,6 +10,8 @@ import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate } from '@/utils/date-utils'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Checkbox from '@radix-ui/react-checkbox'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 type TradingDay = {
   date: string // ISO date or parsable date string
@@ -55,6 +57,7 @@ const generateTradingDays = (trades: Trade[]): TradingDay[] => {
 
 export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboardCalendarProps) {
   const [trades, setTrades] = useState<Trade[]>([])
+  const { isPrivacyMode } = usePrivacy()
   const calendarRef = useRef<HTMLDivElement | null>(null)
 
   // Load trades and subscribe to changes
@@ -562,7 +565,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                   <div className="flex-grow flex flex-col items-center justify-center -mt-2">
                     {/* P&L display - always at top */}
                     <div className={cn(useCompact ? 'text-center text-sm font-bold mb-1' : 'text-center text-base font-bold mb-1', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                      {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
+                      {isPrivacyMode ? maskCurrencyValue(pnl, true) : `${pnl > 0 ? '+' : ''}$${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}`}
                     </div>
                     {/* Secondary metrics in organized grid */}
                     {(settings.rMultiple || settings.ticks || settings.pips || settings.points) && (
@@ -651,7 +654,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                           {settings.points ? `${Math.abs(Math.round(pnl / 25))} pts` : ''}
                         </span>
                         <span className={cn('font-bold text-xl font-inter ml-auto mr-2 mt-3', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                          {pnl > 0 ? '+' : ''}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}
+                          {isPrivacyMode ? maskCurrencyValue(pnl, true) : `${pnl > 0 ? '+' : ''}$${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}`}
                         </span>
                       </div>
                       {/* Row 2: T 20 | 5 trades | */}
@@ -685,7 +688,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 <div className="text-xs text-gray-500 dark:text-gray-400">{weeklyStats[i]?.days ?? 0} {(weeklyStats[i]?.days ?? 0) === 1 ? 'day' : 'days'}</div>
               </div>
               <div className={cn('text-base font-semibold', (weeklyStats[i]?.pnl ?? 0) >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                {(weeklyStats[i]?.pnl ?? 0) === 0 ? '$0' : `${(weeklyStats[i]?.pnl ?? 0) > 0 ? '+' : '-'}$${Math.abs(weeklyStats[i]?.pnl ?? 0)}`}
+                {isPrivacyMode ? maskCurrencyValue(weeklyStats[i]?.pnl ?? 0, true) : ((weeklyStats[i]?.pnl ?? 0) === 0 ? '$0' : `${(weeklyStats[i]?.pnl ?? 0) > 0 ? '+' : '-'}$${Math.abs(weeklyStats[i]?.pnl ?? 0)}`)}
               </div>
             </div>
           </div>

@@ -8,6 +8,8 @@ import { Trade } from '@/services/trade-data.service'
 import { useTheme } from '@/hooks/use-theme'
 import { Info } from 'lucide-react'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 type ChartPoint = {
   date: string
@@ -20,6 +22,7 @@ type ChartPoint = {
 export function DailyCumulativePnlWidget() {
   const [trades, setTrades] = useState<Trade[]>([])
   const { theme } = useTheme()
+  const { isPrivacyMode } = usePrivacy()
   const isDarkTheme = typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : theme === 'dark'
 
   useEffect(() => {
@@ -127,6 +130,9 @@ export function DailyCumulativePnlWidget() {
   }, [chartData])
 
   const formatCurrency = (value: number): string => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(value, true)
+    }
     const absValue = Math.abs(value)
     if (absValue >= 1000) return `$${(value / 1000).toFixed(1)}k`
     return `$${Math.round(value)}`

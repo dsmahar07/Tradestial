@@ -7,6 +7,8 @@ import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate, getMonth, getYear, getDayOfWeek } from '@/utils/date-utils'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface DayData {
   date: number
@@ -88,6 +90,7 @@ const generateMonthData = (viewDate: Date, trades: Trade[]): DayData[] => {
 export function TradingStreakHeatmap() {
   const [viewDate, setViewDate] = useState<Date>(new Date())
   const [trades, setTrades] = useState<Trade[]>([])
+  const { isPrivacyMode } = usePrivacy()
   const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   // Load trades and subscribe to changes
@@ -235,7 +238,7 @@ export function TradingStreakHeatmap() {
                     {day.trades > 0 ? (
                       <><br/>{day.trades} trade{day.trades > 1 ? 's' : ''}<br/>
                       <span className={day.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {day.pnl >= 0 ? '+' : ''}${day.pnl.toLocaleString()}
+                        {isPrivacyMode ? maskCurrencyValue(day.pnl, true) : `${day.pnl >= 0 ? '+' : ''}$${day.pnl.toLocaleString()}`}
                       </span></>
                     ) : (
                       <><br/>No trades</>

@@ -14,6 +14,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
 import { Trade as RealTrade } from '@/services/trade-data.service'
 import { calculateTradeDuration } from '@/utils/duration'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue, maskPercentageValue } from '@/utils/privacy'
 
 interface Trade {
   id: string
@@ -142,6 +144,7 @@ const timeRanges = ['Today', 'Last 7 Days', 'Last Month', 'All Time']
 export function RecentTradesTable() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('Today')
   const [trades, setTrades] = useState<RealTrade[]>([])
+  const { isPrivacyMode } = usePrivacy()
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -217,11 +220,17 @@ export function RecentTradesTable() {
 
 
   const formatCurrency = (amount: number) => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(amount, true)
+    }
     const sign = amount >= 0 ? '+' : ''
     return `${sign}$${Math.abs(amount).toFixed(2)}`
   }
 
   const formatPercentage = (percentage: number) => {
+    if (isPrivacyMode) {
+      return maskPercentageValue(percentage, true)
+    }
     const sign = percentage >= 0 ? '+' : ''
     return `${sign}${percentage.toFixed(2)}%`
   }

@@ -8,6 +8,8 @@ import { Trade } from '@/services/trade-data.service'
 import { useTheme } from '@/hooks/use-theme'
 import { Info } from 'lucide-react'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 type ChartPoint = {
   weekday: string
@@ -21,6 +23,7 @@ type ChartPoint = {
 export function PerformanceWeekDays() {
   const [trades, setTrades] = useState<Trade[]>([])
   const { theme } = useTheme()
+  const { isPrivacyMode } = usePrivacy()
   const isDarkTheme = typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : theme === 'dark'
 
   useEffect(() => {
@@ -94,6 +97,9 @@ export function PerformanceWeekDays() {
   }, [chartData])
 
   const formatCurrency = (value: number) => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(value, true)
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -104,12 +110,12 @@ export function PerformanceWeekDays() {
 
   const formatTooltipValue = (value: number | null | undefined, name: string) => {
     if (value === null || value === undefined || isNaN(value)) {
-      return ['$0', name === 'peakProfitLoss' ? 'Peak Profit/Loss' : 'Final P&L']
+      return [isPrivacyMode ? maskCurrencyValue(0, true) : '$0', name === 'peakProfitLoss' ? 'Peak Profit/Loss' : 'Final P&L']
     }
     if (name === 'peakProfitLoss') {
-      return [formatCurrency(value), 'Peak Profit/Loss']
+      return [isPrivacyMode ? maskCurrencyValue(value, true) : formatCurrency(value), 'Peak Profit/Loss']
     }
-    return [formatCurrency(value), name === 'dailyPnl' ? 'Final P&L' : name]
+    return [isPrivacyMode ? maskCurrencyValue(value, true) : formatCurrency(value), name === 'dailyPnl' ? 'Final P&L' : name]
   }
 
   // Compute dynamic Y-axis ticks with better step calculation
@@ -274,7 +280,7 @@ export function PerformanceWeekDays() {
                       <span className="text-gray-600 dark:text-gray-400">P&L</span>
                     </div>
                     <span className={cn('font-semibold', dailyPnl >= 0 ? 'text-[#10B981]' : 'text-[#ef4444]')}>
-                      {dailyPnl >= 0 ? '+' : ''}{formatCurrency(dailyPnl)}
+                      {isPrivacyMode ? maskCurrencyValue(dailyPnl, true) : `${dailyPnl >= 0 ? '+' : ''}${formatCurrency(dailyPnl)}`}
                     </span>
                   </div>
                 </div>

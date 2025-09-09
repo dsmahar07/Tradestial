@@ -13,6 +13,7 @@ import { DailyCheckListDialog } from '@/components/features/daily-checklist-dial
 import { MoodSelectionModal, MoodType } from '@/components/features/mood-selection-modal'
 import { MoodTrackerService } from '@/services/mood-tracker.service'
 import { RuleTrackingService } from '@/services/rule-tracking.service'
+import { usePrivacy } from '@/contexts/privacy-context'
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
@@ -54,6 +55,7 @@ export function DashboardContent() {
   const [isMoodModalOpen, setIsMoodModalOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const isHydrated = useHydrated()
+  const { isPrivacyMode } = usePrivacy()
   const [analyticsCards, setAnalyticsCards] = useState<AnalyticsCardConfig[]>(() => {
     // Always start with empty state to prevent hydration mismatch
     // Force empty state for both server and client initial render
@@ -290,11 +292,11 @@ export function DashboardContent() {
     if (isHydrated) {
       // Small delay to ensure DOM is ready
       const timeoutId = setTimeout(() => {
-        setAnalyticsCards(getAnalyticsCardsConfig(true)) // forceReal = true
+        setAnalyticsCards(getAnalyticsCardsConfig(true, isPrivacyMode)) // forceReal = true, pass privacy mode
       }, 0)
       
       const unsubscribe = DataStore.subscribe(() => {
-        setAnalyticsCards(getAnalyticsCardsConfig(true)) // forceReal = true
+        setAnalyticsCards(getAnalyticsCardsConfig(true, isPrivacyMode)) // forceReal = true, pass privacy mode
       })
 
       return () => {
@@ -302,7 +304,7 @@ export function DashboardContent() {
         unsubscribe()
       }
     }
-  }, [isHydrated])
+  }, [isHydrated, isPrivacyMode])
 
   const handleDateSelect = (date: Date) => {
     // Check if mood is already logged for this date

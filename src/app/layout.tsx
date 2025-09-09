@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/hooks/use-theme'
 import { PerformanceMonitor } from '@/components/features/performance-monitor'
+import { PrivacyProvider } from '@/contexts/privacy-context'
 import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import '@radix-ui/themes/styles.css'
@@ -74,12 +75,14 @@ export default function RootLayout({
           defaultTheme="light"
           storageKey="tradestial-ui-theme"
         >
-          <Theme appearance="inherit" radius="medium" className="font-sans">
-            <PerformanceMonitor />
-            <div className="min-h-screen w-full">
-              {children}
-            </div>
-          </Theme>
+          <PrivacyProvider>
+            <Theme appearance="inherit" radius="medium" className="font-sans">
+              <PerformanceMonitor />
+              <div className="min-h-screen w-full">
+                {children}
+              </div>
+            </Theme>
+          </PrivacyProvider>
         </ThemeProvider>
       </body>
     </html>

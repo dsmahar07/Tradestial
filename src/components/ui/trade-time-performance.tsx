@@ -9,6 +9,8 @@ import { useTheme } from '@/hooks/use-theme'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface TradeTimeData {
   x: number // Time in decimal hours (e.g., 9.5 = 9:30)
@@ -104,6 +106,7 @@ const generateTradeTimeData = (trades: Trade[]): TradeTimeData[] => {
 export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
   const { theme } = useTheme()
   const [trades, setTrades] = useState<Trade[]>([])
+  const { isPrivacyMode } = usePrivacy()
   
   // Detect dark mode using document class to avoid comparing against a 'system' literal when theme typing doesn't include it
   const isDark = (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) || theme === 'dark'
@@ -123,6 +126,9 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
   }, [trades])
 
   const formatYAxis = (value: number) => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(value, true)
+    }
     if (value === 0) return '$0'
     if (Math.abs(value) >= 1000) {
       const thousands = value / 1000
@@ -334,7 +340,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                     const trade = data.trade
                     const time = data.actualTime ? data.actualTime : formatXAxis(data.x)
                     const pnl = data.y || 0
-                    const signed = `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`
+                    const signed = isPrivacyMode ? maskCurrencyValue(pnl, true) : `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toLocaleString()}`
                     
                     // Validate that color matches P&L
                     const expectedColor = pnl >= 0 ? '#10b981' : '#ef4444'

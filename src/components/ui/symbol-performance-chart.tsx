@@ -16,6 +16,8 @@ import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { Info } from 'lucide-react'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface SymbolPerformance {
   symbol: string
@@ -92,6 +94,7 @@ export function SymbolPerformanceChart() {
   const selectedMetric = 'P&L'
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
+  const { isPrivacyMode } = usePrivacy()
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -226,7 +229,7 @@ export function SymbolPerformanceChart() {
             <span className="text-sm text-gray-600 dark:text-gray-300">
               {selectedMetric}: {
                 selectedMetric === 'P&L' || selectedMetric === 'Avg Trade' 
-                  ? `$${data.value.toFixed(2)}`
+                  ? (isPrivacyMode ? maskCurrencyValue(data.value, true) : `$${data.value.toFixed(2)}`)
                   : selectedMetric === 'Win Rate'
                   ? `${data.value.toFixed(1)}%`
                   : data.value
@@ -242,7 +245,7 @@ export function SymbolPerformanceChart() {
   // Format Y-axis labels
   const formatYAxisLabel = (value: number) => {
     if (selectedMetric === 'P&L' || selectedMetric === 'Avg Trade') {
-      return `$${value}`
+      return isPrivacyMode ? maskCurrencyValue(value, true) : `$${value}`
     } else if (selectedMetric === 'Win Rate') {
       return `${value}%`
     }

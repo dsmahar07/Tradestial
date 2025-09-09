@@ -24,6 +24,8 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface AccountBalanceData {
   date: string
@@ -67,6 +69,7 @@ export function AccountBalanceChart({
   const [selectedTimeRange, setSelectedTimeRange] = useState('ALL')
   const [chartData, setChartData] = useState<AccountBalanceData[]>(data || [])
   const [hasData, setHasData] = useState<boolean>(false)
+  const { isPrivacyMode } = usePrivacy()
 
   useEffect(() => {
     const loadAccountBalanceData = () => {
@@ -146,11 +149,17 @@ export function AccountBalanceChart({
   const actualData = data || chartData
 
   const formatCurrency = (value: number) => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(value, true)
+    }
     // Full currency with thousands separators, e.g. $60,000
     return `$${Math.round(value).toLocaleString()}`
   }
 
   const formatTooltipValue = (value: number) => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(value, true)
+    }
     return `$${value.toLocaleString()}`
   }
 

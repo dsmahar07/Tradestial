@@ -6,11 +6,18 @@ import { useChartData } from '@/hooks/use-analytics'
 import { DateTime } from 'luxon'
 import { Info } from 'lucide-react'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 // chartData will be generated dynamically in the component
 
 // Smart currency formatter with robust handling
-const formatCurrency = (value: number): string => {
+const formatCurrency = (value: number, isPrivacyMode: boolean = false): string => {
+  // Handle privacy mode
+  if (isPrivacyMode) {
+    return maskCurrencyValue(value, true)
+  }
+  
   // Handle edge cases
   if (!isFinite(value) || isNaN(value)) return '$0'
   
@@ -39,7 +46,7 @@ const formatCurrency = (value: number): string => {
 }
 
 // Simple Tooltip showing only P&L amount
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
   if (active && payload && payload.length) {
     const value = payload[0].value || payload[0].payload?.value
     
@@ -53,7 +60,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       )
     }
     
-    const formattedValue = formatCurrency(value)
+    const formattedValue = formatCurrency(value, isPrivacyMode)
     
     return (
       <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
@@ -70,6 +77,7 @@ type TimeFilter = 'all' | 'month' | 'week'
 
 export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulativePnlChart() {
   const timeFilter: TimeFilter = 'all'
+  const { isPrivacyMode } = usePrivacy()
   
   // Pull reactive, filtered, cached chart data from analytics service
   const { data: rawData, loading } = useChartData('cumulativePnL')
@@ -417,7 +425,7 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
               className="dark:fill-gray-400"
               tickFormatter={(value) => {
                 if (value === 0) return '$0';
-                return formatCurrency(value);
+                return formatCurrency(value, isPrivacyMode);
               }}
               domain={[Math.min(...yTicks), Math.max(...yTicks)]}
               ticks={yTicks}
@@ -438,7 +446,7 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
             ))}
             
             <Tooltip
-              content={<CustomTooltip />}
+              content={<CustomTooltip isPrivacyMode={isPrivacyMode} />}
               cursor={false}
             />
             

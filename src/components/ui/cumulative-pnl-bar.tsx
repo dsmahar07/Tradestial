@@ -24,6 +24,8 @@ import {
 import { useState, useEffect, useMemo } from 'react'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface PnlPeriod {
   period: string
@@ -101,6 +103,7 @@ const metrics = ['Cumulative P&L', 'Daily P&L', 'Trade Count']
 export function CumulativePnlBar() {
   const [selectedMetric, setSelectedMetric] = useState('Daily P&L')
   const [trades, setTrades] = useState<Trade[]>([])
+  const { isPrivacyMode } = usePrivacy()
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -263,7 +266,7 @@ export function CumulativePnlBar() {
               {selectedMetric}: {
                 selectedMetric === 'Trade Count' 
                   ? data.value
-                  : `$${data.value.toLocaleString()}`
+                  : (isPrivacyMode ? maskCurrencyValue(data.value, true) : `$${data.value.toLocaleString()}`)
               }
             </span>
           </div>
@@ -283,7 +286,7 @@ export function CumulativePnlBar() {
     if (selectedMetric === 'Trade Count') {
       return value.toString()
     }
-    return formatCurrency(value)
+    return isPrivacyMode ? maskCurrencyValue(value, true) : formatCurrency(value)
   }
 
   return (

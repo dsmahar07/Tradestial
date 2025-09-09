@@ -8,6 +8,8 @@ import { LineChart, Line, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate } from '@/utils/date-utils'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface DrawdownData {
   date: string
@@ -60,10 +62,17 @@ const generateDrawdownData = (trades: Trade[]): DrawdownData[] => {
 }
 
 // Custom Tooltip component for Drawdown
-const DrawdownTooltip = ({ active, payload, label }: any) => {
+const DrawdownTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const drawdown = data.drawdown
+    
+    const formatDrawdownValue = (value: number) => {
+      if (isPrivacyMode) {
+        return maskCurrencyValue(value, true)
+      }
+      return value === 0 ? '$0' : `-$${Math.abs(value).toLocaleString()}`
+    }
     
     return (
       <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-lg shadow-lg px-3 py-2 text-sm">
@@ -71,7 +80,7 @@ const DrawdownTooltip = ({ active, payload, label }: any) => {
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[#2547D0]" />
           <span className="text-gray-700 dark:text-gray-300">
-            Drawdown: {drawdown === 0 ? '$0' : `-$${Math.abs(drawdown).toLocaleString()}`}
+            Drawdown: {formatDrawdownValue(drawdown)}
           </span>
         </div>
       </div>
@@ -82,6 +91,7 @@ const DrawdownTooltip = ({ active, payload, label }: any) => {
 
 export const DrawdownChart = React.memo(function DrawdownChart() {
   const [trades, setTrades] = useState<Trade[]>([])
+  const { isPrivacyMode } = usePrivacy()
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -96,6 +106,9 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
   const drawdownData = useMemo(() => generateDrawdownData(trades), [trades])
 
   const formatYAxis = (value: number) => {
+    if (isPrivacyMode) {
+      return maskCurrencyValue(value, true)
+    }
     if (value === 0) return '$0'
     const absValue = Math.abs(value)
     if (absValue >= 1000000) {
@@ -291,7 +304,7 @@ export const DrawdownChart = React.memo(function DrawdownChart() {
                 allowDecimals={false}
               />
               
-              <Tooltip content={<DrawdownTooltip />} cursor={false} />
+              <Tooltip content={<DrawdownTooltip isPrivacyMode={isPrivacyMode} />} cursor={false} />
               
               <Area
                 type="monotone"

@@ -9,6 +9,8 @@ import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate, getMonth, getYear } from '@/utils/date-utils'
 import { Info } from 'lucide-react'
 import * as RadixTooltip from '@radix-ui/react-tooltip'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface PNLData {
   month: string
@@ -20,6 +22,7 @@ interface PNLData {
 
 export function PnlOverviewChart() {
   const [trades, setTrades] = useState<Trade[]>([])
+  const { isPrivacyMode } = usePrivacy()
 
   // Load trades and subscribe to changes
   useEffect(() => {
@@ -219,6 +222,9 @@ export function PnlOverviewChart() {
                 allowDecimals={false}
                 domain={['dataMin', 'dataMax']}
                 tickFormatter={(value) => {
+                  if (isPrivacyMode) {
+                    return maskCurrencyValue(value, true)
+                  }
                   if (value === 0) return '$0'
                   const absValue = Math.abs(value)
                   if (absValue >= 1000) {
@@ -243,7 +249,10 @@ export function PnlOverviewChart() {
                       {payload.map((entry, index) => {
                         let formattedValue: string
                         const value = entry.value as number
-                        if (value === 0) {
+                        
+                        if (isPrivacyMode) {
+                          formattedValue = maskCurrencyValue(value, true)
+                        } else if (value === 0) {
                           formattedValue = '$0'
                         } else if (Math.abs(value) >= 1000) {
                           formattedValue = `$${(value / 1000).toFixed(1)}k`

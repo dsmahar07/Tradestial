@@ -6,10 +6,17 @@ import { FilterMenu, defaultFilterGroups, FilterGroup } from "@/components/ui/fi
 import { AskStial } from "@/components/ui/ask-stial"
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { usePrivacy } from '@/contexts/privacy-context'
 
 export function DashboardHeader() {
   const pathname = usePathname()
-  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(defaultFilterGroups)
+  const { displayFormat, setDisplayFormat } = usePrivacy()
+  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(
+    defaultFilterGroups.map(group => ({
+      ...group,
+      value: displayFormat
+    }))
+  )
   
   const getPageInfo = () => {
     switch (pathname) {
@@ -114,6 +121,8 @@ export function DashboardHeader() {
           : group
       )
     )
+    // Update privacy context when filter changes
+    setDisplayFormat(value)
     console.log('Filter changed:', groupId, value)
   }
 

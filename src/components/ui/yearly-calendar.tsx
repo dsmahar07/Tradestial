@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 import { DataStore } from '@/services/data-store.service'
 import { Trade } from '@/services/trade-data.service'
 import { parseLocalDate, getMonth, getYear } from '@/utils/date-utils'
+import { usePrivacy } from '@/contexts/privacy-context'
+import { maskCurrencyValue } from '@/utils/privacy'
 
 interface MonthData {
     month: string
@@ -66,6 +68,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
     const [selectedTab, setSelectedTab] = useState<'winRate' | 'pnl' | 'trades'>('winRate')
     const [trades, setTrades] = useState<Trade[]>([])
+    const { isPrivacyMode } = usePrivacy()
 
     // Load trades and subscribe to changes
     useEffect(() => {
@@ -113,7 +116,8 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
             case 'winRate':
                 return month.trades > 0 ? `${month.winRate}%` : '--'
             case 'pnl':
-                return month.pnl !== 0 ? `$${month.pnl.toLocaleString()}` : '--'
+                if (month.pnl === 0) return '--'
+                return isPrivacyMode ? maskCurrencyValue(month.pnl, true) : `$${month.pnl.toLocaleString()}`
             case 'trades':
                 return month.trades > 0 ? month.trades.toString() : '--'
             default:
@@ -306,7 +310,7 @@ export function YearlyCalendar({ className }: YearlyCalendarProps) {
                             <div className="text-center">
                                 <div className="text-xs">
                                     {selectedTab === 'winRate' && totalTrades > 0 && `${Math.round((yearData.reduce((sum, m) => sum + (m.winRate * m.trades), 0) / totalTrades))}%`}
-                                    {selectedTab === 'pnl' && `$${totalPnl.toLocaleString()}`}
+                                    {selectedTab === 'pnl' && (totalPnl !== 0 ? (isPrivacyMode ? maskCurrencyValue(totalPnl, true) : `$${totalPnl.toLocaleString()}`) : '--')}
                                     {selectedTab === 'trades' && totalTrades}
                                     {totalTrades === 0 && '--'}
                                 </div>
