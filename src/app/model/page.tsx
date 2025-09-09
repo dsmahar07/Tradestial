@@ -14,7 +14,7 @@ export default function ModelPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-y-auto dark:bg-[#171717] p-6" style={{ backgroundColor: '#fafafa' }}>
+        <main className="flex-1 overflow-y-auto bg-[#fafafa] dark:bg-[#171717] p-6">
           <div className="w-full max-w-none mx-auto">
             <ModelOverview />
           </div>

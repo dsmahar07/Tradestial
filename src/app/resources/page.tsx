@@ -21,7 +21,7 @@ export default function ResourcesPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
         
-        <div className="flex-1 overflow-y-auto dark:bg-[#171717]" style={{ backgroundColor: '#fafafa' }}>
+        <div className="flex-1 overflow-y-auto bg-[#fafafa] dark:bg-[#171717]">
           <div className="max-w-6xl mx-auto p-6 space-y-6">
 
             {/* Trading Tools Section */}

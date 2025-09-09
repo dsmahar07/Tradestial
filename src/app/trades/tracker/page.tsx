@@ -22,7 +22,7 @@ export default function TrackerRedirectPage() {
 
   // Show loading state while redirecting
   return (
-    <div className="flex min-h-screen items-center justify-center dark:bg-[#171717]" style={{ backgroundColor: '#fafafa' }}>
+    <div className="flex min-h-screen items-center justify-center bg-[#fafafa] dark:bg-[#171717]">
       <div className="text-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
         <p className="text-gray-600 dark:text-gray-400">Loading trade...</p>

@@ -649,7 +649,7 @@ export function DailyJournalContent() {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 dark:bg-[#171717]" style={{ backgroundColor: '#fafafa' }}>
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-10 bg-[#fafafa] dark:bg-[#171717]">
       
       <div className="flex gap-8 max-w-none">
         {/* Left side - Trading cards */}
