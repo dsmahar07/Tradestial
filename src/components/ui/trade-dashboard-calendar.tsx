@@ -291,6 +291,48 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
     return `${sign}$${formatCompact(n)}`
   }
 
+  // Helper: generate gradient background based on PnL performance
+  const getGradientBackground = (pnl: number | undefined) => {
+    if (typeof pnl !== 'number') return ''
+    
+    if (pnl > 0) {
+      // Multi-stop green gradient for positive performance - only green tones
+      const intensity = Math.min(Math.abs(pnl) / 1000, 1) // Normalize to 0-1 based on $1000 max
+      const baseOpacity = 0.08 + (intensity * 0.25) // Range from 0.08 to 0.33 opacity
+      return `linear-gradient(135deg, 
+        rgba(16, 185, 129, ${baseOpacity}) 0%, 
+        rgba(34, 197, 94, ${baseOpacity * 0.9}) 25%, 
+        rgba(5, 150, 105, ${baseOpacity * 0.8}) 50%, 
+        rgba(16, 185, 129, ${baseOpacity * 0.7}) 75%, 
+        rgba(34, 197, 94, ${baseOpacity * 0.6}) 100%)`
+    } else {
+      // Multi-stop red gradient for negative performance - only red tones
+      const intensity = Math.min(Math.abs(pnl) / 1000, 1) // Normalize to 0-1 based on $1000 max
+      const baseOpacity = 0.15 + (intensity * 0.4) // Range from 0.15 to 0.55 opacity
+      return `linear-gradient(135deg, 
+        rgba(239, 68, 68, ${baseOpacity}) 0%, 
+        rgba(220, 38, 38, ${baseOpacity * 0.9}) 25%, 
+        rgba(185, 28, 28, ${baseOpacity * 0.8}) 50%, 
+        rgba(239, 68, 68, ${baseOpacity * 0.7}) 75%, 
+        rgba(220, 38, 38, ${baseOpacity * 0.6}) 100%)`
+    }
+  }
+
+  // Helper: get border color based on PnL performance
+  const getBorderColor = (pnl: number | undefined) => {
+    if (typeof pnl !== 'number') return ''
+    
+    if (pnl > 0) {
+      const intensity = Math.min(Math.abs(pnl) / 1000, 1)
+      const opacity = 0.3 + (intensity * 0.5) // Range from 0.3 to 0.8 opacity
+      return `rgba(16, 185, 129, ${opacity})`
+    } else {
+      const intensity = Math.min(Math.abs(pnl) / 1000, 1)
+      const opacity = 0.3 + (intensity * 0.5) // Range from 0.3 to 0.8 opacity
+      return `rgba(239, 68, 68, ${opacity})`
+    }
+  }
+
   const handleHeaderIconClick = () => {
     try {
       // eslint-disable-next-line no-console
@@ -501,11 +543,19 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 onClick={() => handleDayClick(c)}
                 disabled={!c.isCurrentMonth}
                 className={cn(
-                  'h-24 w-full rounded-lg border text-xs flex flex-col p-1.5',
+                  'h-24 w-full rounded-lg border text-xs flex flex-col p-1.5 relative overflow-hidden',
                   c.isCurrentMonth ? 'border-gray-200 dark:border-[#2a2a2a]' : 'border-gray-100 dark:border-[#2a2a2a]',
                   !c.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-600 cursor-default',
                   c.isToday && 'ring-1 ring-gray-400/50'
                 )}
+                style={{
+                  background: c.isCurrentMonth && typeof c.pnl === 'number' 
+                    ? getGradientBackground(c.pnl)
+                    : undefined,
+                  ...(c.isCurrentMonth && typeof c.pnl === 'number' && {
+                    borderColor: getBorderColor(c.pnl)
+                  })
+                }}
               >
                 <span className={cn('text-[11px] font-medium self-start', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
                 {typeof pnl === 'number' && (
@@ -575,11 +625,19 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                   onClick={() => handleDayClick(c)}
                   disabled={!c.isCurrentMonth}
                   className={cn(
-                    'h-28 w-full rounded-xl border text-sm flex flex-col p-2',
+                    'h-28 w-full rounded-xl border text-sm flex flex-col p-2 relative overflow-hidden',
                     c.isCurrentMonth ? 'border-gray-200 dark:border-[#2a2a2a]' : 'border-gray-100 dark:border-[#2a2a2a]',
                     !c.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-600 cursor-default',
                     c.isToday && 'ring-1 ring-gray-400/50'
                   )}
+                  style={{
+                    background: c.isCurrentMonth && typeof c.pnl === 'number' 
+                      ? getGradientBackground(c.pnl)
+                      : undefined,
+                    ...(c.isCurrentMonth && typeof c.pnl === 'number' && {
+                      borderColor: getBorderColor(c.pnl)
+                    })
+                  }}
                 >
                   <span className={cn('text-sm font-medium self-start', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
                   {typeof pnl === 'number' && (
