@@ -30,7 +30,7 @@ export function AnalyticsPageClient() {
             onDropdownItemClick={handleDropdownItemClick}
           />
         </div>
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-gray-50 dark:bg-[#171717]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 dark:bg-[#171717]" style={{ backgroundColor: '#fafafa' }}>
           <PerformancePage />
         </main>
       </div>

@@ -85,6 +85,12 @@ export function DashboardHeader() {
         }
       case '/dashboard':
       default:
+        if (pathname.startsWith('/trades/tracker/')) {
+          return {
+            title: 'Tracker',
+            description: 'Detailed view of your trading performance'
+          }
+        }
         return {
           title: 'Dashboard',
           description: ''
@@ -117,7 +123,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="bg-[#F5F5F5] dark:bg-[#171717] px-6 py-2">
+    <header className="dark:bg-[#171717] px-6 py-2" style={{ backgroundColor: '#fafafa' }}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h1 className="text-2xl"><span className="font-semibold bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">{title}</span></h1>
