@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
-import { NotebookEditorRefactored as NotebookEditor } from '@/components/features/notes/NotebookEditorRefactored'
+import { NoteEditor } from '@/components/features/notes'
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
@@ -279,7 +279,7 @@ function JournalPageContent() {
               transition={{ duration: 0.6 }}
               className="flex-1 flex flex-col bg-white dark:bg-[var(--color-surface-dark,#0f0f0f)] rounded-xl overflow-hidden shadow-lg order-1 lg:order-2 min-h-[400px] lg:min-h-0"
             >
-              <NotebookEditor 
+              <NoteEditor 
                 note={currentNote} 
                 onUpdateNote={handleUpdateNote}
                 onDeleteNote={handleDeleteNote}

@@ -1,0 +1,149 @@
+// TipTap UI Components Variables
+// Based on official TipTap styling approach
+
+// Colors
+$color-black: #0d0d0d;
+$color-white: #ffffff;
+$color-gray-100: #f3f4f6;
+$color-gray-200: #e5e7eb;
+$color-gray-300: #d1d5db;
+$color-gray-400: #9ca3af;
+$color-gray-500: #6b7280;
+$color-gray-600: #4b5563;
+$color-gray-700: #374151;
+$color-gray-800: #1f2937;
+$color-gray-900: #111827;
+
+$color-blue-400: #60a5fa;
+$color-blue-500: #3b82f6;
+$color-blue-600: #2563eb;
+$color-blue-700: #1d4ed8;
+$color-blue-800: #1e40af;
+
+$color-green-400: #4ade80;
+$color-green-600: #16a34a;
+$color-red-400: #f87171;
+$color-red-600: #dc2626;
+
+// Typography
+$font-family-sans: ui-sans-serif, system-ui, sans-serif;
+$font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+
+$font-size-sm: 0.875rem;
+$font-size-base: 1rem;
+$font-size-lg: 1.125rem;
+$font-size-xl: 1.25rem;
+$font-size-2xl: 1.5rem;
+$font-size-3xl: 1.875rem;
+$font-size-4xl: 2.25rem;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$line-height-tight: 1.25;
+$line-height-snug: 1.375;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.625;
+
+// Spacing
+$spacing-1: 0.25rem;
+$spacing-2: 0.5rem;
+$spacing-3: 0.75rem;
+$spacing-4: 1rem;
+$spacing-5: 1.25rem;
+$spacing-6: 1.5rem;
+$spacing-8: 2rem;
+$spacing-10: 2.5rem;
+$spacing-12: 3rem;
+
+// Border radius
+$border-radius-sm: 0.125rem;
+$border-radius: 0.25rem;
+$border-radius-md: 0.375rem;
+$border-radius-lg: 0.5rem;
+$border-radius-xl: 0.75rem;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+$shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+$shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+// TipTap specific variables
+$editor-padding: $spacing-6;
+$editor-min-height: 500px;
+$editor-font-size: $font-size-base;
+$editor-line-height: $line-height-relaxed;
+$editor-color: $color-black;
+$editor-color-dark: $color-white;
+
+// Heading styles
+$heading-1-size: 2rem;
+$heading-1-weight: $font-weight-bold;
+$heading-1-line-height: 1.1;
+$heading-1-margin-top: $spacing-8;
+$heading-1-margin-bottom: $spacing-4;
+
+$heading-2-size: $font-size-2xl;
+$heading-2-weight: $font-weight-semibold;
+$heading-2-line-height: 1.2;
+$heading-2-margin-top: $spacing-6;
+$heading-2-margin-bottom: $spacing-3;
+
+$heading-3-size: $font-size-xl;
+$heading-3-weight: $font-weight-semibold;
+$heading-3-line-height: 1.3;
+$heading-3-margin-top: $spacing-5;
+$heading-3-margin-bottom: $spacing-2;
+
+// Paragraph styles
+$paragraph-margin: $spacing-4 0;
+
+// List styles
+$list-margin: $spacing-4 0;
+$list-padding-left: $spacing-6;
+$list-item-margin: $spacing-1 0;
+
+// Code styles
+$code-bg: $color-gray-100;
+$code-bg-dark: $color-gray-700;
+$code-color: $color-gray-800;
+$code-color-dark: $color-gray-100;
+$code-padding: $spacing-1 $spacing-2;
+$code-border-radius: $border-radius;
+$code-font-size: $font-size-sm;
+
+$code-block-bg: #f8fafc;
+$code-block-bg-dark: $color-gray-800;
+$code-block-padding: $spacing-4;
+$code-block-margin: $spacing-6 0;
+$code-block-border-radius: $border-radius-lg;
+
+// Link styles
+$link-color: $color-blue-500;
+$link-color-hover: $color-blue-700;
+$link-color-dark: $color-blue-400;
+$link-color-dark-hover: #93c5fd;
+
+// Blockquote styles
+$blockquote-border-color: $color-gray-300;
+$blockquote-border-color-dark: $color-gray-600;
+$blockquote-border-width: 3px;
+$blockquote-padding-left: $spacing-4;
+$blockquote-margin: $spacing-6 0;
+
+// Table styles
+$table-border-color: $color-gray-300;
+$table-border-color-dark: $color-gray-600;
+$table-cell-padding: 6px 8px;
+$table-header-bg: #f9fafb;
+$table-header-bg-dark: $color-gray-700;
+
+// Selection styles
+$selection-bg: #dbeafe;
+$selection-bg-dark: $color-blue-800;
+
+// Placeholder styles
+$placeholder-color: $color-gray-400;
+$placeholder-color-dark: $color-gray-500;

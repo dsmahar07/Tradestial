@@ -596,18 +596,32 @@ export default function NotesPage() {
     success('Template applied!', `${template.name} template applied instantly - ready to edit!`)
   }
 
-  const handleUpdateNote = (id: string, content: string, title?: string, color?: string) => {
+  const handleUpdateNote = (id: string, content: string, title?: string, color?: string, tags?: string[]) => {
+    // Update the notes array
     setNotes(prev => prev.map(note => 
       note.id === id 
         ? { 
             ...note, 
             content, 
-            title: title || note.title,
-            color: color || note.color,
+            title: title !== undefined ? title : note.title,
+            color: color !== undefined ? color : note.color,
+            tags: tags !== undefined ? tags : note.tags,
             updatedAt: new Date().toISOString() 
           }
         : note
     ))
+
+    // If the currently selected note is the one being updated, reflect changes immediately
+    if (selectedNote?.id === id) {
+      setSelectedNote(prev => prev ? {
+        ...prev,
+        content,
+        title: title !== undefined ? title : prev.title,
+        color: color !== undefined ? color : prev.color,
+        tags: tags !== undefined ? tags : prev.tags,
+        updatedAt: new Date().toISOString()
+      } : prev)
+    }
   }
 
   const handleMoveNote = (noteId: string, targetFolder: string) => {
@@ -917,6 +931,7 @@ export default function NotesPage() {
                 selectedTag={selectedTag}
                 onTagSelect={handleTagSelect}
                 isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={toggleSidebarCollapse}
               />
             </div>
             
@@ -964,7 +979,7 @@ export default function NotesPage() {
               }
 
               return (
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 h-full overflow-hidden">
                   <NotebookEditor 
                     note={selectedNote} 
                     onUpdateNote={handleUpdateNote}
@@ -978,7 +993,7 @@ export default function NotesPage() {
                     headerStats={useRange ? rangeHeaderNode : useDaily ? headerNode : undefined}
                     netPnlValue={useRange ? rangeNetPnl : useDaily ? netPnl : undefined}
                     netPnlIsProfit={useRange ? (rangeNetPnl ?? 0) >= 0 : useDaily ? netPnl >= 0 : undefined}
-                    hideNetPnl={!useRange && !useDaily}
+                    hideNetPnlSection={!useRange && !useDaily}
                     // Template creation props moved to editor menu
                     onCreateNote={handleCreateNote}
                     onCreateNoteFromTemplate={handleCreateNoteFromTemplate}
@@ -1046,6 +1061,7 @@ export default function NotesPage() {
                   selectedTag={selectedTag}
                   onTagSelect={handleTagSelect}
                   isCollapsed={isSidebarCollapsed}
+                  onToggleCollapse={toggleSidebarCollapse}
                 />
               </div>
               
@@ -1093,6 +1109,7 @@ export default function NotesPage() {
                 }
 
                 return (
+                <div className="flex-1 min-w-0 h-full overflow-hidden">
                   <NotebookEditor 
                     note={selectedNote} 
                     onUpdateNote={handleUpdateNote}
@@ -1106,16 +1123,16 @@ export default function NotesPage() {
                     headerStats={useRange ? rangeHeaderNode : useDaily ? headerNode : undefined}
                     netPnlValue={useRange ? rangeNetPnl : useDaily ? netPnl : undefined}
                     netPnlIsProfit={useRange ? (rangeNetPnl ?? 0) >= 0 : useDaily ? netPnl >= 0 : undefined}
-                    hideNetPnl={!useRange && !useDaily}
+                    hideNetPnlSection={!useRange && !useDaily}
                     // Template creation props moved to editor menu
                     onCreateNote={handleCreateNote}
                     onCreateNoteFromTemplate={handleCreateNoteFromTemplate}
-                    onQuickApplyTemplate={handleQuickApplyTemplate}
                     onDeleteTemplate={handleDeleteTemplate}
                     templates={templates}
                     isFullscreen={isFullscreen}
                     onToggleFullscreen={toggleFullscreen}
                   />
+                </div>
                 )
               })()}
             </div>

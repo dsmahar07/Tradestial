@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { NotebookEditorRefactored as NotebookEditor } from '@/components/features/notes/NotebookEditorRefactored'
+import { NoteEditor } from '@/components/features/notes'
 import type { Note } from '@/app/notes/page'
 import { getImportedTrades, TradeRecord } from '@/components/modals/ImportTradesModal'
 import { modelStatsService } from '@/services/model-stats.service'
@@ -592,10 +592,10 @@ function StrategyNotes({ strategyId }: { strategyId: string }) {
       {/* Editor */}
       <div className="flex-1 min-w-0">
         <div className="p-4 h-full overflow-hidden">
-          <NotebookEditor
+          <NoteEditor
             note={selected}
             onUpdateNote={updateNote}
-            onDeleteNote={(id, title) => deleteNote(id)}
+            onDeleteNote={(id: string, title: string) => deleteNote(id)}
             hideNetPnl
           />
         </div>

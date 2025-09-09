@@ -41,7 +41,6 @@ import { useToast } from '@/components/ui/notification-toast'
 import { EditorHeader } from './editor/EditorHeader'
 import { EditorContent } from '@tiptap/react'
 import { TiptapToolbar } from './editor/TiptapToolbar'
-import { ShareModal } from './editor/ShareModal'
 import { SimpleTemplateEditor } from './SimpleTemplateEditor'
 import { DateRangePicker } from '@/components/ui/DateRangePicker'
 import { Button } from '@/components/ui/button'
@@ -67,7 +66,6 @@ interface NoteEditorProps {
   onRangeChange?: (startDate: Date, endDate: Date) => void
   rangeFrom?: Date
   rangeTo?: Date
-  hideNetPnl?: boolean
   headerStats?: React.ReactNode
   netPnlValue?: number
   netPnlIsProfit?: boolean
@@ -78,6 +76,9 @@ interface NoteEditorProps {
   isFullscreen?: boolean
   onToggleFullscreen?: () => void
   templates?: TradeJournalingTemplate[]
+  hideTimestamps?: boolean
+  hideHeader?: boolean
+  hideNetPnlSection?: boolean
 }
 
 export function NoteEditorComponent({ 
@@ -90,7 +91,6 @@ export function NoteEditorComponent({
   onRangeChange, 
   rangeFrom, 
   rangeTo, 
-  hideNetPnl = false, 
   headerStats, 
   netPnlValue, 
   netPnlIsProfit, 
@@ -100,7 +100,10 @@ export function NoteEditorComponent({
   onDeleteTemplate, 
   templates, 
   isFullscreen, 
-  onToggleFullscreen 
+  onToggleFullscreen,
+  hideTimestamps = false,
+  hideHeader = false,
+  hideNetPnlSection = false
 }: NoteEditorProps) {
   const { success, error, info } = useToast()
   
@@ -109,9 +112,6 @@ export function NoteEditorComponent({
   const [tempTitle, setTempTitle] = useState('')
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showRangePicker, setShowRangePicker] = useState(false)
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [shareUrl, setShareUrl] = useState('')
-  const [isAnonymousShare, setIsAnonymousShare] = useState(false)
   const [showTemplateEditor, setShowTemplateEditor] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<TradeJournalingTemplate | null>(null)
   const [statsOpen, setStatsOpen] = useState(false)
@@ -277,6 +277,14 @@ export function NoteEditorComponent({
     }
   }
 
+  const handleTagsUpdate = useCallback((tags: string[]) => {
+    if (note && onUpdateNote) {
+      // Immediately update the note with new tags to ensure real-time visibility
+      onUpdateNote(note.id, note.content, note.title, note.color, tags)
+      setLastSaved(new Date())
+    }
+  }, [note, onUpdateNote])
+
   // Date handlers
   const handleDateSelect = (selectedDate: Date) => {
     if (note) {
@@ -303,56 +311,8 @@ export function NoteEditorComponent({
     }
   }
 
-  // Share functionality
-  const handleShare = async () => {
-    if (!note) return
-    
-    try {
-      const tradingData = computeTradingDataForShare(note)
-      const shareToken = await encodeNoteToToken({
-        ...note,
-        tradingData,
-        sharing: {
-          isShared: true,
-          shareToken: '',
-          isAnonymous: isAnonymousShare,
-          sharedAt: new Date().toISOString()
-        }
-      })
-      
-      const url = `${window.location.origin}/shared/${shareToken}`
-      setShareUrl(url)
-      setShowShareModal(true)
-      
-      if (onUpdateNote) {
-        onUpdateNote(note.id, note.content, note.title, note.color, note.tags, {
-          isShared: true,
-          shareToken,
-          isAnonymous: isAnonymousShare,
-          sharedAt: new Date().toISOString()
-        })
-      }
-    } catch (err) {
-      error('Share Failed', 'Unable to generate share link', 5000)
-    }
-  }
 
-  const computeTradingDataForShare = useCallback((n: Note | null) => {
-    if (!n) return undefined
-    if (n.tradingData) return n.tradingData
-    
-    // Similar logic as original for computing trading data
-    return undefined
-  }, [useRangePicker, dateRange, rangeFrom, rangeTo])
 
-  const handleCopyShareLink = async () => {
-    const copied = await safeCopyToClipboard(shareUrl)
-    if (copied) {
-      success('Link Copied', 'Share link copied to clipboard', 3000)
-    } else {
-      error('Copy Failed', 'Unable to copy link to clipboard', 3000)
-    }
-  }
 
   const handleDownload = () => {
     if (!note) return
@@ -457,7 +417,7 @@ export function NoteEditorComponent({
 
   if (!note) {
     return (
-      <div className="flex-1 bg-white dark:bg-[#0f0f0f] flex items-center justify-center">
+      <div className="h-full bg-white dark:bg-[#0f0f0f] flex items-center justify-center">
         <div className="text-center text-gray-500 dark:text-gray-400">
           <Edit3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>Select a note to start editing</p>
@@ -467,8 +427,9 @@ export function NoteEditorComponent({
   }
 
   return (
-    <div className="flex-1 min-h-0 min-w-0 bg-white dark:bg-[#0f0f0f] flex flex-col overflow-y-auto">
-      <EditorHeader
+    <div className="h-full bg-white dark:bg-[#0f0f0f] flex flex-col overflow-hidden">
+      {!hideHeader && (
+        <EditorHeader
         note={note}
         isEditingTitle={isEditingTitle}
         tempTitle={tempTitle}
@@ -481,11 +442,12 @@ export function NoteEditorComponent({
         onTitleCancel={handleTitleCancel}
         onTitleChange={setTempTitle}
         onTitleKeyDown={handleTitleKeyDown}
-        onShare={handleShare}
         onDownload={handleDownload}
         onDelete={handleDelete}
         onDatePickerToggle={() => setShowDatePicker(!showDatePicker)}
         onRangePickerToggle={() => setShowRangePicker(!showRangePicker)}
+        onTagsUpdate={handleTagsUpdate}
+        hideTimestamps={hideTimestamps}
       >
         {/* Date Picker */}
         {showDatePicker && useDatePicker && (
@@ -592,10 +554,11 @@ export function NoteEditorComponent({
           </>
         )}
       </EditorHeader>
+      )}
 
       {/* Stats Section */}
-      {!hideNetPnl && (
-        <div className="px-6 py-2 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#1a1a1a]">
+      {!hideNetPnlSection && (
+        <div className="px-6 py-2 bg-white dark:bg-[#1a1a1a]">
           <button
             type="button"
             onClick={() => setStatsOpen((v) => !v)}
@@ -603,12 +566,17 @@ export function NoteEditorComponent({
             aria-expanded={statsOpen}
             title={statsOpen ? 'Hide stats' : 'Show stats'}
           >
-            <span>Net P&L</span>
+            <span className={cn(
+              "font-bold",
+              typeof netPnlValue === 'number' 
+                ? (netPnlIsProfit ? "text-[#10B981]" : "text-red-600 dark:text-red-400")
+                : "text-gray-900 dark:text-white"
+            )}>Net P&L</span>
             {typeof netPnlValue === 'number' ? (
               <span
                 className={cn(
                   "font-semibold",
-                  netPnlIsProfit ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                  netPnlIsProfit ? "text-[#10B981]" : "text-red-600 dark:text-red-400"
                 )}
               >
                 {netPnlIsProfit ? '+' : ''}{netPnlValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
@@ -626,7 +594,7 @@ export function NoteEditorComponent({
 
       {/* Collapsible Stats + Table (headerStats) */}
       {headerStats && statsOpen && (
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#1a1a1a]">
+        <div className="px-6 py-4 bg-white dark:bg-[#1a1a1a]">
           {headerStats}
         </div>
       )}
@@ -635,12 +603,12 @@ export function NoteEditorComponent({
       <TiptapToolbar editor={editor} />
 
       {/* TipTap Editor Content */}
-      <div className="flex-1 relative">
-        <EditorContent editor={editor} />
+      <div className="flex-1 relative overflow-y-auto">
+        <EditorContent editor={editor} className="h-full" />
         
         {/* Character Count Display */}
         {editor && (
-          <div className="absolute bottom-4 right-6 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded shadow-sm border">
+          <div className="fixed bottom-4 right-6 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded shadow-sm border z-10">
             {editor.storage.characterCount.characters()}/{editor.extensionManager.extensions.find(ext => ext.name === 'characterCount')?.options.limit || 10000} characters
           </div>
         )}
@@ -655,16 +623,6 @@ export function NoteEditorComponent({
         />
       )}
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        shareUrl={shareUrl}
-        isAnonymous={isAnonymousShare}
-        onAnonymousChange={setIsAnonymousShare}
-        onCopyLink={handleCopyShareLink}
-        tradingData={note.tradingData}
-      />
     </div>
   )
 }

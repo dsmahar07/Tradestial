@@ -18,7 +18,7 @@ import { StarIcon as StarOutline } from '@heroicons/react/24/outline'
 import { Root as FancyButton } from '@/components/ui/fancy-button'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, Tooltip } from 'recharts'
-import { RichTextEditor } from '@/components/trade/rich-text-editor'
+import { NoteEditorComponent } from '@/components/features/notes/NoteEditorComponent'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -899,16 +899,27 @@ export default function TrackerPage() {
 
                 {/* Rich Text Editor */}
                 <div className="flex-1">
-                  <RichTextEditor 
-                    placeholder="Write something or press '?' for commands" 
-                    value={activeNotesTab === 'trade-note' ? tradeNoteContent : dailyJournalContent}
-                    onChange={(content) => {
+                  <NoteEditorComponent 
+                    note={{
+                      id: 'temp-note',
+                      title: activeNotesTab === 'trade-note' ? 'Trade Note' : 'Daily Journal',
+                      content: activeNotesTab === 'trade-note' ? tradeNoteContent : dailyJournalContent,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                      tags: [],
+                      color: '#3b82f6',
+                      folder: 'trade-notes'
+                    }}
+                    onUpdateNote={(id, content) => {
                       if (activeNotesTab === 'trade-note') {
                         setTradeNoteContent(content)
                       } else {
                         setDailyJournalContent(content)
                       }
                     }}
+                    hideTimestamps={true}
+                    hideHeader={true}
+                    hideNetPnlSection={true}
                   />
                 </div>
               </div>

@@ -328,7 +328,7 @@ export function NotebookSidebar({
               onClick={() => onAddFolder()}
               variant="primary"
               size="small"
-              className="w-full h-10 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none !bg-black"
+              className="w-10 h-10 relative overflow-hidden !bg-black mx-auto"
               title="Add folder"
             >
               <Plus className="w-4 h-4 relative z-10" />
@@ -339,13 +339,31 @@ export function NotebookSidebar({
             onClick={() => onAddFolder()}
             variant="primary"
             size="small"
-            className="w-full relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/20 before:to-white/5 before:pointer-events-none !bg-black"
+            className="w-auto px-2 relative overflow-hidden !bg-black"
           >
             <Plus className="w-4 h-4 mr-2 relative z-10" />
             <span className="relative z-10">Add folder</span>
           </FancyButton>
         )}
       </div>
+
+      {/* Collapse button positioned on the border */}
+      {onToggleCollapse && (
+        <div className="absolute -right-3 top-8 z-10">
+          <Tooltip content={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} side="right">
+            <button
+              onClick={onToggleCollapse}
+              className="w-6 h-6 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#404040] rounded-full flex items-center justify-center hover:bg-gray-50 dark:hover:bg-[#171717] transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 shadow-sm"
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-3 h-3" />
+              ) : (
+                <ChevronLeft className="w-3 h-3" />
+              )}
+            </button>
+          </Tooltip>
+        </div>
+      )}
 
       {/* Bookmarked Notes Filter */}
       <div className="px-4 mb-4">

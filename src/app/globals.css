@@ -3,6 +3,10 @@
 /* Import Codec Pro font for branding */
 @import url('https://fonts.googleapis.com/css2?family=Codec+Pro:wght@400;500;600;700;800&display=swap');
 
+/* TipTap styling with CSS custom properties */
+@import '../styles/_variables.scss';
+@import '../styles/_keyframe-animations.scss';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -78,6 +82,265 @@
     text-rendering: geometricPrecision;
     font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
+}
+
+/* TipTap Editor Styling - Clean CSS approach */
+.ProseMirror {
+  @apply h-full min-h-[500px] px-6 py-4 focus:outline-none;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.625 !important;
+  color: #0d0d0d !important;
+}
+
+.dark .ProseMirror {
+  color: #ffffff !important;
+}
+
+/* Typography hierarchy */
+.ProseMirror h1 {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  line-height: 1.1 !important;
+  margin-top: 2rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.ProseMirror p {
+  margin: 1rem 0 !important;
+}
+
+.ProseMirror p:first-child {
+  margin-top: 0 !important;
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Lists */
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 1rem 0 !important;
+  padding-left: 1.5rem !important;
+}
+
+.ProseMirror ul {
+  list-style-type: disc !important;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal !important;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0 !important;
+}
+
+.ProseMirror li p {
+  margin: 0 !important;
+}
+
+/* Task lists */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+
+/* Blockquotes */
+.ProseMirror blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+}
+
+.dark .ProseMirror blockquote {
+  border-left-color: #4b5563;
+}
+
+/* Code */
+.ProseMirror code {
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  color: #1f2937;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  font-size: 0.875em;
+  padding: 0.125rem 0.25rem;
+}
+
+.dark .ProseMirror code {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.ProseMirror pre {
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  color: #1f2937;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.dark .ProseMirror pre {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+.ProseMirror pre code {
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+/* Links */
+.ProseMirror a {
+  color: #3b82f6;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ProseMirror a:hover {
+  color: #1d4ed8;
+}
+
+.dark .ProseMirror a {
+  color: #60a5fa;
+}
+
+.dark .ProseMirror a:hover {
+  color: #93c5fd;
+}
+
+/* Horizontal rule */
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 2rem 0;
+}
+
+.dark .ProseMirror hr {
+  border-top-color: #4b5563;
+}
+
+/* Images */
+.ProseMirror img {
+  height: auto;
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* Tables */
+.ProseMirror table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  border: 1px solid #d1d5db;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 6px 8px;
+  position: relative;
+  vertical-align: top;
+}
+
+.dark .ProseMirror table td,
+.dark .ProseMirror table th {
+  border-color: #4b5563;
+}
+
+.ProseMirror table th {
+  background-color: #f9fafb;
+  font-weight: bold;
+  text-align: left;
+}
+
+.dark .ProseMirror table th {
+  background-color: #374151;
+}
+
+/* Placeholder */
+.ProseMirror .is-empty::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.dark .ProseMirror .is-empty::before {
+  color: #6b7280;
+}
+
+/* Selection */
+.ProseMirror ::selection {
+  background: #dbeafe;
+}
+
+.dark .ProseMirror ::selection {
+  background: #1e40af;
+}
+
+/* Focus */
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Text alignment */
+.ProseMirror[style*="text-align: left"] {
+  text-align: left;
+}
+
+.ProseMirror[style*="text-align: center"] {
+  text-align: center;
+}
+
+.ProseMirror[style*="text-align: right"] {
+  text-align: right;
+}
+
+.ProseMirror[style*="text-align: justify"] {
+  text-align: justify;
 }
 
 @layer base {
