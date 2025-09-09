@@ -7,6 +7,7 @@ import TradeMetadataService from '@/services/trade-metadata.service'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Button } from '@/components/ui/button'
 import { ModelModelsTable } from '@/components/features/model-models-table'
+import { ModelCardsView } from '@/components/features/model-cards-view'
 import { ModelMaker } from '@/components/features/model-maker'
 import { StrategyMarketplace } from '@/components/features/strategy-marketplace'
 import { Plus, Store, TrendingUp, TrendingDown } from 'lucide-react'
@@ -76,6 +77,11 @@ export function ModelOverview() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('models')
+  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid'
+    const saved = localStorage.getItem('tradestial:modelView') as 'table' | 'grid' | 'list' | null
+    return saved || 'grid'
+  })
   const [summaryStats, setSummaryStats] = useState({
     bestPerforming: null as any,
     leastPerforming: null as any,
@@ -181,6 +187,13 @@ export function ModelOverview() {
     }
   }, [])
 
+  // Persist view mode preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('tradestial:modelView', viewMode)
+    } catch {}
+  }, [viewMode])
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -282,20 +295,32 @@ export function ModelOverview() {
 
           {/* View Options */}
           <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                viewMode === 'grid' 
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white" 
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+              )}
+              title="Grid view"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
               </svg>
             </button>
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button 
+              onClick={() => setViewMode('table')}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                viewMode === 'table' 
+                  ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white" 
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+              )}
+              title="Table view"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
-            </button>
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
           </div>
@@ -303,37 +328,39 @@ export function ModelOverview() {
 
         {/* Tab Content */}
         <Tabs.Content value="models" className="mt-4">
-          <ModelModelsTable />
+          {viewMode === 'table' ? <ModelModelsTable /> : <ModelCardsView />}
           
-          {/* Pagination */}
-          <div className="mt-4 flex items-center justify-center">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Result: 1 - 1 of 1 models
-              </span>
+          {/* Pagination - only show for table view */}
+          {viewMode === 'table' && (
+            <div className="mt-4 flex items-center justify-center">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Result: 1 - 1 of 1 models
+                </span>
+              </div>
+              <div className="flex items-center space-x-1 ml-4">
+                <button 
+                  disabled
+                  className="p-2 rounded-lg text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg">
+                  1
+                </button>
+                <button 
+                  disabled
+                  className="p-2 rounded-lg text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-1 ml-4">
-              <button 
-                disabled
-                className="p-2 rounded-lg text-gray-400 dark:text-gray-600 cursor-not-allowed"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg">
-                1
-              </button>
-              <button 
-                disabled
-                className="p-2 rounded-lg text-gray-400 dark:text-gray-600 cursor-not-allowed"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          )}
         </Tabs.Content>
 
         <Tabs.Content value="shared" className="mt-4">
