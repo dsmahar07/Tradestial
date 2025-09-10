@@ -10,6 +10,10 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
   },
   async headers() {
+    // Disable security headers in development
+    if (process.env.NODE_ENV === 'development') {
+      return []
+    }
     return [
       {
         source: '/:path*',

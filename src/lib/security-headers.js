@@ -35,11 +35,13 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: `
       default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-scripts.com;
-      style-src 'self' 'unsafe-inline';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-scripts.com https://s3.tradingview.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
       img-src 'self' blob: data: https:;
-      font-src 'self' data:;
-      connect-src 'self' https://openrouter.ai https://api.openai.com;
+      font-src 'self' data: https://fonts.gstatic.com;
+      connect-src 'self' https://openrouter.ai https://api.openai.com https://www.tradingview.com;
+      frame-src 'self' https://www.tradingview.com;
       frame-ancestors 'none';
       base-uri 'self';
       form-action 'self';

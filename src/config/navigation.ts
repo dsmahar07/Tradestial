@@ -96,15 +96,7 @@ export const navigationConfig: NavigationSection[] = [
         label: 'Gallery',
         href: '/gallery',
         tooltip: 'Media gallery',
-        isEnabled: true
-      },
-      {
-        id: 'resources',
-        icon: CalendarIcon,
-        label: 'Resources',
-        href: '/resources',
-        tooltip: 'Trading resources and tools',
-        isEnabled: true
+        isEnabled: false
       }
     ]
   }
