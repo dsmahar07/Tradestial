@@ -454,7 +454,7 @@ export default function ImportDataPage() {
   // Removed CSV import functionality - handled by upload page
 
   return (
-    <div className="min-h-screen bg-white dark:bg-white dark:text-gray-900 [color-scheme:light]" data-theme="light">
+    <div className="min-h-screen dark:text-gray-900 [color-scheme:light]" style={{ backgroundColor: '#f5f5f7' }} data-theme="light">
       {/* Header */}
       <div className="max-w-7xl mx-auto px-6 py-3 relative flex items-center justify-between">
         <button className="p-1" onClick={() => router.push('/dashboard')}>

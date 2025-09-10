@@ -4,6 +4,11 @@ export interface UserProfile {
   email: string;
   profilePicture?: string;
   tradingExperience: 'beginner' | 'intermediate' | 'advanced' | 'professional';
+  // Optional preferences for Settings page
+  theme?: 'light' | 'dark' | 'system';
+  appTimezone?: number; // minutes offset from UTC (matches utils/timezones values)
+  emailNotifications?: boolean;
+  marketingEmails?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +18,11 @@ export interface UserProfileUpdate {
   email?: string;
   profilePicture?: string;
   tradingExperience?: 'beginner' | 'intermediate' | 'advanced' | 'professional';
+  // Optional preferences updates
+  theme?: 'light' | 'dark' | 'system';
+  appTimezone?: number;
+  emailNotifications?: boolean;
+  marketingEmails?: boolean;
 }
 
 class UserProfileService {
@@ -32,9 +42,14 @@ class UserProfileService {
     // Return default profile if none exists
     const defaultProfile: UserProfile = {
       id: 'user_' + Date.now(),
-      fullName: 'Alex Chen',
-      email: 'alex@tradestial.com',
-      tradingExperience: 'intermediate',
+      fullName: 'User',
+      email: '',
+      tradingExperience: 'beginner',
+      // Defaults for preferences
+      theme: 'system',
+      appTimezone: 0, // UTC by default
+      emailNotifications: true,
+      marketingEmails: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

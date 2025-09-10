@@ -308,18 +308,23 @@ export function Sidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="focus:outline-none">
-              <Avatar.Root size="40" className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
-                <Avatar.Image 
-                  src={userProfile?.profilePicture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"} 
-                  alt="Trader Avatar" 
-                />
-                <Avatar.Indicator position="top">
+              <div className="relative h-10 w-10 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all rounded-full overflow-hidden">
+                {userProfile?.profilePicture ? (
+                  <img 
+                    key={userProfile.profilePicture}
+                    src={userProfile.profilePicture} 
+                    alt="Profile Picture"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold flex items-center justify-center">
+                    {userProfile?.fullName.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  </div>
+                )}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
                   <CustomVerifiedIconSVG className="w-4 h-4" />
-                </Avatar.Indicator>
-                <Avatar.Fallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-                  {userProfile?.fullName.split(' ').map(n => n[0]).join('').toUpperCase() || 'TR'}
-                </Avatar.Fallback>
-              </Avatar.Root>
+                </div>
+              </div>
             </button>
           </DropdownMenuTrigger>
           
@@ -331,16 +336,27 @@ export function Sidebar() {
           >
             {/* User Info */}
             <div className="flex items-center gap-3 p-3 border-b border-gray-100 dark:border-[#2a2a2a]">
-              <Avatar.Root size="40">
-                <Avatar.Image src={userProfile?.profilePicture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"} />
-                <Avatar.Indicator position="top">
+              <div className="relative h-10 w-10 rounded-full overflow-hidden">
+                {userProfile?.profilePicture ? (
+                  <img 
+                    key={userProfile.profilePicture}
+                    src={userProfile.profilePicture} 
+                    alt="Profile Picture"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold flex items-center justify-center">
+                    {userProfile?.fullName.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  </div>
+                )}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
                   <CustomVerifiedIconSVG className="w-4 h-4" />
-                </Avatar.Indicator>
-              </Avatar.Root>
+                </div>
+              </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-gray-700 dark:text-white">{userProfile?.fullName || 'Alex Chen'}</div>
+                <div className="text-sm font-semibold text-gray-700 dark:text-white">{userProfile?.fullName || 'User'}</div>
                 <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  {userProfile?.email || 'alex@tradestial.com'}
+                  {userProfile?.email || 'user@example.com'}
                 </div>
               </div>
               <Badge.Root variant="light" color="green" size="medium">
