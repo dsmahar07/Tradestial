@@ -633,8 +633,8 @@ export function DailyJournalContent() {
     router.push('/notes?source=trade&tradeId=' + card.id)
   }
 
-  // Use real daily data or fallback to sample for demo
-  const dataToUse = trades.length > 0 ? dailySummaries : sampleTradeCards
+  // Use real daily data only
+  const dataToUse = dailySummaries
   
   // Convert to calendar format
   const tradingDays = dataToUse.map((item: any) => ({
@@ -654,7 +654,29 @@ export function DailyJournalContent() {
       <div className="flex gap-8 max-w-none">
         {/* Left side - Trading cards */}
         <div className="flex-1 space-y-4 min-w-0">
-          {dataToUse.map((card) => {
+          {dataToUse.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Trading Data</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
+                  Import your trading data to see daily performance summaries and detailed trade analysis.
+                </p>
+                <FancyButton 
+                  variant="primary" 
+                  size="medium"
+                  onClick={() => router.push('/import-data')}
+                >
+                  Import Trading Data
+                </FancyButton>
+              </div>
+            </div>
+          ) : (
+            dataToUse.map((card) => {
             const isTableExpanded = expandedTables.has(card.id)
             
             return (
@@ -1287,7 +1309,7 @@ export function DailyJournalContent() {
               </div>
             </div>
           )
-        })}
+        }))}
         </div>
         
         {/* Right side - Monthly Calendar */}

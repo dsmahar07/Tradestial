@@ -303,12 +303,15 @@ export function Sidebar() {
         </NavigationMenu.List>
       </NavigationMenu.Root>
 
+      {/* Divider above user section */}
+      <div className="mx-3 my-2 border-t border-gray-200 dark:border-[#2a2a2a]" />
+
       {/* User Avatar with Dropdown */}
       <div className={cn("py-4 px-3 flex", isCollapsed ? "justify-center" : "justify-start")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none">
-              <div className="relative h-10 w-10 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all rounded-full overflow-hidden">
+            <button className={cn("focus:outline-none flex items-center gap-3 w-full", isCollapsed ? "justify-center" : "justify-start")}>
+              <div className="relative h-10 w-10 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all rounded-full overflow-hidden flex-shrink-0">
                 {userProfile?.profilePicture ? (
                   <img 
                     key={userProfile.profilePicture}
@@ -325,6 +328,19 @@ export function Sidebar() {
                   <CustomVerifiedIconSVG className="w-4 h-4" />
                 </div>
               </div>
+              {!isCollapsed && (
+                <motion.div
+                  initial={isMounted ? { opacity: 0, width: 0 } : false}
+                  animate={isMounted ? { opacity: 1, width: "auto" } : { opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="flex-1 text-left overflow-hidden"
+                >
+                  <div className="text-sm font-semibold text-gray-700 dark:text-white truncate">
+                    {userProfile?.fullName || 'User'}
+                  </div>
+                </motion.div>
+              )}
             </button>
           </DropdownMenuTrigger>
           

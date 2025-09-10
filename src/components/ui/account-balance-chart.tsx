@@ -92,8 +92,8 @@ export function AccountBalanceChart({
       }
       
       if (trades.length === 0) {
-        setHasData(true)
-        setChartData(defaultData)
+        setHasData(false)
+        setChartData([])
         return
       }
 
@@ -357,11 +357,11 @@ export function AccountBalanceChart({
           </div>
         </>
       ) : (
-        // Empty state (matches Performance Radar)
+        // Empty state (styled like trading-streak-heatmap, no CTA)
         <div className="h-[320px] flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-sm font-medium text-gray-500 dark:text-gray-400">No symbol data available</div>
-            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Import your CSV to see symbol performance</div>
+          <div className="text-gray-500 dark:text-gray-400 text-center">
+            <div>No account balance data available</div>
+            <div className="text-sm mt-1">Your account balance over time will appear here when data is available</div>
           </div>
         </div>
       )}
