@@ -244,8 +244,8 @@ export function StrategyCard({
         </div>
 
         {/* Full Stats Section from StatsWidget */}
-        <div className="px-3 py-6 mt-6">
-          <div className="relative z-30 bg-white dark:bg-[#0f0f0f] rounded-[32px] p-6 ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_16px_rgba(0,0,0,0.3)]">
+        <div className="px-2 py-6 mt-6">
+          <div className="relative z-30 bg-white dark:bg-[#0f0f0f] rounded-[32px] p-6 shadow-[0_8px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_16px_rgba(0,0,0,0.3)]">
             {/* Trade Metrics */}
             <div className="space-y-2 text-sm">
 
@@ -506,7 +506,7 @@ export function StrategyCard({
                 </div>
                 
                 {/* Hover Tooltip with Chart */}
-                <div className="absolute right-0 top-8 w-72 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-4 z-[9999] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-visible" style={{ zIndex: 9999 }}>
+                <div className="absolute right-0 top-8 w-72 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl p-4 z-[9999] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-visible" style={{ zIndex: 9999 }}>
                   
                   {/* Trade Performance Chart */}
                   <div className="h-48 mb-4 relative overflow-visible">
