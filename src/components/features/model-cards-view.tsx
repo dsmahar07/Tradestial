@@ -268,7 +268,7 @@ export function ModelCardsView() {
             </div>
             
             {/* Inner container for stats content */}
-            <div className="mb-0 rounded-[24px] bg-white dark:bg-[#0f0f0f] shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 transition-colors duration-200 group-hover:ring-[#e3dcff] dark:group-hover:ring-[#4b2fb5]">
+            <div className="mb-0 rounded-[32px] bg-white dark:bg-[#0f0f0f] shadow-sm transition-colors duration-200">
               {/* Stats Section */}
               <div className="px-6 py-3">
                 <div className="space-y-4">
