@@ -1,6 +1,6 @@
-import { logger } from '@/lib/logger'
-
 "use client"
+
+import { logger } from '@/lib/logger'
 
 import * as React from "react"
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react"

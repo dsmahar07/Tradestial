@@ -507,7 +507,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 rounded-lg bg-white cursor-pointer group relative shadow-sm"
+                            className="p-4 rounded-3xl bg-white cursor-pointer group relative shadow-sm"
                           >
                             {/* Link icon for Tradovate and NinjaTrader */}
                             {(broker.id === 'tradovate' || broker.id === 'ninjatrader') && (
@@ -589,7 +589,7 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 rounded-lg bg-white cursor-pointer group"
+                            className="p-4 rounded-3xl bg-white cursor-pointer group"
                           >
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (

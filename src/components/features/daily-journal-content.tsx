@@ -682,7 +682,7 @@ export function DailyJournalContent() {
             const isTableExpanded = expandedTables.has(card.id)
             
             return (
-            <div key={card.id} className="relative w-full rounded-[32px] bg-[#fafcff] dark:bg-[#171717] ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-visible">
+            <div key={card.id} className="relative w-full rounded-[32px] bg-[#fafcff] dark:bg-[#171717] shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-visible">
               {/* Card Header */}
               <div className="px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -736,7 +736,7 @@ export function DailyJournalContent() {
               </div>
               
               {/* Inner container for chart and table content */}
-              <div className="mb-6 rounded-[24px] bg-white dark:bg-[#0f0f0f] shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+              <div className="mb-6 rounded-[24px] bg-white dark:bg-[#0f0f0f] shadow-sm">
                 {/* Chart and Stats Section - Always visible */}
                 <div className="px-6 py-4">
                 {/* Chart and Stats Section */}

@@ -49,20 +49,26 @@ function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(true) // Always start with true for SSR
+  const getInitialCollapsed = () => {
+    try {
+      if (typeof document !== 'undefined') {
+        const match = document.cookie.match(/(?:^|; )sidebar_collapsed=(true|false)/)
+        if (match) return match[1] === 'true'
+      }
+    } catch {}
+    return true
+  }
+
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(getInitialCollapsed)
   const [isMounted, setIsMounted] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
-  // Handle client-side hydration and load saved state
+  // Mark mounted (used for animation timing)
   useEffect(() => {
     setIsMounted(true)
-    const saved = localStorage.getItem('tradestial_sidebar_collapsed')
-    if (saved) {
-      setIsCollapsed(JSON.parse(saved))
-    }
   }, [])
 
   // Load user profile
@@ -105,10 +111,12 @@ export function Sidebar() {
     authService.logout()
   }
 
-  // Handle sidebar toggle with persistence
+  // Handle sidebar toggle with cookie persistence
   const toggleSidebar = (collapsed: boolean) => {
     setIsCollapsed(collapsed)
-    localStorage.setItem('tradestial_sidebar_collapsed', JSON.stringify(collapsed))
+    try {
+      document.cookie = `sidebar_collapsed=${String(collapsed)}; Path=/; Max-Age=31536000; SameSite=Lax`
+    } catch {}
   }
 
   return (
