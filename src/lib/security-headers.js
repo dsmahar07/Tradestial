@@ -35,7 +35,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: `
       default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-scripts.com https://s3.tradingview.com;
+      script-src 'self' *.vercel-scripts.com https://s3.tradingview.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
       img-src 'self' blob: data: https:;

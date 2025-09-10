@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Display utilities for showing UTC-stored timestamps in user's local timezone
  */
@@ -69,7 +71,7 @@ export function formatDisplayTime(
     return `${new Date(datePart).toLocaleDateString()} ${timeDisplay}`
     
   } catch (error) {
-    console.warn('Failed to format display time:', error, { utcDatetime, options })
+    logger.error('Failed to format display time', error as Error, { utcDatetime, options })
     return utcDatetime
   }
 }
@@ -125,7 +127,7 @@ export function formatTradeTime(
         }
       }
     } catch (error) {
-      console.warn('Failed to calculate duration:', error)
+      logger.error('Failed to calculate duration', error as Error)
     }
   }
   
@@ -165,7 +167,7 @@ export function getDisplayTimezone(): number {
       return parseInt(stored, 10)
     }
   } catch (error) {
-    console.warn('Failed to get display timezone from localStorage:', error)
+    logger.warn('Failed to get display timezone from localStorage', { error: (error as Error)?.message })
   }
   
   return getCurrentTimezone().value
@@ -180,6 +182,6 @@ export function setDisplayTimezone(offsetMinutes: number): void {
   try {
     localStorage.setItem('display:timezoneOffsetMinutes', String(offsetMinutes))
   } catch (error) {
-    console.warn('Failed to set display timezone in localStorage:', error)
+    logger.warn('Failed to set display timezone in localStorage', { error: (error as Error)?.message })
   }
 }

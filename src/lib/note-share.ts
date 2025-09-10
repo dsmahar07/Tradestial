@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 export type SharedNote = {
   id?: string
   title: string
@@ -114,7 +116,7 @@ export function decodeNoteToken(token: string): SharedNote | null {
     }
     return base
   } catch (e) {
-    console.error('Failed to decode note token', e)
+    logger.error('Failed to decode note token', e)
     return null
   }
 }

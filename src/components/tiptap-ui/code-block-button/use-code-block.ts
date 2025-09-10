@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import { type Editor } from "@tiptap/react"
 import { NodeSelection, TextSelection } from "@tiptap/pm/state"
@@ -180,7 +182,7 @@ export function shouldShowButton(props: {
  *   const { isVisible, isActive, handleToggle, label } = useCodeBlock({
  *     editor: myEditor,
  *     hideWhenUnavailable: true,
- *     onToggled: (isActive) => console.log('Code block toggled:', isActive)
+ *     onToggled: (isActive) => logger.debug('Code block toggled:', isActive)
  *   })
  *
  *   if (!isVisible) return null

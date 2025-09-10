@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -25,11 +27,11 @@ export default function SymbolsPage() {
   
   // Tabs on the top nav
   const handleTabChange = (tabId: string) => {
-    console.log('Active tab:', tabId)
+    logger.debug('Active tab:', tabId)
   }
 
   const handleDropdownItemClick = (tabId: string, itemId: string) => {
-    console.log(`Selected ${itemId} from ${tabId} tab`)
+    logger.debug(`Selected ${itemId} from ${tabId} tab`)
   }
 
   // Local sub-tabs inside Symbols page

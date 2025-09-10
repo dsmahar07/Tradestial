@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * AI Text Enhancement Service using Kimi K2 via OpenRouter
  * Free alternative to OpenAI for professional writing enhancement
@@ -48,7 +50,7 @@ class AIEnhancementService {
       return result
 
     } catch (error) {
-      console.error('AI Enhancement error:', error)
+      logger.error('AI Enhancement error:', error)
       throw error
     }
   }

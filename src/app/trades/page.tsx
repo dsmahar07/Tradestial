@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import '@/styles/scrollbar.css'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -87,7 +89,7 @@ export default function TradesPage() {
           setModels([])
         }
       } catch (error) {
-        console.error('Failed to load models:', error)
+        logger.error('Failed to load models:', error)
         setModels([])
       }
     }
@@ -115,7 +117,7 @@ export default function TradesPage() {
         setTrades(tradesData)
         setMetrics(metricsData)
       } catch (error) {
-        console.error('Error loading trades:', error)
+        logger.error('Error loading trades:', error)
       } finally {
         setIsLoading(false)
       }
@@ -159,7 +161,7 @@ export default function TradesPage() {
   }
 
   const handleBulkAction = (action: string) => {
-    console.log(`Bulk action: ${action} on trades:`, selectedTrades)
+    logger.debug(`Bulk action: ${action} on trades:`, selectedTrades)
     setShowBulkDropdown(false)
     
     if (action === 'add-tags') {
@@ -168,12 +170,12 @@ export default function TradesPage() {
       setModelForm({ selectedModelId: '' }) // Reset form when opening modal
       setShowModelModal(true)
     } else if (action === 'mark-reviewed') {
-      console.log('Marking as reviewed:', selectedTrades)
+      logger.debug('Marking as reviewed:', selectedTrades)
       setBulkReviewStatus(selectedTrades, 'reviewed')
       alert(`Marked ${selectedTrades.length} trades as reviewed`)
       setSelectedTrades([])
     } else if (action === 'mark-not-reviewed') {
-      console.log('Marking as not reviewed:', selectedTrades)
+      logger.debug('Marking as not reviewed:', selectedTrades)
       setBulkReviewStatus(selectedTrades, 'not-reviewed')
       alert(`Marked ${selectedTrades.length} trades as not reviewed`)
       setSelectedTrades([])
@@ -1592,7 +1594,7 @@ className={pageNumber === currentPage ? '' : ''}
                   <Dialog.Close asChild>
                     <button 
                       onClick={() => {
-                        console.log('Applied column changes:', visibleColumns)
+                        logger.debug('Applied column changes:', visibleColumns)
                       }}
                       className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                     >

@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { Button } from "@/components/ui/button"
 import { AccountSelector } from "@/components/ui/account-selector"
 import { FilterMenu, defaultFilterGroups, FilterGroup } from "@/components/ui/filter-menu"
@@ -110,7 +112,7 @@ export function DashboardHeader() {
   const handleAccountChange = (accountId: string) => {
     // Account switching is handled by the AccountSelector component
     // Analytics will automatically update through the DataStore sync
-    console.log('Switched to account:', accountId)
+    logger.debug('Switched to account:', accountId)
   }
 
   const handleFilterChange = (groupId: string, value: string) => {
@@ -123,7 +125,7 @@ export function DashboardHeader() {
     )
     // Update privacy context when filter changes
     setDisplayFormat(value)
-    console.log('Filter changed:', groupId, value)
+    logger.debug('Filter changed:', groupId, value)
   }
 
   // Determine if filters should be shown based on current page

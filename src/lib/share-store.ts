@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 // Server-side sharing system using localStorage as a simple database
 // In production, this would use a real database like PostgreSQL or MongoDB
 
@@ -89,7 +91,7 @@ class ShareStore {
       const stored = localStorage.getItem(this.storageKey)
       return stored ? JSON.parse(stored) : {}
     } catch (error) {
-      console.error('Error reading shared notes:', error)
+      logger.error('Error reading shared notes:', error)
       return {}
     }
   }

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Utility to clear analytics cache and force data reload
  * Use this after fixing date parsing issues to ensure fresh calculations
@@ -7,7 +9,7 @@ import { AnalyticsCacheService } from '@/services/analytics-cache.service'
 import { ReactiveAnalyticsService } from '@/services/reactive-analytics.service'
 
 export async function clearAllCacheAndReload(): Promise<void> {
-  console.log('Clearing all analytics cache...')
+  logger.debug('Clearing all analytics cache...')
   
   // Clear analytics cache
   AnalyticsCacheService.clear()
@@ -23,7 +25,7 @@ export async function clearAllCacheAndReload(): Promise<void> {
     sessionStorage.clear()
   }
   
-  console.log('Cache cleared successfully. Please re-import your CSV data.')
+  logger.debug('Cache cleared successfully. Please re-import your CSV data.')
 }
 
 export function addCacheClearButton(): void {

@@ -15,27 +15,17 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
   const [isPrivacyMode, setIsPrivacyMode] = useState(false)
   const [displayFormat, setDisplayFormat] = useState('dollar')
 
-  // Load privacy mode from localStorage on mount
+  // Initialize without localStorage (in-memory only)
   useEffect(() => {
-    const savedPrivacyMode = localStorage.getItem('tradestial-privacy-mode')
-    const savedDisplayFormat = localStorage.getItem('tradestial-display-format')
-    
-    if (savedPrivacyMode) {
-      setIsPrivacyMode(savedPrivacyMode === 'true')
-    }
-    if (savedDisplayFormat) {
-      setDisplayFormat(savedDisplayFormat)
-    }
+    // No-op: defaults already set; keep in-memory state only
   }, [])
 
   const setPrivacyMode = (enabled: boolean) => {
     setIsPrivacyMode(enabled)
-    localStorage.setItem('tradestial-privacy-mode', enabled.toString())
   }
 
   const handleDisplayFormatChange = (format: string) => {
     setDisplayFormat(format)
-    localStorage.setItem('tradestial-display-format', format)
     
     // Update privacy mode based on format selection
     setPrivacyMode(format === 'privacy')

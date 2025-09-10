@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
 type Theme = 'dark' | 'light'
@@ -33,47 +35,49 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<Theme>(defaultTheme)
   const [mounted, setMounted] = useState(false)
 
-  // Load theme from storage on mount
+  // Initialize theme on mount without localStorage (SSR-safe)
   useEffect(() => {
     try {
-      const savedTheme = localStorage.getItem(storageKey)
-      console.log('🔍 Loaded theme from storage:', savedTheme)
-      
-      if (savedTheme === 'dark' || savedTheme === 'light') {
-        setThemeState(savedTheme)
+      if (typeof window !== 'undefined') {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        // Prefer SSR-provided <html> class to avoid FOUC and keep consistency
+        const root = document.documentElement
+        const ssrClass = root.classList.contains('dark') ? 'dark' : (root.classList.contains('light') ? 'light' : undefined)
+        const initial = ssrClass || defaultTheme || (prefersDark ? 'dark' : 'light')
+        logger.debug('🔍 Initialized theme (no storage):', initial)
+        setThemeState(initial)
       }
     } catch (error) {
-      console.warn('Failed to load theme:', error)
+      logger.warn('Failed to initialize theme', error)
     } finally {
       setMounted(true)
     }
-  }, [storageKey])
+  }, [defaultTheme])
 
   // Apply theme to document
   useEffect(() => {
     if (!mounted) return
 
-    console.log('🎨 Applying theme to document:', theme)
+    logger.debug('🎨 Applying theme to document:', theme)
     const root = document.documentElement
     
     root.classList.remove('light', 'dark')
     root.classList.add(theme)
     
-    console.log('✅ Applied classes:', Array.from(root.classList))
+    logger.debug('✅ Applied classes:', Array.from(root.classList))
   }, [theme, mounted])
 
   const setTheme = useCallback((newTheme: Theme) => {
-    console.log('🔄 Theme change requested:', newTheme)
+    logger.debug('🔄 Theme change requested:', newTheme)
     
     try {
-      localStorage.setItem(storageKey, newTheme)
-      console.log('💾 Saved theme to storage')
+      // Persist selection via cookie (1 year)
+      document.cookie = `theme=${newTheme}; Path=/; Max-Age=31536000; SameSite=Lax`
     } catch (error) {
-      console.warn('Failed to save theme:', error)
+      logger.warn('Failed to set theme cookie', error)
     }
-    
     setThemeState(newTheme)
-  }, [storageKey])
+  }, [])
 
   const value = {
     theme,

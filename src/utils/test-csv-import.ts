@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Test utility for CSV import functionality
  * Helps debug and test the Tradovate CSV parsing
@@ -11,7 +13,7 @@ export async function testTradovateImport() {
     // Read the example Tradovate CSV
     const csvUrl = '/Example CSV/Tradovate.csv'
     
-    console.log('🔍 Fetching Tradovate CSV from:', csvUrl)
+    logger.debug('🔍 Fetching Tradovate CSV from:', csvUrl)
     
     const response = await fetch(csvUrl)
     if (!response.ok) {
@@ -19,15 +21,15 @@ export async function testTradovateImport() {
     }
     
     const csvContent = await response.text()
-    console.log('📄 CSV Content Preview:', csvContent.substring(0, 500))
-    console.log('📄 CSV Full length:', csvContent.length)
+    logger.debug('📄 CSV Content Preview:', csvContent.substring(0, 500))
+    logger.debug('📄 CSV Full length:', csvContent.length)
     
-    console.log('🚀 Processing Tradovate CSV with direct parser...')
+    logger.debug('🚀 Processing Tradovate CSV with direct parser...')
     
     // Parse CSV directly
     const parseResult = await TradovateCsvParser.parseCSV(csvContent)
     
-    console.log('✅ Parse Result:', {
+    logger.debug('✅ Parse Result:', {
       success: parseResult.success,
       trades: parseResult.trades.length,
       errors: parseResult.errors,
@@ -39,8 +41,8 @@ export async function testTradovateImport() {
       // Update DataStore
       await DataStore.replaceTrades(parseResult.trades)
       
-      console.log('🎯 Sample imported trade:', parseResult.trades[0])
-      console.log('📊 DataStore info:', DataStore.getDataInfo())
+      logger.debug('🎯 Sample imported trade:', parseResult.trades[0])
+      logger.debug('📊 DataStore info:', DataStore.getDataInfo())
       
       return {
         success: true,
@@ -56,7 +58,7 @@ export async function testTradovateImport() {
     }
     
   } catch (error) {
-    console.error('❌ Test import failed:', error)
+    logger.error('❌ Test import failed:', error)
     return {
       success: false,
       trades: [],
@@ -81,7 +83,7 @@ export async function previewTradovateCSV() {
     
     const result = await TradovateCsvParser.parseCSV(csvContent)
     
-    console.log('📋 CSV Parse Result:', {
+    logger.debug('📋 CSV Parse Result:', {
       success: result.success,
       tradeCount: result.trades.length,
       errors: result.errors,
@@ -91,7 +93,7 @@ export async function previewTradovateCSV() {
     return result
     
   } catch (error) {
-    console.error('❌ Preview failed:', error)
+    logger.error('❌ Preview failed:', error)
     return null
   }
 }
@@ -99,8 +101,8 @@ export async function previewTradovateCSV() {
 // Function to clear data 
 export function clearAllData() {
   DataStore.clearData()
-  console.log('🔄 All data cleared')
-  console.log('📊 DataStore info:', DataStore.getDataInfo())
+  logger.debug('🔄 All data cleared')
+  logger.debug('📊 DataStore info:', DataStore.getDataInfo())
 }
 
 // Add to window for browser console testing

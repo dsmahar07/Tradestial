@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Account Management Service
  * Manages imported trading accounts and their associated data
@@ -81,7 +83,7 @@ class AccountService {
         this.syncActiveAccountToDataStore()
       }
     } catch (error) {
-      console.warn('AccountService: Failed to load from storage:', error)
+      logger.warn('AccountService: Failed to load from storage:', error)
     }
   }
 
@@ -95,7 +97,7 @@ class AccountService {
       await DataStore.replaceTrades(activeAccount.trades)
       await DataStore.setStartingBalance(activeAccount.balance.starting)
     } catch (error) {
-      console.warn('AccountService: Failed to sync active account to DataStore:', error)
+      logger.warn('AccountService: Failed to sync active account to DataStore:', error)
     }
   }
 
@@ -113,7 +115,7 @@ class AccountService {
         localStorage.removeItem('tradestial:active-account')
       }
     } catch (error) {
-      console.warn('AccountService: Failed to save to storage:', error)
+      logger.warn('AccountService: Failed to save to storage:', error)
     }
   }
 
@@ -122,7 +124,7 @@ class AccountService {
       try {
         listener()
       } catch (error) {
-        console.warn('AccountService: Listener error:', error)
+        logger.warn('AccountService: Listener error:', error)
       }
     })
   }
@@ -278,7 +280,7 @@ class AccountService {
         }
       }
     } catch (err) {
-      console.warn('AccountService: Failed to sync DataStore with active account update:', err)
+      logger.warn('AccountService: Failed to sync DataStore with active account update:', err)
     }
 
     this.saveToStorage()

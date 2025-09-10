@@ -42,6 +42,18 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-gray-600 dark:text-gray-300 mb-4">
                 We apologize for the inconvenience. Please try refreshing the page.
               </p>
+              {process.env.NODE_ENV !== 'production' && this.state.error && (
+                <div className="text-xs text-left bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded p-3 mb-4 overflow-auto max-h-48">
+                  <div className="font-semibold mb-1">Error:</div>
+                  <pre className="whitespace-pre-wrap break-words">{this.state.error.message}</pre>
+                  {this.state.error.stack && (
+                    <>
+                      <div className="font-semibold mt-3 mb-1">Stack:</div>
+                      <pre className="whitespace-pre text-[10px] leading-[14px]">{this.state.error.stack}</pre>
+                    </>
+                  )}
+                </div>
+              )}
               <button
                 onClick={() => window.location.reload()}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

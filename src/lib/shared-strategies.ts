@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 export interface SharedStrategy {
   id: string
   name: string
@@ -38,7 +40,7 @@ export function addSharedStrategy(strategy: SharedStrategy): void {
     // Trigger marketplace refresh
     window.dispatchEvent(new CustomEvent('tradestial:shared-strategies-updated'))
   } catch (error) {
-    console.error('Failed to save shared strategy:', error)
+    logger.error('Failed to save shared strategy:', error)
   }
 }
 
@@ -51,6 +53,6 @@ export function removeSharedStrategy(id: string): void {
     // Trigger marketplace refresh
     window.dispatchEvent(new CustomEvent('tradestial:shared-strategies-updated'))
   } catch (error) {
-    console.error('Failed to remove shared strategy:', error)
+    logger.error('Failed to remove shared strategy:', error)
   }
 }

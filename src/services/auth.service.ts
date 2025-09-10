@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Authentication service for handling user login/logout operations
  */
@@ -76,7 +78,7 @@ class AuthServiceImpl implements AuthService {
       const authData = localStorage.getItem(this.STORAGE_KEYS.AUTH_DATA);
       return authData ? JSON.parse(authData) : null;
     } catch (error) {
-      console.error('Error getting auth state:', error);
+      logger.error('Error getting auth state:', error);
       return null;
     }
   }
@@ -95,7 +97,7 @@ class AuthServiceImpl implements AuthService {
       // Redirect to login page
       window.location.href = '/login';
     } catch (error) {
-      console.error('Error during logout:', error);
+      logger.error('Error during logout:', error);
       // Force redirect even if there's an error
       window.location.href = '/login';
     }
@@ -117,7 +119,7 @@ class AuthServiceImpl implements AuthService {
       // Dispatch event for profile update
       window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: null }));
     } catch (error) {
-      console.error('Error clearing user data:', error);
+      logger.error('Error clearing user data:', error);
     }
   }
 
@@ -137,7 +139,7 @@ class AuthServiceImpl implements AuthService {
       
       return hoursSinceLogin < 24; // Token expires after 24 hours
     } catch (error) {
-      console.error('Error checking authentication status:', error);
+      logger.error('Error checking authentication status:', error);
       return false;
     }
   }

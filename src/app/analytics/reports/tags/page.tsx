@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Sidebar } from '@/components/layout/sidebar'
@@ -224,8 +226,8 @@ export default function TagsPage() {
   }, [drawdownSeries, winRateSeries, maxLosingStreakSeries, tradeCountSeries, dailyNetSeries, cumulativeNetSeries])
 
   // Helpers for UI
-  const handleTabChange = (tabId: string) => { console.log('Active tab:', tabId) }
-  const handleDropdownItemClick = (tabId: string, itemId: string) => { console.log(`Selected ${itemId} from ${tabId} tab`) }
+  const handleTabChange = (tabId: string) => { logger.debug('Active tab:', tabId) }
+  const handleDropdownItemClick = (tabId: string, itemId: string) => { logger.debug(`Selected ${itemId} from ${tabId} tab`) }
 
   return (
     <div className="flex min-h-screen">

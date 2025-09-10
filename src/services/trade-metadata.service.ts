@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 // Trade Metadata Service - Handles extended trade data like rating, profit target, stop loss, etc.
 export interface TradeMetadata {
   tradeId: string
@@ -42,16 +44,16 @@ class TradeMetadataService {
           Object.values(this.data).forEach(metadata => {
             metadata.lastUpdated = new Date(metadata.lastUpdated)
           })
-          console.log(`📚 TradeMetadataService - Loaded ${Object.keys(this.data).length} trade metadata entries from storage`)
+          logger.debug(`📚 TradeMetadataService - Loaded ${Object.keys(this.data).length} trade metadata entries from storage`)
         } else {
-          console.log('📚 TradeMetadataService - No stored metadata found, starting with empty data')
+          logger.debug('📚 TradeMetadataService - No stored metadata found, starting with empty data')
           this.data = {}
         }
       } else {
         this.data = {}
       }
     } catch (error) {
-      console.error('❌ TradeMetadataService - Error loading from localStorage:', error)
+      logger.error('❌ TradeMetadataService - Error loading from localStorage:', error)
       this.data = {}
     }
     this.notify()
@@ -61,10 +63,10 @@ class TradeMetadataService {
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data))
-        console.log(`💾 TradeMetadataService - Saved ${Object.keys(this.data).length} trade metadata entries to storage`)
+        logger.debug(`💾 TradeMetadataService - Saved ${Object.keys(this.data).length} trade metadata entries to storage`)
       }
     } catch (error) {
-      console.error('❌ TradeMetadataService - Error saving to localStorage:', error)
+      logger.error('❌ TradeMetadataService - Error saving to localStorage:', error)
     }
   }
 

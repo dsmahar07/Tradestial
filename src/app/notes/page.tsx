@@ -1,4 +1,6 @@
 'use client'
+
+import { logger } from '@/lib/logger'
 import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -132,7 +134,7 @@ export default function NotesPage() {
         try {
           return JSON.parse(savedFolders)
         } catch (error) {
-          console.error('Error loading folders from localStorage:', error)
+          logger.error('Error loading folders from localStorage:', error)
         }
       }
     }
@@ -153,7 +155,7 @@ export default function NotesPage() {
         try {
           return JSON.parse(savedNotes)
         } catch (error) {
-          console.error('Error loading notes from localStorage:', error)
+          logger.error('Error loading notes from localStorage:', error)
         }
       }
     }
@@ -233,7 +235,7 @@ export default function NotesPage() {
         }))
         localStorage.setItem('tradestial_notes', JSON.stringify(safeNotes))
       } catch (error) {
-        console.error('Error saving notes to localStorage:', error)
+        logger.error('Error saving notes to localStorage:', error)
       }
     }
   }, [notes])
@@ -253,7 +255,7 @@ export default function NotesPage() {
         }))
         localStorage.setItem('tradestial_folders', JSON.stringify(safeFolders))
       } catch (error) {
-        console.error('Error saving folders to localStorage:', error)
+        logger.error('Error saving folders to localStorage:', error)
       }
     }
   }, [folders])
@@ -477,7 +479,7 @@ export default function NotesPage() {
           
           success('Trade note created', 'Trade analysis note created successfully!')
         } catch (error) {
-          console.error('Error parsing trade data:', error)
+          logger.error('Error parsing trade data:', error)
         }
       }
     }
@@ -504,14 +506,14 @@ export default function NotesPage() {
     }
     setNotes(prev => [newNote, ...prev])
     setSelectedNote(newNote)
-    console.log('Created new note:', newNote)
+    logger.debug('Created new note:', newNote)
   }
 
   const handleCreateNoteFromTemplate = (template: TradeJournalingTemplate, templateInstance: TemplateInstance, generatedContent: string) => {
     // If a note is selected, apply template content to it instead of creating a new note
     if (selectedNote) {
       handleUpdateNote(selectedNote.id, generatedContent)
-      console.log('Applied template to existing note:', selectedNote.id)
+      logger.debug('Applied template to existing note:', selectedNote.id)
       success('Template applied', `${template.name} applied to current note.`)
       return
     }
@@ -550,7 +552,7 @@ export default function NotesPage() {
 
     setNotes(prev => [newNote, ...prev])
     setSelectedNote(newNote)
-    console.log('Created note from template:', newNote)
+    logger.debug('Created note from template:', newNote)
     success('Note created', `${template.name} note created successfully!`)
   }
 
@@ -558,7 +560,7 @@ export default function NotesPage() {
     // If a note is selected, apply template content to it instead of creating a new note
     if (selectedNote) {
       handleUpdateNote(selectedNote.id, content)
-      console.log('Quick-applied template to existing note:', selectedNote.id)
+      logger.debug('Quick-applied template to existing note:', selectedNote.id)
       success('Template applied', `${template.name} applied to current note.`)
       return
     }
@@ -592,7 +594,7 @@ export default function NotesPage() {
 
     setNotes(prev => [newNote, ...prev])
     setSelectedNote(newNote)
-    console.log('Quick applied template:', newNote)
+    logger.debug('Quick applied template:', newNote)
     success('Template applied!', `${template.name} template applied instantly - ready to edit!`)
   }
 
@@ -714,7 +716,7 @@ export default function NotesPage() {
   }
 
   const handleNoteSelect = (note: Note) => {
-    console.log('Selecting note:', note.title)
+    logger.debug('Selecting note:', note.title)
     setSelectedNote(note)
     // Prefer explicit trading date when available
     if (note?.tradingData?.date) {
@@ -739,7 +741,7 @@ export default function NotesPage() {
   }
 
   const handleFolderSelect = (folder: string) => {
-    console.log('Selecting folder:', folder)
+    logger.debug('Selecting folder:', folder)
     setSelectedFolder(folder)
     // Clear tag filter when switching folders (optional UX)
     setSelectedTag(null)

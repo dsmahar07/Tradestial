@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect, useRef } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -62,10 +64,10 @@ export default function DayTimePage() {
 
   // Handlers for top navigation (kept for parity)
   const handleTabChange = (tabId: string) => {
-    console.log('Active tab:', tabId)
+    logger.debug('Active tab:', tabId)
   }
   const handleDropdownItemClick = (tabId: string, itemId: string) => {
-    console.log(`Selected ${itemId} from ${tabId} tab`)
+    logger.debug(`Selected ${itemId} from ${tabId} tab`)
   }
 
   // Helper to choose PnL field for summaries

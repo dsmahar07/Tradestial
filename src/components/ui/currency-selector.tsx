@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect } from 'react'
 import { ChevronDownIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import {
@@ -53,7 +55,7 @@ export function CurrencySelector({
       await CurrencyConversionService.refreshRates()
       setLastUpdate(CurrencyConversionService.getLastUpdateTime())
     } catch (error) {
-      console.error('Failed to refresh rates:', error)
+      logger.error('Failed to refresh rates:', error)
     } finally {
       setIsRefreshing(false)
     }

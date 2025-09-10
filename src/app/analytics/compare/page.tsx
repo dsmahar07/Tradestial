@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useState } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -64,7 +66,7 @@ export default function ComparePage() {
         if (!isMounted) return
         setTrades(all)
       } catch (e) {
-        console.error(e)
+        logger.error(e)
         if (isMounted) setError('Failed to load trades')
       } finally {
         if (isMounted) setLoading(false)
@@ -160,11 +162,11 @@ export default function ComparePage() {
   }
 
   const handleTabChange = (tabId: string) => {
-    console.log('Active tab:', tabId)
+    logger.debug('Active tab:', tabId)
   }
 
   const handleDropdownItemClick = (tabId: string, itemId: string) => {
-    console.log(`Selected ${itemId} from ${tabId} tab`)
+    logger.debug(`Selected ${itemId} from ${tabId} tab`)
   }
 
   const Stat = ({ label, value, emphasize = false, red = false }: { label: string; value: string | number; emphasize?: boolean; red?: boolean }) => (

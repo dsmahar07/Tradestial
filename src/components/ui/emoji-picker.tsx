@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -202,10 +204,10 @@ function AppleEmoji({ emoji, className = "w-5 h-5" }: { emoji: string; className
       
       img.onerror = () => {
         if (urlIndex === 0) {
-          console.log(`🚨 Emoji ${emoji} failed to load from primary source. Codepoints: [${codepoints.join(', ')}]. Trying alternatives...`)
+          logger.debug(`🚨 Emoji ${emoji} failed to load from primary source. Codepoints: [${codepoints.join(', ')}]. Trying alternatives...`)
         }
         if (urlIndex === urls.length - 1) {
-          console.warn(`❌ All sources failed for emoji: ${emoji}. Will use system emoji fallback.`)
+          logger.warn(`❌ All sources failed for emoji: ${emoji}. Will use system emoji fallback.`)
         }
         tryLoadImage(urlIndex + 1)
       }

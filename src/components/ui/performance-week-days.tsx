@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useMemo, useState, useEffect } from 'react'
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
@@ -65,13 +67,13 @@ export function PerformanceWeekDays() {
     })
 
     // Debug: Log the data to see what's happening
-    console.log('Weekday data:', Array.from(weekdayMap.entries()))
+    logger.debug('Weekday data:', Array.from(weekdayMap.entries()))
     
     return weekdays.map(weekday => {
       const weekdayData = weekdayMap.get(weekday)!
       const finalPnl = isNaN(weekdayData.totalPnl) ? 0 : weekdayData.totalPnl
       
-      console.log(`${weekday}: totalPnl=${finalPnl}`)
+      logger.debug(`${weekday}: totalPnl=${finalPnl}`)
       
       return {
         weekday: weekday.substring(0, 3), // Mon, Tue, Wed, Thu, Fri

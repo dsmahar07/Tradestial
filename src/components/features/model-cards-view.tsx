@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useState } from 'react'
 import { modelStatsService } from '@/services/model-stats.service'
 import { DataStore } from '@/services/data-store.service'
@@ -85,7 +87,7 @@ export function ModelCardsView() {
         
         window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
       } catch (error) {
-        console.error('Failed to delete strategy:', error)
+        logger.error('Failed to delete strategy:', error)
         alert('Failed to delete model. Please try again.')
       }
     }
@@ -106,7 +108,7 @@ export function ModelCardsView() {
       
       window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
     } catch (error) {
-      console.error('Failed to duplicate strategy:', error)
+      logger.error('Failed to duplicate strategy:', error)
       alert('Failed to duplicate model. Please try again.')
     }
   }

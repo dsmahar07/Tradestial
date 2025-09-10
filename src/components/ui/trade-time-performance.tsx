@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import React, { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Info, Settings } from 'lucide-react'
@@ -93,7 +95,7 @@ const generateTradeTimeData = (trades: Trade[]): TradeTimeData[] => {
       
       // Validate the data point before adding it
       if (!trade || !trade.id) {
-        console.warn('Invalid trade data found:', trade)
+        logger.warn('Invalid trade data found:', trade)
         return null
       }
       
@@ -346,7 +348,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                     const expectedColor = pnl >= 0 ? '#10b981' : '#ef4444'
                     const actualColor = data.color
                     if (actualColor !== expectedColor) {
-                      console.error('Color mismatch detected:', { pnl, expectedColor, actualColor })
+                      logger.error('Color mismatch detected:', { pnl, expectedColor, actualColor })
                     }
                     
                     // Safety check for trade object
@@ -390,7 +392,7 @@ export const TradeTimePerformance = React.memo(function TradeTimePerformance() {
                       </div>
                     )
                   } catch (error) {
-                    console.error('Error rendering Trade Time Performance tooltip:', error)
+                    logger.error('Error rendering Trade Time Performance tooltip:', error)
                     return (
                       <div className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-[#2a2a2a] rounded-md px-3 py-2 text-sm shadow focus:outline-none">
                         <div className="text-gray-600 dark:text-gray-400">

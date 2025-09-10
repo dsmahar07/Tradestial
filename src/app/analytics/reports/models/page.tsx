@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import * as Select from '@radix-ui/react-select'
@@ -325,8 +327,8 @@ export default function ModelsPage() {
   }, [drawdownSeries, winRateSeries, maxLosingStreakSeries, tradeCountSeries, dailyNetSeries, cumulativeNetSeries])
 
   // Helpers for UI
-  const handleTabChange = (tabId: string) => { console.log('Active tab:', tabId) }
-  const handleDropdownItemClick = (tabId: string, itemId: string) => { console.log(`Selected ${itemId} from ${tabId} tab`) }
+  const handleTabChange = (tabId: string) => { logger.debug('Active tab:', tabId) }
+  const handleDropdownItemClick = (tabId: string, itemId: string) => { logger.debug(`Selected ${itemId} from ${tabId} tab`) }
 
   // no-op
 

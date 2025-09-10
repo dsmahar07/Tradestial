@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { motion } from 'framer-motion'
 import { 
   BarChart, 
@@ -103,7 +105,7 @@ export function SymbolPerformanceChart() {
         const allTrades = DataStore.getAllTrades()
         setTrades(allTrades)
       } catch (error) {
-        console.error('Failed to load trades for symbol performance:', error)
+        logger.error('Failed to load trades for symbol performance:', error)
       } finally {
         setLoading(false)
       }

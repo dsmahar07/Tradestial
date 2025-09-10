@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 "use client"
 
 import * as React from "react"
@@ -141,7 +143,7 @@ export function StrategyCard({
     try {
       localStorage.setItem(`tradestial:rule-checks:${trade.id}`, JSON.stringify(updated))
     } catch (e) {
-      console.warn('Failed to persist rule check:', e)
+      logger.warn('Failed to persist rule check:', e)
     }
   }
 

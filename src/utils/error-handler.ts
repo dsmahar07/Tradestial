@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Standardized error handling utilities for Tradestial
  */
@@ -105,7 +107,7 @@ export class ErrorHandler {
       timestamp: new Date().toISOString()
     };
 
-    console.error(`[${errorInfo.timestamp}] ${context ? `[${context}] ` : ''}${errorInfo.message}`, {
+    logger.error(`[${errorInfo.timestamp}] ${context ? `[${context}] ` : ''}${errorInfo.message}`, {
       ...errorInfo,
       stack: error instanceof Error ? error.stack : undefined
     });

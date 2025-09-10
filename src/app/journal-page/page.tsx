@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { motion } from 'framer-motion'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -116,12 +118,12 @@ function JournalPageContent() {
       const dateToTrack = dateParam || selectedYMD
       // Record a minimal journal entry to indicate user accessed the journal
       RuleTrackingService.recordJournalEntry(dateToTrack, 'Journal accessed')
-      console.log('Journal access tracked for Step into the day rule:', dateToTrack)
+      logger.debug('Journal access tracked for Step into the day rule:', dateToTrack)
     }
   }, [dateParam, selectedYMD])
 
   const handleUpdateNote = (id: string, content: string, title?: string, color?: string, tags?: string[]) => {
-    console.log('Updating journal entry:', id, 'with content length:', content.length)
+    logger.debug('Updating journal entry:', id, 'with content length:', content.length)
     setCurrentNote(prev => ({
       ...prev,
       content,
@@ -136,7 +138,7 @@ function JournalPageContent() {
     // Track journal entry for Step into the day rule
     if (content && content.trim().length > 0) {
       RuleTrackingService.recordJournalEntry(selectedYMD, content)
-      console.log('Journal entry recorded for Step into the day rule tracking:', selectedYMD)
+      logger.debug('Journal entry recorded for Step into the day rule tracking:', selectedYMD)
     }
   }
 

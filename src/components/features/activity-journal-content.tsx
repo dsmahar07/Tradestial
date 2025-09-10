@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect, useMemo } from 'react'
 import { X, Edit, Info, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -268,7 +270,7 @@ export function ActivityJournalContent() {
         allCompletions[today][ruleId] = !allCompletions[today][ruleId]
         localStorage.setItem('tradestial:rule-completions', JSON.stringify(allCompletions))
       } catch (error) {
-        console.error('Error saving manual rule completions:', error)
+        logger.error('Error saving manual rule completions:', error)
       }
     } else {
       // Handle automatic trading rules - use RuleTrackingService for consistency
@@ -486,7 +488,7 @@ export function ActivityJournalContent() {
     if (progressMetrics.percentage === 100) {
       setIsDayFinished(true)
       // In a real app, this would save to backend and update historical data
-      console.log('Day finished with 100% completion!')
+      logger.debug('Day finished with 100% completion!')
     }
   }
 
@@ -516,9 +518,9 @@ export function ActivityJournalContent() {
       // Clear any cached rule tracking data from RuleTrackingService
       RuleTrackingService.clearAllData()
       
-      console.log('Progress reset successfully!')
+      logger.debug('Progress reset successfully!')
     } catch (error) {
-      console.error('Error resetting progress:', error)
+      logger.error('Error resetting progress:', error)
     }
   }
 

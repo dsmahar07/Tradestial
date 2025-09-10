@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 export interface UserProfile {
   id: string;
   fullName: string;
@@ -36,7 +38,7 @@ class UserProfileService {
         return JSON.parse(stored);
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      logger.error('Error loading user profile:', error);
     }
 
     // Return default profile if none exists
@@ -78,7 +80,7 @@ class UserProfileService {
       // Dispatch custom event for same-tab updates
       window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: profile }));
     } catch (error) {
-      console.error('Error saving user profile:', error);
+      logger.error('Error saving user profile:', error);
       throw new Error('Failed to save profile changes');
     }
   }

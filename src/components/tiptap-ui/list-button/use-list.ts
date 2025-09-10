@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import { type Editor } from "@tiptap/react"
 import { NodeSelection, TextSelection } from "@tiptap/pm/state"
@@ -240,7 +242,7 @@ export function shouldShowButton(props: {
  *     type: "orderedList",
  *     editor: myEditor,
  *     hideWhenUnavailable: true,
- *     onToggled: () => console.log('List toggled!')
+ *     onToggled: () => logger.debug('List toggled!')
  *   })
  *
  *   if (!isVisible) return null

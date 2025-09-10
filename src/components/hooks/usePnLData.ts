@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getImportedTrades, subscribeToTradeUpdates, getAccountStartingBalance } from '@/components/modals/ImportTradesModal';
 import { prepareEquityCurveData } from '@/lib/tradeAnalyticsService';
-import { logger } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface DataPoint {
   date: string;

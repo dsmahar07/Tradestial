@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect } from 'react'
 
 export function PerformanceMonitor() {
@@ -10,13 +12,13 @@ export function PerformanceMonitor() {
     const observer = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
         if (entry.entryType === 'largest-contentful-paint') {
-          console.log('LCP:', entry.startTime)
+          logger.debug('LCP:', entry.startTime)
         }
         if (entry.entryType === 'first-input') {
-          console.log('FID:', (entry as any).processingStart - entry.startTime)
+          logger.debug('FID:', (entry as any).processingStart - entry.startTime)
         }
         if (entry.entryType === 'layout-shift') {
-          console.log('CLS:', (entry as any).value)
+          logger.debug('CLS:', (entry as any).value)
         }
       })
     })

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { useCallback, useEffect } from 'react'
 import { Note } from '@/app/notes/page'
 import { convertHTMLToMarkdown, convertMarkdownToHTML } from '@/utils/editor/markdown-converter'
@@ -59,7 +61,7 @@ export const useEditorHandlers = ({
       }, 10)
 
     } catch (error) {
-      console.error(`Error executing command ${command}:`, error)
+      logger.error(`Error executing command ${command}:`, error)
     }
   }, [note, isEditing, editorRef, setContent, setIsEditing])
 
@@ -92,7 +94,7 @@ export const useEditorHandlers = ({
       }, 0)
 
     } catch (error) {
-      console.error('Error inserting content:', error)
+      logger.error('Error inserting content:', error)
     }
   }, [note, editorRef, setContent, setIsEditing])
 
@@ -131,7 +133,7 @@ export const useEditorHandlers = ({
         }, 10)
       }
     } catch (error) {
-      console.error('Error setting highlight:', error)
+      logger.error('Error setting highlight:', error)
     }
   }, [note, isEditing, editorRef, setContent, setIsEditing])
 
@@ -173,7 +175,7 @@ export const useEditorHandlers = ({
         }
       }, 10)
     } catch (error) {
-      console.error('Error toggling quote:', error)
+      logger.error('Error toggling quote:', error)
     }
   }, [note, editorRef, setContent, setIsEditing])
 
@@ -259,7 +261,7 @@ export const useEditorHandlers = ({
         }
       }
     } catch (error) {
-      console.error('Error in handleEditorInput:', error)
+      logger.error('Error in handleEditorInput:', error)
     }
   }, [content, note, isEditing, isSettingUpEdit, setContent])
 

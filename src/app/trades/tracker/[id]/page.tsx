@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, useMemo, useId } from 'react'
 import { 
@@ -155,19 +157,19 @@ export default function TrackerPage() {
         
         // Get trades from DataStore (real CSV data)
         const trades = DataStore.getAllTrades()
-        console.log('🔍 Tracker - Available trades:', trades.length)
+        logger.debug('🔍 Tracker - Available trades:', trades.length)
         
         // Get trade ID from URL params or search params and decode it
         const rawTradeId = params.id || params.tradeId || searchParams.get('trade')
         const tradeId = rawTradeId ? decodeURIComponent(Array.isArray(rawTradeId) ? rawTradeId[0] : rawTradeId) : null
-        console.log('🔍 Tracker - Raw trade ID from URL:', rawTradeId)
-        console.log('🔍 Tracker - Decoded trade ID:', tradeId)
-        console.log('🔍 Tracker - All available trade IDs:', trades.map(t => t.id))
-        console.log('🔍 Tracker - Params object:', params)
-        console.log('🔍 Tracker - SearchParams:', Object.fromEntries(searchParams.entries()))
+        logger.debug('🔍 Tracker - Raw trade ID from URL:', rawTradeId)
+        logger.debug('🔍 Tracker - Decoded trade ID:', tradeId)
+        logger.debug('🔍 Tracker - All available trade IDs:', trades.map(t => t.id))
+        logger.debug('🔍 Tracker - Params object:', params)
+        logger.debug('🔍 Tracker - SearchParams:', Object.fromEntries(searchParams.entries()))
         
         if (!trades.length) {
-          console.warn('⚠️ Tracker - No trades available in DataStore')
+          logger.warn('⚠️ Tracker - No trades available in DataStore')
           setTrade(null)
           setRunningPnlData([])
           setIsLoading(false)
@@ -191,19 +193,19 @@ export default function TrackerPage() {
           }
           
           if (!selectedTrade) {
-            console.warn(`⚠️ Tracker - Trade with ID ${tradeId} not found in any format`)
-            console.warn('Available trade IDs and types:', trades.map(t => ({ id: t.id, type: typeof t.id })))
+            logger.warn(`⚠️ Tracker - Trade with ID ${tradeId} not found in any format`)
+            logger.warn('Available trade IDs and types:', trades.map(t => ({ id: t.id, type: typeof t.id })))
             selectedTrade = trades[0]
           } else {
-            console.log('✅ Tracker - Found specific trade:', selectedTrade.id, selectedTrade.symbol, 'Side:', selectedTrade.side)
+            logger.debug('✅ Tracker - Found specific trade:', selectedTrade.id, selectedTrade.symbol, 'Side:', selectedTrade.side)
           }
         } else {
           selectedTrade = trades[0]
-          console.log('✅ Tracker - No trade ID provided, using first trade:', selectedTrade.id, selectedTrade.symbol, 'Side:', selectedTrade.side)
+          logger.debug('✅ Tracker - No trade ID provided, using first trade:', selectedTrade.id, selectedTrade.symbol, 'Side:', selectedTrade.side)
         }
         
         if (!selectedTrade) {
-          console.error('❌ Tracker - No trade selected')
+          logger.error('❌ Tracker - No trade selected')
           setTrade(null)
           setRunningPnlData([])
           setIsLoading(false)
@@ -221,7 +223,7 @@ export default function TrackerPage() {
         setTimeout(() => {
           setTrade(cleanTrade)
           setRunningPnlData(mockRunningPnlData)
-          console.log('✅ Tracker - Trade state updated:', {
+          logger.debug('✅ Tracker - Trade state updated:', {
             id: cleanTrade?.id,
             symbol: cleanTrade?.symbol,
             side: cleanTrade?.side,
@@ -232,7 +234,7 @@ export default function TrackerPage() {
         }, 10)
         
       } catch (error) {
-        console.error('❌ Tracker - Error loading trade:', error)
+        logger.error('❌ Tracker - Error loading trade:', error)
         setTrade(null)
         setRunningPnlData([])
       } finally {
@@ -248,19 +250,19 @@ export default function TrackerPage() {
     if (!trade) return
 
     const metadata = getTradeMetadata(trade.id)
-    console.log(`🔍 Tracker - Loading metadata for trade ${trade.id}:`, metadata)
+    logger.debug(`🔍 Tracker - Loading metadata for trade ${trade.id}:`, metadata)
     
     if (metadata && metadata.rating !== undefined) {
       setRating(metadata.rating)
       setProfitTarget(metadata.profitTarget || '')
       setStopLoss(metadata.stopLoss || '')
-      console.log(`✅ Tracker - Restored metadata for trade ${trade.id}: Rating=${metadata.rating}, PT=${metadata.profitTarget}, SL=${metadata.stopLoss}`)
+      logger.debug(`✅ Tracker - Restored metadata for trade ${trade.id}: Rating=${metadata.rating}, PT=${metadata.profitTarget}, SL=${metadata.stopLoss}`)
     } else {
       // No metadata or no rating saved - start with no rating (undefined)
       setRating(undefined)
       setProfitTarget('')
       setStopLoss('')
-      console.log(`🔧 Tracker - No rating saved for trade ${trade.id}, starting fresh`)
+      logger.debug(`🔧 Tracker - No rating saved for trade ${trade.id}, starting fresh`)
     }
   }, [trade?.id])
 
@@ -269,7 +271,7 @@ export default function TrackerPage() {
     setRating(newRating)
     if (trade) {
       setTradeRating(trade.id, newRating)
-      console.log(`Saved rating ${newRating} for trade ${trade.id}`)
+      logger.debug(`Saved rating ${newRating} for trade ${trade.id}`)
     }
   }
 
@@ -277,7 +279,7 @@ export default function TrackerPage() {
     setProfitTarget(newTarget)
     if (trade) {
       setTradeLevels(trade.id, newTarget, stopLoss)
-      console.log(`Saved profit target ${newTarget} for trade ${trade.id}`)
+      logger.debug(`Saved profit target ${newTarget} for trade ${trade.id}`)
     }
   }
 
@@ -285,7 +287,7 @@ export default function TrackerPage() {
     setStopLoss(newStopLoss)
     if (trade) {
       setTradeLevels(trade.id, profitTarget, newStopLoss)
-      console.log(`Saved stop loss ${newStopLoss} for trade ${trade.id}`)
+      logger.debug(`Saved stop loss ${newStopLoss} for trade ${trade.id}`)
     }
   }
 
@@ -315,7 +317,7 @@ export default function TrackerPage() {
     const avgExit = parseCurrency(trade.exitPrice)
     const netPnl = parseCurrency(trade.netPnl)
 
-    console.log('Trade data:', {
+    logger.debug('Trade data:', {
       entryPrice: trade.entryPrice,
       exitPrice: trade.exitPrice,
       netPnl: trade.netPnl,

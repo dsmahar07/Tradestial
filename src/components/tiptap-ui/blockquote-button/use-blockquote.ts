@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import type { Editor } from "@tiptap/react"
 import { NodeSelection, TextSelection } from "@tiptap/pm/state"
@@ -173,7 +175,7 @@ export function shouldShowButton(props: {
  *   const { isVisible, handleToggle, label, isActive } = useBlockquote({
  *     editor: myEditor,
  *     hideWhenUnavailable: true,
- *     onToggled: () => console.log('Blockquote toggled!')
+ *     onToggled: () => logger.debug('Blockquote toggled!')
  *   })
  *
  *   if (!isVisible) return null

@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -273,7 +275,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
     } catch (err) {
       try {
         // eslint-disable-next-line no-console
-        console.error('[Calendar] Export failed', err)
+        logger.error('[Calendar] Export failed', err)
       } catch {}
       setFeedbackMessage('Failed to export image')
       setTimeout(() => setFeedbackMessage(null), 2000)
@@ -339,7 +341,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   const handleHeaderIconClick = () => {
     try {
       // eslint-disable-next-line no-console
-      console.log('[Calendar] Header icon clicked')
+      logger.debug('[Calendar] Header icon clicked')
     } catch {}
   }
 
@@ -385,7 +387,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
     // Debug: log filtering details (remove after verification)
     try {
       // eslint-disable-next-line no-console
-      console.log('[Calendar] Selected date', key, 'Total trades', trades.length, 'Matched', dayTrades.length, dayTrades.slice(0, 3))
+      logger.debug('[Calendar] Selected date', key, 'Total trades', trades.length, 'Matched', dayTrades.length, dayTrades.slice(0, 3))
     } catch {}
     setSelectedTrades(dayTrades)
     setIsModalOpen(true)

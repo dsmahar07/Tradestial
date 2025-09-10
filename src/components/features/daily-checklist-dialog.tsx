@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect } from 'react'
 import { CheckCircle2, Check } from 'lucide-react'
 import * as Modal from '@/components/ui/modal'
@@ -83,7 +85,7 @@ export function DailyCheckListDialog({
       }
       localStorage.setItem('tradestial:rule-completions', JSON.stringify(allCompletions))
     } catch (error) {
-      console.error('Error saving manual rule completions from Daily Check List:', error)
+      logger.error('Error saving manual rule completions from Daily Check List:', error)
     }
 
     // Update parent state and close

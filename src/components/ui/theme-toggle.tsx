@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import * as React from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/hooks/use-theme'
@@ -10,7 +12,7 @@ export function ThemeToggle() {
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light'
-        console.log('🎭 ThemeToggle: Switching from', theme, 'to', newTheme)
+        logger.debug('🎭 ThemeToggle: Switching from', theme, 'to', newTheme)
         setTheme(newTheme)
     }
 
@@ -48,7 +50,7 @@ export function SimpleThemeToggle() {
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light'
-        console.log('🎭 SimpleThemeToggle: Switching from', theme, 'to', newTheme)
+        logger.debug('🎭 SimpleThemeToggle: Switching from', theme, 'to', newTheme)
         setTheme(newTheme)
     }
 

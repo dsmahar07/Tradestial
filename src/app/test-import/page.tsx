@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -11,6 +13,10 @@ import { TradovateCsvParser } from '@/services/tradovate-csv-parser'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function TestImportPage() {
+  // Disable this route in production builds
+  if (process.env.NODE_ENV === 'production') {
+    return null
+  }
   usePageTitle('Test CSV Import')
   
   const [dataInfo, setDataInfo] = useState<any>(null)
@@ -33,15 +39,15 @@ export default function TestImportPage() {
       }
       
       const csvContent = await response.text()
-      console.log('CSV Content length:', csvContent.length)
+      logger.debug('CSV Content length:', csvContent.length)
       
-      console.log('📄 CSV Content Preview:', csvContent.substring(0, 500))
-      console.log('📄 CSV Full length:', csvContent.length)
+      logger.debug('📄 CSV Content Preview:', csvContent.substring(0, 500))
+      logger.debug('📄 CSV Full length:', csvContent.length)
       
       // Parse CSV directly with Tradovate parser
       const parseResult = await TradovateCsvParser.parseCSV(csvContent)
       
-      console.log('✅ Parse Result:', {
+      logger.debug('✅ Parse Result:', {
         success: parseResult.success,
         trades: parseResult.trades.length,
         errors: parseResult.errors,
@@ -53,8 +59,8 @@ export default function TestImportPage() {
         // Update DataStore
         await DataStore.replaceTrades(parseResult.trades)
         
-        console.log('🎯 Sample imported trade:', parseResult.trades[0])
-        console.log('📊 DataStore info after import:', DataStore.getDataInfo())
+        logger.debug('🎯 Sample imported trade:', parseResult.trades[0])
+        logger.debug('📊 DataStore info after import:', DataStore.getDataInfo())
         
         setResult(`✅ SUCCESS: Imported ${parseResult.trades.length} trades from ${parseResult.metadata.broker}`)
       } else {

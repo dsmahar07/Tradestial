@@ -4,9 +4,11 @@ const { securityHeaders } = require('./src/lib/security-headers.js')
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  swcMinify: true,
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'localhost' },
+    ],
     formats: ['image/webp', 'image/avif'],
   },
   async headers() {
@@ -32,6 +34,15 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false,
+  },
+  async redirects() {
+    return [
+      {
+        source: '/broken',
+        destination: '/upload',
+        permanent: false,
+      },
+    ]
   },
 }
 

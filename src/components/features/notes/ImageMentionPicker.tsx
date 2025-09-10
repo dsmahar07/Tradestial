@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import React, { useState, useEffect } from 'react'
 import { Search, Image as ImageIcon, Video as VideoIcon } from 'lucide-react'
 
@@ -41,7 +43,7 @@ export function ImageMentionPicker({
         try {
           setMediaItems(JSON.parse(savedItems))
         } catch (error) {
-          console.error('Error loading gallery items:', error)
+          logger.error('Error loading gallery items:', error)
         }
       }
     }

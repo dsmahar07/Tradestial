@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PerformanceChart, ChartDataWithMetrics } from '@/types/performance'
 
@@ -86,7 +88,7 @@ export function useChartData({
       
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch metric data'
       setError(errorMessage)
-      console.warn(`Failed to fetch data for metric: ${metric}`, err)
+      logger.warn(`Failed to fetch data for metric: ${metric}`, err)
       
       // Cache empty array to avoid repeated failures
       setCachedData(prev => ({ ...prev, [metric]: [] }))
@@ -217,7 +219,7 @@ export function useChartData({
         })
         .filter((point): point is ChartDataWithMetrics => point !== null)
     } catch (err) {
-      console.error('Error preparing chart data:', err)
+      logger.error('Error preparing chart data:', err)
       setError('Failed to prepare chart data')
       return []
     }

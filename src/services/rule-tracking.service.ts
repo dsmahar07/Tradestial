@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Rule Tracking Service
  * Monitors user actions and updates rule completion status
@@ -51,9 +53,9 @@ export class RuleTrackingService {
       
       localStorage.setItem(this.RULE_COMPLETIONS_KEY, JSON.stringify(completions))
       
-      console.log(`Rule ${ruleId} marked as ${completed ? 'completed' : 'incomplete'} for ${dateKey}`)
+      logger.debug(`Rule ${ruleId} marked as ${completed ? 'completed' : 'incomplete'} for ${dateKey}`)
     } catch (error) {
-      console.error('Failed to store rule completion:', error)
+      logger.error('Failed to store rule completion:', error)
     }
   }
 
@@ -69,7 +71,7 @@ export class RuleTrackingService {
       
       return completions[dateKey]?.[ruleId]?.completed || false
     } catch (error) {
-      console.error('Failed to get rule completion:', error)
+      logger.error('Failed to get rule completion:', error)
       return false
     }
   }
@@ -93,7 +95,7 @@ export class RuleTrackingService {
       
       return dayCompletions
     } catch (error) {
-      console.error('Failed to get day completions:', error)
+      logger.error('Failed to get day completions:', error)
       return {}
     }
   }
@@ -129,7 +131,7 @@ export class RuleTrackingService {
       // Check if there's a journal entry for this date
       return !!entries[date] && entries[date].length > 0
     } catch (error) {
-      console.error('Failed to check journal entry:', error)
+      logger.error('Failed to check journal entry:', error)
       return false
     }
   }
@@ -334,7 +336,7 @@ export class RuleTrackingService {
       // Auto-check Step into day rule when journal entry is made
       this.autoCheckStepIntoDayRule(date)
     } catch (error) {
-      console.error('Failed to record journal entry:', error)
+      logger.error('Failed to record journal entry:', error)
     }
   }
 
@@ -368,9 +370,9 @@ export class RuleTrackingService {
       
       // Re-check link trades to model rule
       this.trackLinkTradesToModelRule()
-      console.log(`Model ${modelName} linked to trade ${tradeId}`)
+      logger.debug(`Model ${modelName} linked to trade ${tradeId}`)
     } catch (error) {
-      console.error('Failed to track model selection:', error)
+      logger.error('Failed to track model selection:', error)
     }
   }
 
@@ -386,9 +388,9 @@ export class RuleTrackingService {
       
       // Re-check stop loss rule
       this.trackStopLossRule()
-      console.log(`Stop loss ${stopLoss} set for trade ${tradeId}`)
+      logger.debug(`Stop loss ${stopLoss} set for trade ${tradeId}`)
     } catch (error) {
-      console.error('Failed to track stop loss input:', error)
+      logger.error('Failed to track stop loss input:', error)
     }
   }
 
@@ -453,7 +455,7 @@ export class RuleTrackingService {
         ruleStats
       }
     } catch (error) {
-      console.error('Failed to get completion stats:', error)
+      logger.error('Failed to get completion stats:', error)
       return {
         totalDays: 0,
         completedDays: 0,
@@ -471,7 +473,7 @@ export class RuleTrackingService {
       localStorage.removeItem(this.RULE_COMPLETIONS_KEY)
       localStorage.removeItem(this.JOURNAL_ENTRIES_KEY)
     } catch (error) {
-      console.error('Failed to clear rule tracking data:', error)
+      logger.error('Failed to clear rule tracking data:', error)
     }
   }
 }

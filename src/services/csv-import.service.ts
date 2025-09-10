@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Enhanced CSV Import Service with Dynamic Analytics Integration
  * Supports broker-specific parsing and real-time analytics updates
@@ -476,7 +478,7 @@ export class CSVImportService {
           const n = parseFloat(cleaned)
           // Log precision-critical netPnl values
           if (Math.abs(n) > 100 && String(v).includes('netPnl')) {
-            console.log(`CSV Import: netPnl parsed: ${v} -> cleaned: ${cleaned} -> parsed: ${n}`)
+            logger.debug(`CSV Import: netPnl parsed: ${v} -> cleaned: ${cleaned} -> parsed: ${n}`)
           }
           return isNaN(n) ? undefined : n
         }
@@ -539,7 +541,7 @@ export class CSVImportService {
         }
 
       } catch (error) {
-        console.warn('Failed to transform row:', error, row)
+        logger.warn('Failed to transform row:', error, row)
       }
     }
 
@@ -647,7 +649,7 @@ export class CSVImportService {
       // This will trigger any reactive updates automatically
       DataStore.addTrades(trades)
     } catch (error) {
-      console.warn('Failed to update analytics:', error)
+      logger.warn('Failed to update analytics:', error)
     }
   }
 

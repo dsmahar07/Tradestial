@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useState } from 'react'
 import { MoodTrackerService } from '@/services/mood-tracker.service'
 import { MoodType, MoodEntry } from '@/components/features/mood-selection-modal'
@@ -140,7 +142,7 @@ export function MoodDisplayWidget({ selectedDate, onEditMood }: MoodDisplayWidge
         const entry = MoodTrackerService.getMoodEntry(date)
         setMoodEntry(entry)
       } catch (error) {
-        console.error('Failed to load mood entry:', error)
+        logger.error('Failed to load mood entry:', error)
         setMoodEntry(null)
       } finally {
         setIsLoading(false)

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 "use client"
 
 import * as React from "react"
@@ -226,7 +228,7 @@ export function SimpleEditor() {
         maxSize: MAX_FILE_SIZE,
         limit: 3,
         upload: handleImageUpload,
-        onError: (error) => console.error("Upload failed:", error),
+        onError: (error) => logger.error("Upload failed:", error),
       }),
     ],
     content,

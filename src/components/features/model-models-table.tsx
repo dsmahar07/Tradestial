@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { getImportedTrades, TradeRecord } from '@/components/modals/ImportTradesModal'
@@ -152,7 +154,7 @@ export function ModelModelsTable() {
         
         if (isDev) console.debug('Delete completed successfully')
       } catch (error) {
-        if (isDev) console.error('Failed to delete strategy:', error)
+        if (isDev) logger.error('Failed to delete strategy:', error)
         alert('Failed to delete model. Please try again.')
       }
     }
@@ -174,7 +176,7 @@ export function ModelModelsTable() {
       // Trigger refresh event
       window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
     } catch (error) {
-      console.error('Failed to duplicate strategy:', error)
+      logger.error('Failed to duplicate strategy:', error)
       alert('Failed to duplicate model. Please try again.')
     }
   }
@@ -185,7 +187,7 @@ export function ModelModelsTable() {
     try {
       router.push(`/model/${strategyId}`)
     } catch (error) {
-      if (isDev) console.error('Failed to navigate:', error)
+      if (isDev) logger.error('Failed to navigate:', error)
       // Fallback to window.location
       window.location.href = `/model/${strategyId}`
     }

@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -321,7 +323,7 @@ export default function AccountDetailsPage() {
         info('No trades imported', 'No valid rows were found in the CSV.');
       }
     } catch (err) {
-      console.error('Error parsing CSV:', err);
+      logger.error('Error parsing CSV:', err);
       error('CSV parsing failed', 'Please check the file format and try again.');
     }
 

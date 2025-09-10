@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Button } from '@/components/ui/button'
@@ -215,7 +217,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
         const existingStrategiesRaw = localStorage.getItem('tradestial:strategies')
         existingStrategies = existingStrategiesRaw ? JSON.parse(existingStrategiesRaw) : []
       } catch (parseError) {
-        console.warn('Failed to parse existing strategies, starting fresh:', parseError)
+        logger.warn('Failed to parse existing strategies, starting fresh:', parseError)
         existingStrategies = []
       }
       
@@ -225,7 +227,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       // Save back to localStorage
       localStorage.setItem('tradestial:strategies', JSON.stringify(updatedStrategies))
       
-      console.log('Trading Model created:', strategy)
+      logger.debug('Trading Model created:', strategy)
       
       // Reset form data for next use
       setFormData(getInitialFormData())
@@ -234,7 +236,7 @@ export function ModelMaker({ isOpen, onClose, onModelCreated }: ModelMakerProps)
       onModelCreated?.()
       onClose()
     } catch (error) {
-      console.error('Failed to save strategy:', error)
+      logger.error('Failed to save strategy:', error)
       alert('Failed to create model. Please try again.')
     }
   }

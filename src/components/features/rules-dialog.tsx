@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog'
@@ -159,7 +161,7 @@ export function RulesDialog({
         }))
       }, 0)
     } catch (error) {
-      console.error('Error syncing manual rules:', error)
+      logger.error('Error syncing manual rules:', error)
     }
   }
 
@@ -211,7 +213,7 @@ export function RulesDialog({
         }))
       }, 0)
     } catch (error) {
-      console.error('Error saving rules and preferences:', error)
+      logger.error('Error saving rules and preferences:', error)
     }
     
     onClose()

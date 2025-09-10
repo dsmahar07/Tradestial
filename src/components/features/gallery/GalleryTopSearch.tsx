@@ -88,7 +88,7 @@ export function GalleryTopSearch({
           </FancyButton>
           <div className="w-10 h-10 relative">
             <Image
-              src="/new-tradestial-logo.png"
+              src="/Branding/Tradestial.png"
               alt="Tradestial Logo"
               width={40}
               height={40}

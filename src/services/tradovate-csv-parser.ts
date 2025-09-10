@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Direct Tradovate CSV Parser
  * Simplified parser specifically for Tradovate CSV format
@@ -35,7 +37,7 @@ export class TradovateCsvParser {
     const warnings: string[] = []
     let skippedCount = 0
 
-    console.log('📋 Total lines in CSV:', lines.length)
+    logger.debug('📋 Total lines in CSV:', lines.length)
 
     if (lines.length < 2) {
       return {
@@ -55,7 +57,7 @@ export class TradovateCsvParser {
 
     // Parse header
     const headers = this.parseCSVRow(lines[0])
-    console.log('📑 Headers found:', headers)
+    logger.debug('📑 Headers found:', headers)
 
     // Verify this is a Tradovate CSV
     const requiredHeaders = ['Position ID', 'Trade Date', 'P/L', 'Contract', 'Paired Qty']
@@ -81,7 +83,7 @@ export class TradovateCsvParser {
 
     // Create field index mapping
     const fieldMap = this.createFieldMapping(headers)
-    console.log('🗺️ Field mapping:', fieldMap)
+    logger.debug('🗺️ Field mapping:', fieldMap)
 
     // Process data rows
     for (let i = 1; i < lines.length; i++) {
@@ -94,12 +96,12 @@ export class TradovateCsvParser {
           continue
         }
 
-        console.log(`📝 Processing row ${i}:`, row.slice(0, 5)) // Show first 5 columns
+        logger.debug(`📝 Processing row ${i}:`, row.slice(0, 5)) // Show first 5 columns
 
         const trade = this.createTradeFromRow(row, fieldMap, i, options)
         if (trade) {
           trades.push(trade)
-          console.log(`✅ Created trade:`, trade.id, trade.symbol, trade.netPnl)
+          logger.debug(`✅ Created trade:`, trade.id, trade.symbol, trade.netPnl)
         } else {
           skippedCount++
           warnings.push(`Row ${i + 1}: Could not create valid trade`)
@@ -108,13 +110,13 @@ export class TradovateCsvParser {
       } catch (error) {
         skippedCount++
         errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Parse error'}`)
-        console.error(`❌ Error parsing row ${i}:`, error)
+        logger.error(`❌ Error parsing row ${i}:`, error)
       }
     }
 
     const parseTime = performance.now() - startTime
 
-    console.log(`🎯 Parse complete: ${trades.length} trades, ${errors.length} errors, ${warnings.length} warnings`)
+    logger.debug(`🎯 Parse complete: ${trades.length} trades, ${errors.length} errors, ${warnings.length} warnings`)
 
     return {
       success: trades.length > 0,
@@ -159,17 +161,17 @@ export class TradovateCsvParser {
       const contract = this.getField(row, fieldMap, 'Contract') || this.getField(row, fieldMap, 'contract')
       const qtyStr = this.getField(row, fieldMap, 'Paired Qty') || this.getField(row, fieldMap, 'paired qty')
 
-      console.log(`🔍 Row ${rowIndex} extracted:`, { positionId, tradeDate, pnlStr, contract, qtyStr })
+      logger.debug(`🔍 Row ${rowIndex} extracted:`, { positionId, tradeDate, pnlStr, contract, qtyStr })
 
       if (!positionId || !pnlStr || !contract) {
-        console.warn(`⚠️ Row ${rowIndex}: Missing required fields`, { positionId: !!positionId, pnlStr: !!pnlStr, contract: !!contract })
+        logger.warn(`⚠️ Row ${rowIndex}: Missing required fields`, { positionId: !!positionId, pnlStr: !!pnlStr, contract: !!contract })
         return null
       }
 
       // Parse P&L (handle quoted values with commas)
       const netPnl = this.parsePnL(pnlStr)
       if (isNaN(netPnl)) {
-        console.warn(`⚠️ Row ${rowIndex}: Invalid P&L value: ${pnlStr}`)
+        logger.warn(`⚠️ Row ${rowIndex}: Invalid P&L value: ${pnlStr}`)
         return null
       }
 
@@ -200,10 +202,10 @@ export class TradovateCsvParser {
         
         if ((priceDiff > 0 && isProfit) || (priceDiff < 0 && !isProfit)) {
           tradeSide = 'LONG'
-          console.log(`✅ LONG trade detected via P&L correlation: Buy=${buyPrice}, Sell=${sellPrice}, P&L=${netPnl}`)
+          logger.debug(`✅ LONG trade detected via P&L correlation: Buy=${buyPrice}, Sell=${sellPrice}, P&L=${netPnl}`)
         } else if ((priceDiff < 0 && isProfit) || (priceDiff > 0 && !isProfit)) {
           tradeSide = 'SHORT'
-          console.log(`✅ SHORT trade detected via P&L correlation: Buy=${buyPrice}, Sell=${sellPrice}, P&L=${netPnl}`)
+          logger.debug(`✅ SHORT trade detected via P&L correlation: Buy=${buyPrice}, Sell=${sellPrice}, P&L=${netPnl}`)
         } else {
           // Fallback to timestamp comparison if P&L correlation is unclear
           if (buyTimestamp && sellTimestamp) {
@@ -212,9 +214,9 @@ export class TradovateCsvParser {
               const sellTime = new Date(sellTimestamp.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2'))
               
               tradeSide = buyTime < sellTime ? 'LONG' : 'SHORT'
-              console.log(`✅ ${tradeSide} trade detected via timestamps: ${this.extractTime(buyTimestamp)} → ${this.extractTime(sellTimestamp)}`)
+              logger.debug(`✅ ${tradeSide} trade detected via timestamps: ${this.extractTime(buyTimestamp)} → ${this.extractTime(sellTimestamp)}`)
             } catch {
-              console.warn(`Could not parse timestamps for trade ${positionId}, using LONG as default`)
+              logger.warn(`Could not parse timestamps for trade ${positionId}, using LONG as default`)
             }
           }
         }
@@ -236,19 +238,19 @@ export class TradovateCsvParser {
       let exitTimestamp = sellTimestamp
       
       if (buyTimestamp && sellTimestamp) {
-        console.log(`🔍 Raw timestamps for ${positionId}:`, { buyTimestamp, sellTimestamp })
+        logger.debug(`🔍 Raw timestamps for ${positionId}:`, { buyTimestamp, sellTimestamp })
         
         try {
           // Convert MM/DD/YYYY HH:mm:ss to a format JavaScript can parse reliably
           const buyTimeConverted = this.convertTimestampFormat(buyTimestamp)
           const sellTimeConverted = this.convertTimestampFormat(sellTimestamp)
           
-          console.log(`🔍 Converted timestamps:`, { buyTimeConverted, sellTimeConverted })
+          logger.debug(`🔍 Converted timestamps:`, { buyTimeConverted, sellTimeConverted })
           
           const buyTime = new Date(buyTimeConverted)
           const sellTime = new Date(sellTimeConverted)
           
-          console.log(`🔍 Parsed Date objects:`, { 
+          logger.debug(`🔍 Parsed Date objects:`, { 
             buyTime: buyTime.toISOString(), 
             sellTime: sellTime.toISOString(),
             buyValid: !isNaN(buyTime.getTime()),
@@ -256,7 +258,7 @@ export class TradovateCsvParser {
           })
           
           if (isNaN(buyTime.getTime()) || isNaN(sellTime.getTime())) {
-            console.warn(`❌ Invalid dates parsed for ${positionId}`)
+            logger.warn(`❌ Invalid dates parsed for ${positionId}`)
             entryTimestamp = buyTimestamp
             exitTimestamp = sellTimestamp
           } else {
@@ -269,18 +271,18 @@ export class TradovateCsvParser {
               exitTimestamp = buyTimestamp
             }
             
-            console.log(`⏱️ Chronological assignment: Entry=${this.extractTime(entryTimestamp)} → Exit=${this.extractTime(exitTimestamp)}`)
+            logger.debug(`⏱️ Chronological assignment: Entry=${this.extractTime(entryTimestamp)} → Exit=${this.extractTime(exitTimestamp)}`)
             const timeDiffMs = new Date(this.convertTimestampFormat(exitTimestamp)).getTime() - new Date(this.convertTimestampFormat(entryTimestamp)).getTime()
-            console.log(`⏱️ Time difference: ${timeDiffMs}ms (${timeDiffMs / 1000}s)`)
+            logger.debug(`⏱️ Time difference: ${timeDiffMs}ms (${timeDiffMs / 1000}s)`)
           }
         } catch (error) {
-          console.warn(`❌ Timestamp parsing error for ${positionId}:`, error)
+          logger.warn(`❌ Timestamp parsing error for ${positionId}:`, error)
           // Fallback: use original timestamps
           entryTimestamp = buyTimestamp
           exitTimestamp = sellTimestamp
         }
       } else {
-        console.warn(`⚠️ Missing timestamps for ${positionId}: buy=${!!buyTimestamp}, sell=${!!sellTimestamp}`)
+        logger.warn(`⚠️ Missing timestamps for ${positionId}: buy=${!!buyTimestamp}, sell=${!!sellTimestamp}`)
       }
 
       // Prefer dates from timestamps; fallback to Trade Date
@@ -294,7 +296,7 @@ export class TradovateCsvParser {
       if (actualEntryPrice && contractsTraded && actualEntryPrice > 0) {
         const entryValue = actualEntryPrice * contractsTraded
         calculatedRoi = (netPnl / entryValue) * 100
-        console.log(` ${tradeSide} ROI calculation: P&L=${netPnl} / EntryValue=${entryValue} = ${calculatedRoi.toFixed(2)}%`)
+        logger.debug(` ${tradeSide} ROI calculation: P&L=${netPnl} / EntryValue=${entryValue} = ${calculatedRoi.toFixed(2)}%`)
       }
 
       // Create trade object with unique ID including pair ID for uniqueness
@@ -304,7 +306,7 @@ export class TradovateCsvParser {
       
       // Use multiple unique identifiers to ensure uniqueness
       const uniqueId = `tradovate_${positionId}_${pairId}_${buyFillId}_${sellFillId}_${rowIndex}`
-      console.log(` Generated unique ID: ${uniqueId}`)
+      logger.debug(` Generated unique ID: ${uniqueId}`)
       
       const trade: Trade = {
         id: uniqueId,
@@ -330,7 +332,7 @@ export class TradovateCsvParser {
       return trade
 
     } catch (error) {
-      console.error(` Error creating trade from row ${rowIndex}:`, error)
+      logger.error(` Error creating trade from row ${rowIndex}:`, error)
       return null
     }
   }
@@ -401,7 +403,7 @@ export class TradovateCsvParser {
         return this.formatLocalYMD(date)
       }
     } catch (error) {
-      console.warn('Date parse error:', error)
+      logger.warn('Date parse error:', error)
     }
     
     return this.formatLocalYMD(new Date())
@@ -417,7 +419,7 @@ export class TradovateCsvParser {
         return parts[1] // Return HH:mm:ss part
       }
     } catch (error) {
-      console.warn('Time extraction error:', error)
+      logger.warn('Time extraction error:', error)
     }
     
     return undefined
@@ -432,7 +434,7 @@ export class TradovateCsvParser {
         return `${year}-${month}-${day} ${time}`
       }
     } catch (error) {
-      console.warn('Timestamp format conversion error:', error)
+      logger.warn('Timestamp format conversion error:', error)
     }
     
     // Return original if conversion fails
@@ -459,7 +461,7 @@ export class TradovateCsvParser {
         return this.formatLocalYMD(adjusted)
       }
     } catch (e) {
-      console.warn('Date extraction error:', e)
+      logger.warn('Date extraction error:', e)
     }
     return undefined
   }

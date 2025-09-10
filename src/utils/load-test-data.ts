@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Utility to load test data from the example CSV for debugging
  */
@@ -11,35 +13,35 @@ export async function loadTestDataFromCSV(): Promise<void> {
     const response = await fetch('/Example CSV/Tradovate.csv')
     const csvContent = await response.text()
     
-    console.log('📁 Loaded CSV content:', csvContent.length, 'characters')
+    logger.debug('📁 Loaded CSV content:', csvContent.length, 'characters')
     
     // Parse the CSV
     const result = await TradovateCsvParser.parseCSV(csvContent)
     
-    console.log('📊 Parsed trades:', result.trades.length, 'trades')
+    logger.debug('📊 Parsed trades:', result.trades.length, 'trades')
     
     if (result.trades.length > 0) {
       // Clear existing and add new data
       await DataStore.replaceTrades(result.trades)
-      console.log('✅ Test data loaded successfully')
+      logger.debug('✅ Test data loaded successfully')
       
       // Log sample trade for verification
-      console.log('📋 Sample trade:', result.trades[0])
+      logger.debug('📋 Sample trade:', result.trades[0])
       
       // Calculate basic stats
       const totalPnL = result.trades.reduce((sum, t) => sum + (t.netPnl || 0), 0)
       const winCount = result.trades.filter(t => t.netPnl > 0).length
       const winRate = (winCount / result.trades.length) * 100
       
-      console.log(`💰 Total P&L: $${totalPnL.toFixed(2)}`)
-      console.log(`🎯 Win Rate: ${winRate.toFixed(1)}%`)
-      console.log(`📈 Total Trades: ${result.trades.length}`)
+      logger.debug(`💰 Total P&L: $${totalPnL.toFixed(2)}`)
+      logger.debug(`🎯 Win Rate: ${winRate.toFixed(1)}%`)
+      logger.debug(`📈 Total Trades: ${result.trades.length}`)
     } else {
-      console.warn('⚠️ No trades parsed from CSV')
+      logger.warn('⚠️ No trades parsed from CSV')
     }
     
   } catch (error) {
-    console.error('❌ Failed to load test data:', error)
+    logger.error('❌ Failed to load test data:', error)
   }
 }
 

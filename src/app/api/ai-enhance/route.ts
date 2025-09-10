@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { NextRequest, NextResponse } from 'next/server'
 
 interface EnhancementRequest {
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.text()
-      console.error('OpenRouter API error:', response.status, errorData)
+      logger.error('OpenRouter API error:', response.status, errorData)
       return NextResponse.json(
         { error: `AI service error: ${response.status} - ${errorData}` },
         { status: 503 }
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('AI Enhancement API error:', error)
+    logger.error('AI Enhancement API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

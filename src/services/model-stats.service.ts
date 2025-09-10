@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 export interface ModelStats {
   total: number
   wins: number
@@ -60,9 +62,9 @@ export class ModelStatsService {
           }
           if (isValid) {
             this.assignments = parsed
-            console.log('Loaded assignments:', this.assignments)
+            logger.debug('Loaded assignments:', this.assignments)
           } else {
-            console.warn('Invalid assignments format, resetting')
+            logger.warn('Invalid assignments format, resetting')
             this.assignments = {}
           }
         } else {
@@ -75,9 +77,9 @@ export class ModelStatsService {
       // Load stats cache
       const cacheRaw = localStorage.getItem(STATS_CACHE_KEY)
       this.statsCache = cacheRaw ? JSON.parse(cacheRaw) : {}
-      console.log('Loaded stats cache:', Object.keys(this.statsCache))
+      logger.debug('Loaded stats cache:', Object.keys(this.statsCache))
     } catch (error) {
-      console.warn('Failed to load model stats data:', error)
+      logger.warn('Failed to load model stats data:', error)
       this.assignments = {}
       this.statsCache = {}
     }
@@ -95,7 +97,7 @@ export class ModelStatsService {
         window.dispatchEvent(new CustomEvent('tradestial:model-stats-updated'))
       }, 0)
     } catch (error) {
-      console.warn('Failed to save model stats data:', error)
+      logger.warn('Failed to save model stats data:', error)
     }
   }
 
@@ -103,7 +105,7 @@ export class ModelStatsService {
    * Assign a trade to a model
    */
   assignTradeToModel(tradeId: string, modelId: string) {
-    console.log(`Assigning trade ${tradeId} to model ${modelId}`)
+    logger.debug(`Assigning trade ${tradeId} to model ${modelId}`)
     
     if (!this.assignments[modelId]) {
       this.assignments[modelId] = []
@@ -115,7 +117,7 @@ export class ModelStatsService {
         const beforeLength = this.assignments[mId].length
         this.assignments[mId] = this.assignments[mId].filter(tId => tId !== tradeId)
         if (this.assignments[mId].length !== beforeLength) {
-          console.log(`Removed trade ${tradeId} from model ${mId}`)
+          logger.debug(`Removed trade ${tradeId} from model ${mId}`)
         }
       }
     })
@@ -123,12 +125,12 @@ export class ModelStatsService {
     // Add to new model if not already assigned
     if (!this.assignments[modelId].includes(tradeId)) {
       this.assignments[modelId].push(tradeId)
-      console.log(`Added trade ${tradeId} to model ${modelId}. Total assignments for this model: ${this.assignments[modelId].length}`)
+      logger.debug(`Added trade ${tradeId} to model ${modelId}. Total assignments for this model: ${this.assignments[modelId].length}`)
     } else {
-      console.log(`Trade ${tradeId} already assigned to model ${modelId}`)
+      logger.debug(`Trade ${tradeId} already assigned to model ${modelId}`)
     }
 
-    console.log('Current assignments after assignment:', this.assignments)
+    logger.debug('Current assignments after assignment:', this.assignments)
     this.invalidateStatsCache(modelId)
     this.saveData()
   }
@@ -275,21 +277,21 @@ export class ModelStatsService {
    * Debug function to check localStorage state
    */
   debugState() {
-    console.log('=== ModelStatsService Debug State ===')
-    console.log('Assignments Key:', ASSIGNMENTS_KEY)
-    console.log('Stats Cache Key:', STATS_CACHE_KEY)
-    console.log('LocalStorage Assignments:', localStorage.getItem(ASSIGNMENTS_KEY))
-    console.log('LocalStorage Stats Cache:', localStorage.getItem(STATS_CACHE_KEY))
-    console.log('Service assignments:', this.assignments)
-    console.log('Service stats cache:', this.statsCache)
-    console.log('=====================================')
+    logger.debug('=== ModelStatsService Debug State ===')
+    logger.debug('Assignments Key:', ASSIGNMENTS_KEY)
+    logger.debug('Stats Cache Key:', STATS_CACHE_KEY)
+    logger.debug('LocalStorage Assignments:', localStorage.getItem(ASSIGNMENTS_KEY))
+    logger.debug('LocalStorage Stats Cache:', localStorage.getItem(STATS_CACHE_KEY))
+    logger.debug('Service assignments:', this.assignments)
+    logger.debug('Service stats cache:', this.statsCache)
+    logger.debug('=====================================')
   }
 
   /**
    * Get summary stats across all models
    */
   getSummaryStats(tradesData: any[]) {
-    console.log('getSummaryStats called with trades:', tradesData.length)
+    logger.debug('getSummaryStats called with trades:', tradesData.length)
     this.debugState()
     
     let bestPerforming: { modelId: string; name: string; stats: ModelStats } | null = null
@@ -301,11 +303,11 @@ export class ModelStatsService {
     try {
       const strategiesRaw = localStorage.getItem('tradestial:strategies')
       const strategies = strategiesRaw ? JSON.parse(strategiesRaw) : []
-      console.log('Found strategies:', strategies.length)
+      logger.debug('Found strategies:', strategies.length)
 
       for (const strategy of strategies) {
         const stats = this.getModelStats(strategy.id, tradesData)
-        console.log(`Stats for ${strategy.name}:`, stats)
+        logger.debug(`Stats for ${strategy.name}:`, stats)
         const modelData = { modelId: strategy.id, name: strategy.name, stats }
 
         // Best performing (highest net P&L)
@@ -329,7 +331,7 @@ export class ModelStatsService {
         }
       }
     } catch (error) {
-      console.warn('Failed to calculate summary stats:', error)
+      logger.warn('Failed to calculate summary stats:', error)
     }
 
     return {
@@ -348,6 +350,6 @@ export const modelStatsService = ModelStatsService.getInstance()
 if (typeof window !== 'undefined') {
   (window as any).debugModelStats = () => {
     modelStatsService.debugState()
-    console.log('Use window.debugModelStats() to see this info')
+    logger.debug('Use window.debugModelStats() to see this info')
   }
 }

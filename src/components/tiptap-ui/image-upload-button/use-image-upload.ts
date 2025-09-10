@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { type Editor } from "@tiptap/react"
@@ -118,7 +120,7 @@ export function shouldShowButton(props: {
  *   const { isVisible, handleImage, label, isActive } = useImage({
  *     editor: myEditor,
  *     hideWhenUnavailable: true,
- *     onInserted: () => console.log('Image inserted!')
+ *     onInserted: () => logger.debug('Image inserted!')
  *   })
  *
  *   if (!isVisible) return null

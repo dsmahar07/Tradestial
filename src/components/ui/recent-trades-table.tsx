@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { motion } from 'framer-motion'
 import { ChevronDown, MoreHorizontal, TrendingUp, TrendingDown, Clock } from 'lucide-react'
 import { Button } from './button'
@@ -149,12 +151,12 @@ export function RecentTradesTable() {
   // Load trades and subscribe to changes
   useEffect(() => {
     const initialTrades = DataStore.getAllTrades()
-    console.log('🔍 Recent Trades Table - Initial load:', initialTrades.length)
+    logger.debug('🔍 Recent Trades Table - Initial load:', initialTrades.length)
     setTrades(initialTrades)
     
     const unsubscribe = DataStore.subscribe(() => {
       const updatedTrades = DataStore.getAllTrades()
-      console.log('🔍 Recent Trades Table - Data update received:', updatedTrades.length)
+      logger.debug('🔍 Recent Trades Table - Data update received:', updatedTrades.length)
       setTrades(updatedTrades)
     })
     return unsubscribe
@@ -162,9 +164,9 @@ export function RecentTradesTable() {
 
   // Convert real trades to display format
   const recentTrades = useMemo(() => {
-    console.log('🔍 Recent Trades Table - Processing trades:', trades.length)
+    logger.debug('🔍 Recent Trades Table - Processing trades:', trades.length)
     
-    console.log('🔍 Processing trades:', trades.length)
+    logger.debug('🔍 Processing trades:', trades.length)
     
     const processedTrades = trades
       .sort((a, b) => new Date(b.closeDate || b.openDate).getTime() - new Date(a.closeDate || a.openDate).getTime())
@@ -187,7 +189,7 @@ export function RecentTradesTable() {
 
           // Debug only when clearly excessive
           if (durationResult && durationResult.totalMinutes > 12 * 60) {
-            console.warn('⚠️ Long duration detected in RecentTradesTable:', {
+            logger.warn('⚠️ Long duration detected in RecentTradesTable:', {
               tradeId: trade.id,
               symbol: trade.symbol,
               entryTime: trade.entryTime,
@@ -204,7 +206,7 @@ export function RecentTradesTable() {
         status: 'CLOSED' as const
       }))
     
-    console.log('🔍 Final processed trades for table:', processedTrades.length)
+    logger.debug('🔍 Final processed trades for table:', processedTrades.length)
     return processedTrades
   }, [trades])
 

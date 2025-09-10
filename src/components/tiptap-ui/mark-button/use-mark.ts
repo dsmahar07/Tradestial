@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import type { Editor } from "@tiptap/react"
 
@@ -146,7 +148,7 @@ export function getFormattedMarkName(type: Mark): string {
  *     editor: myEditor,
  *     type: "italic",
  *     hideWhenUnavailable: true,
- *     onToggled: () => console.log('Mark toggled!')
+ *     onToggled: () => logger.debug('Mark toggled!')
  *   })
  *
  *   if (!isVisible) return null

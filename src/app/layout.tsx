@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import './globals.css'
 import { ThemeProvider } from '@/hooks/use-theme'
 import { PerformanceMonitor } from '@/components/features/performance-monitor'
 import { PrivacyProvider } from '@/contexts/privacy-context'
 import { Inter } from 'next/font/google'
-import Script from 'next/script'
 import '@radix-ui/themes/styles.css'
 import { Theme } from '@radix-ui/themes'
+import { ErrorBoundary } from '@/components/providers/error-boundary'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,41 +35,25 @@ export function generateViewport() {
   }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // SSR: read theme cookie and apply class to <html>
+  const cookieStore = await cookies()
+  const themeCookie = cookieStore.get('theme')?.value
+  const initialThemeClass = themeCookie === 'dark' ? 'dark' : 'light'
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={initialThemeClass} suppressHydrationWarning>
       <head>
-        {/* Favicon - Using original Tradestial logo with slight radius */}
-        <link rel="icon" href="/favicon.ico?v=4" />
-        <link rel="shortcut icon" href="/favicon.ico?v=4" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-slight-radius.png?v=4" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/tradestial-logo.png?v=4" />
+        {/* App icons */}
+        <link rel="icon" type="image/png" href="/Branding/Tradestial.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/Branding/Tradestial.png" />
         <link rel="manifest" href="/site.webmanifest" />
         <meta name="msapplication-TileColor" content="#6b21a8" />
         <meta name="theme-color" content="#6b21a8" />
-        
-        <Script id="tradestial-set-theme" strategy="beforeInteractive">{
-          `(() => {
-            try {
-              const theme = localStorage.getItem('tradestial-ui-theme');
-              document.documentElement.classList.remove('light', 'dark');
-              if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-              } else {
-                document.documentElement.classList.add('light');
-                if (!theme) localStorage.setItem('tradestial-ui-theme', 'light');
-              }
-            } catch (e) {
-              document.documentElement.classList.remove('light', 'dark');
-              document.documentElement.classList.add('light');
-              try { localStorage.setItem('tradestial-ui-theme', 'light'); } catch (_) {}
-            }
-          })();`
-        }</Script>
       </head>
       <body className={`${inter.variable} font-sans subpixel-antialiased overflow-x-hidden bg-background text-foreground`} suppressHydrationWarning>
         <ThemeProvider
@@ -77,10 +62,12 @@ export default function RootLayout({
         >
           <PrivacyProvider>
             <Theme appearance="inherit" radius="medium" className="font-sans">
-              <PerformanceMonitor />
-              <div className="min-h-screen w-full">
-                {children}
-              </div>
+              <ErrorBoundary>
+                <PerformanceMonitor />
+                <div className="min-h-screen w-full">
+                  {children}
+                </div>
+              </ErrorBoundary>
             </Theme>
           </PrivacyProvider>
         </ThemeProvider>

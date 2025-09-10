@@ -41,35 +41,82 @@ class Logger {
     return JSON.stringify(logEntry);
   }
 
-  debug(message: string, context?: LogContext) {
+  private argToString(arg: any): string {
+    if (arg === undefined) return 'undefined';
+    if (arg === null) return 'null';
+    if (typeof arg === 'string') return arg;
+    if (typeof arg === 'number' || typeof arg === 'boolean') return String(arg);
+    if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+    try {
+      return JSON.stringify(arg);
+    } catch {
+      return String(arg);
+    }
+  }
+
+  private combineMessage(message: string, extra: any[]): string {
+    if (!extra || extra.length === 0) return message;
+    const tail = extra.map((a) => this.argToString(a)).join(' ');
+    return tail ? `${message} ${tail}` : message;
+  }
+
+  debug(...args: any[]) {
     if (this.shouldLog('debug') && this.isDevelopment) {
-      console.debug(this.formatMessage('debug', message, context));
+      const combined = this.combineMessage('', args);
+      console.debug(this.formatMessage('debug', combined));
     }
   }
 
-  info(message: string, context?: LogContext) {
+  info(...args: any[]) {
     if (this.shouldLog('info')) {
-      console.info(this.formatMessage('info', message, context));
+      const combined = this.combineMessage('', args);
+      console.info(this.formatMessage('info', combined));
     }
   }
 
-  warn(message: string, context?: LogContext) {
+  warn(...args: any[]) {
     if (this.shouldLog('warn')) {
-      console.warn(this.formatMessage('warn', message, context));
+      const combined = this.combineMessage('', args);
+      console.warn(this.formatMessage('warn', combined));
     }
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
+  error(...args: any[]) {
     if (this.shouldLog('error')) {
+      let baseMessage: string | undefined;
+      let err: Error | undefined;
+      let context: LogContext | undefined;
+      const extras: any[] = [];
+
+      for (const a of args) {
+        if (typeof a === 'string' && baseMessage === undefined) {
+          baseMessage = a;
+          continue;
+        }
+        if (!err && a instanceof Error) {
+          err = a;
+          continue;
+        }
+        if (!context && a && typeof a === 'object' && !(a instanceof Error) && !Array.isArray(a)) {
+          context = a as LogContext;
+          continue;
+        }
+        extras.push(a);
+      }
+
+      const combined = this.combineMessage(baseMessage || '', extras);
       const errorContext = {
         ...context,
-        error: {
-          message: error?.message,
-          stack: error?.stack,
-          name: error?.name,
-        },
-      };
-      console.error(this.formatMessage('error', message, errorContext));
+        ...(err && {
+          error: {
+            message: err.message,
+            stack: err.stack,
+            name: err.name,
+          },
+        }),
+      } as LogContext;
+
+      console.error(this.formatMessage('error', combined, errorContext));
     }
   }
 

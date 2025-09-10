@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, Edit3, Share2 } from 'lucide-react'
 import { XMarkIcon, CheckCircleIcon, XCircleIcon, ChevronDownIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline'
@@ -520,7 +522,7 @@ export function DailyJournalContent() {
 
   // Generate daily summaries from imported data  
   const dailySummaries = useMemo(() => {
-    console.log('🔍 Daily Journal - Processing trades:', trades.length)
+    logger.debug('🔍 Daily Journal - Processing trades:', trades.length)
     if (!trades.length) return []
 
     // Group trades by date
@@ -535,7 +537,7 @@ export function DailyJournalContent() {
       tradesByDate.get(dateKey)!.push(trade)
     })
 
-    console.log('🔍 Daily Journal - Trading days:', tradesByDate.size)
+    logger.debug('🔍 Daily Journal - Trading days:', tradesByDate.size)
 
     // Convert to daily summary format
     const dailyData: Array<{
@@ -569,7 +571,7 @@ export function DailyJournalContent() {
       const losers = dayTrades.filter(t => t.netPnl < 0).length
       const winRate = dayTrades.length > 0 ? ((winners / dayTrades.length) * 100).toFixed(0) : '0'
 
-      console.log(`🔍 Processing day ${date.toDateString()}: ${dayTrades.length} trades, P&L: ${totalPnL}`)
+      logger.debug(`🔍 Processing day ${date.toDateString()}: ${dayTrades.length} trades, P&L: ${totalPnL}`)
 
       dailyData.push({
         id: `day_${date.getTime()}`,
@@ -616,7 +618,7 @@ export function DailyJournalContent() {
     setExpandedTables(newExpanded)
   }
 
-  const handleAddNote = (card: TradeCard) => {
+  const handleAddNote = (card: any) => {
     // Store trade data in localStorage to pass to notes page
     const tradeData = {
       id: card.id,
@@ -644,7 +646,7 @@ export function DailyJournalContent() {
   }))
 
   const handleDateSelect = (date: Date) => {
-    console.log('Selected date:', date)
+    logger.debug('Selected date:', date)
     // You can add functionality to filter or highlight trades for selected date
   }
 
@@ -713,7 +715,7 @@ export function DailyJournalContent() {
                       variant="basic" 
                       size="small" 
                       className="!text-gray-600 dark:!text-gray-300 !bg-white dark:!bg-[#0f0f0f] !border-gray-300 dark:!border-[#2a2a2a] hover:!bg-gray-50 dark:hover:!bg-[#2a2a2a]"
-                      onClick={() => handleAddNote(card as TradeCard)}
+                      onClick={() => handleAddNote(card)}
                     >
                       <Edit3 className="w-4 h-4 mr-2" />
                       Add note

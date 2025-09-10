@@ -114,11 +114,11 @@ Once the API key is configured, I can provide detailed analysis and recommendati
         })
       })
 
-      console.log('OpenRouter response status:', response.status)
+      logger.debug('OpenRouter response status:', response.status)
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('OpenRouter error:', errorText)
+        logger.error('OpenRouter error:', errorText)
         
         // Try fallback to free model
         try {
@@ -146,7 +146,7 @@ Once the API key is configured, I can provide detailed analysis and recommendati
             return NextResponse.json(fallbackData)
           }
         } catch (fallbackError) {
-          console.error('Fallback model also failed:', fallbackError)
+          logger.error('Fallback model also failed:', fallbackError)
         }
         
         // Generate detailed analysis using trading data if API fails
@@ -225,11 +225,11 @@ ${parseFloat(tradingContext.winRate) < 50 ? '1. **Focus on Trade Selection** - W
       }
 
       const data = await response.json()
-      console.log('OpenRouter response:', data)
+      logger.debug('OpenRouter response:', data)
       return NextResponse.json(data)
 
     } catch (apiError) {
-      console.error('API call error:', apiError)
+      logger.error('API call error:', apiError)
       // Return a fallback response with trading context
       return NextResponse.json({
         choices: [{
@@ -241,7 +241,7 @@ ${parseFloat(tradingContext.winRate) < 50 ? '1. **Focus on Trade Selection** - W
     }
 
   } catch (error) {
-    console.error('AI chat error:', error)
+    logger.error('AI chat error:', error)
     return NextResponse.json({
       choices: [{
         message: {

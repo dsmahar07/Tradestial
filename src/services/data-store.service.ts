@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { Trade, TradeMetrics, TradeDataService } from './trade-data.service'
 import TradeMetadataService from './trade-metadata.service'
 import { RuleTrackingService } from './rule-tracking.service'
@@ -31,7 +33,7 @@ export class DataStore {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed)) {
           this.trades = parsed.slice(-this.MAX_TRADES) // Respect limits
-          console.log(`DataStore: Loaded ${this.trades.length} trades from localStorage`)
+          logger.debug(`DataStore: Loaded ${this.trades.length} trades from localStorage`)
         }
       }
       if (storedStarting !== null) {
@@ -41,7 +43,7 @@ export class DataStore {
         }
       }
     } catch (error) {
-      console.warn('DataStore: Failed to load trades from localStorage:', error)
+      logger.warn('DataStore: Failed to load trades from localStorage:', error)
       this.trades = []
     }
     
@@ -54,9 +56,9 @@ export class DataStore {
     
     try {
       localStorage.setItem(this.TRADES_STORAGE_KEY, JSON.stringify(this.trades))
-      console.log(`DataStore: Persisted ${this.trades.length} trades to localStorage`)
+      logger.debug(`DataStore: Persisted ${this.trades.length} trades to localStorage`)
     } catch (error) {
-      console.warn('DataStore: Failed to persist trades to localStorage:', error)
+      logger.warn('DataStore: Failed to persist trades to localStorage:', error)
     }
   }
 
@@ -112,7 +114,7 @@ export class DataStore {
     
     // Validate adjustedCost/initialRisk - reject if unreasonably small
     if (capitalAtRisk > 0 && capitalAtRisk < notionalValue * 0.001) {
-      console.log(`[ROI Debug] Rejecting small adjustedCost/initialRisk: ${capitalAtRisk} for trade ${trade.symbol}`)
+      logger.debug(`[ROI Debug] Rejecting small adjustedCost/initialRisk: ${capitalAtRisk} for trade ${trade.symbol}`)
       capitalAtRisk = 0
     }
     
@@ -157,7 +159,7 @@ export class DataStore {
     
     // Debug logging for significant P&L trades
     if (Math.abs(netPnl) > 100) {
-      console.log(`[ROI Debug] ${trade.symbol}: P&L=${netPnl}, Entry=${entryPrice}, Qty=${quantity}, Instrument=${instrument}, Notional=${notionalValue}, CapitalAtRisk=${capitalAtRisk}`)
+      logger.debug(`[ROI Debug] ${trade.symbol}: P&L=${netPnl}, Entry=${entryPrice}, Qty=${quantity}, Instrument=${instrument}, Notional=${notionalValue}, CapitalAtRisk=${capitalAtRisk}`)
     }
     
     return capitalAtRisk > 0 ? netPnl / capitalAtRisk : 0
@@ -595,7 +597,7 @@ export class DataStore {
       try {
         localStorage.setItem(this.STARTING_BALANCE_KEY, String(balance))
       } catch (err) {
-        console.warn('DataStore: Failed to persist starting balance:', err)
+        logger.warn('DataStore: Failed to persist starting balance:', err)
       }
     }
     this.notifyListeners()
@@ -624,7 +626,7 @@ export class DataStore {
         localStorage.removeItem(this.TRADES_STORAGE_KEY)
         localStorage.removeItem(this.STARTING_BALANCE_KEY)
       } catch (error) {
-        console.warn('DataStore: Failed to clear persisted trades:', error)
+        logger.warn('DataStore: Failed to clear persisted trades:', error)
       }
     }
     this.notifyListeners()
@@ -704,7 +706,7 @@ export class DataStore {
       const debugROI = Math.abs(trade.netPnl || 0) > 100 && notionalValue > 1000
       
       if (debugROI) {
-        console.log(`ROI Debug for trade ${trade.id}:`, {
+        logger.debug(`ROI Debug for trade ${trade.id}:`, {
           entryPrice,
           qty,
           notionalValue,
@@ -724,10 +726,10 @@ export class DataStore {
       if (typeof adjusted === 'number' && adjusted > 0) {
         // Much stricter sanity check
         if (adjusted >= minCapitalAtRisk) {
-          if (debugROI) console.log(`Using adjustedCost: ${adjusted}`)
+          if (debugROI) logger.debug(`Using adjustedCost: ${adjusted}`)
           return adjusted
         } else {
-          if (debugROI) console.log(`Rejecting adjustedCost ${adjusted}, too small vs min ${minCapitalAtRisk}`)
+          if (debugROI) logger.debug(`Rejecting adjustedCost ${adjusted}, too small vs min ${minCapitalAtRisk}`)
         }
       }
       
@@ -790,8 +792,8 @@ export class DataStore {
       }
       
       if (debugROI) {
-        console.log(`Final capital at risk: ${calculatedCapital}`)
-        console.log(`Expected ROI: ${((trade.netPnl || 0) / calculatedCapital * 100).toFixed(2)}%`)
+        logger.debug(`Final capital at risk: ${calculatedCapital}`)
+        logger.debug(`Expected ROI: ${((trade.netPnl || 0) / calculatedCapital * 100).toFixed(2)}%`)
       }
       
       return calculatedCapital
@@ -806,7 +808,7 @@ export class DataStore {
       
       if (capitalAtRisk <= 0) {
         // Handle edge cases where capital at risk is zero or negative
-        console.warn(`Trade ${trade.id}: Invalid capital at risk (${capitalAtRisk}), cannot calculate ROI`)
+        logger.warn(`Trade ${trade.id}: Invalid capital at risk (${capitalAtRisk}), cannot calculate ROI`)
         return 0
       }
       
@@ -814,7 +816,7 @@ export class DataStore {
       
       // Validate the result
       if (!isFinite(roiRatio)) {
-        console.warn(`Trade ${trade.id}: ROI calculation resulted in non-finite value`)
+        logger.warn(`Trade ${trade.id}: ROI calculation resulted in non-finite value`)
         return 0
       }
       
@@ -1092,7 +1094,7 @@ export class DataStore {
       } catch (err) {
         // Swallow listener errors to avoid disrupting state updates
         // eslint-disable-next-line no-console
-        console.warn('DataStore listener error:', err)
+        logger.warn('DataStore listener error:', err)
       }
     }
   }

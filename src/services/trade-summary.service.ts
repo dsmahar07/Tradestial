@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Trade Summary Service for generating AI-powered daily trading reports
  */
@@ -88,7 +90,7 @@ class TradeSummaryService {
       return result
 
     } catch (error) {
-      console.error('Trade Summary error:', error)
+      logger.error('Trade Summary error:', error)
       throw error
     }
   }

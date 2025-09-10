@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useMemo } from 'react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DashboardHeader } from '@/components/layout/header'
@@ -14,11 +16,11 @@ export default function OptionsExpirationPage() {
   const { trades, loading, error } = useAnalytics()
   
   const handleTabChange = (tabId: string) => {
-    console.log('Active tab:', tabId)
+    logger.debug('Active tab:', tabId)
   }
 
   const handleDropdownItemClick = (tabId: string, itemId: string) => {
-    console.log(`Selected ${itemId} from ${tabId} tab`)
+    logger.debug(`Selected ${itemId} from ${tabId} tab`)
   }
  
 

@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { MoodEntry, MoodType } from '@/components/features/mood-selection-modal'
 
 export class MoodTrackerService {
@@ -49,7 +51,7 @@ export class MoodTrackerService {
       if (!stored) return []
       return JSON.parse(stored) as MoodEntry[]
     } catch (error) {
-      console.error('Failed to load mood entries:', error)
+      logger.error('Failed to load mood entries:', error)
       return []
     }
   }
@@ -166,7 +168,7 @@ export class MoodTrackerService {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(entries))
       return true
     } catch (error) {
-      console.error('Failed to import mood data:', error)
+      logger.error('Failed to import mood data:', error)
       return false
     }
   }

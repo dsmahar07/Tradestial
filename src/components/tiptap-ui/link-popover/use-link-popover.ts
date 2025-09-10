@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import type { Editor } from "@tiptap/react"
 
@@ -230,7 +232,7 @@ export function useLinkState(props: {
  *   const { isVisible, canSet, isActive, Icon, label } = useLinkPopover({
  *     editor: myEditor,
  *     hideWhenUnavailable: true,
- *     onSetLink: () => console.log('Link set!')
+ *     onSetLink: () => logger.debug('Link set!')
  *   })
  *
  *   if (!isVisible) return null

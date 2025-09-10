@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Real-time calculation cache system for analytics
  * Provides intelligent caching with invalidation and performance optimization
@@ -523,7 +525,7 @@ export class AnalyticsCacheService {
         }
       }
     } catch (error) {
-      console.warn('Failed to load persistent cache:', error)
+      logger.warn('Failed to load persistent cache:', error)
     }
   }
 
@@ -532,7 +534,7 @@ export class AnalyticsCacheService {
       const data = Array.from(this.persistentCache.entries())
       localStorage.setItem('tradestial_analytics_cache', JSON.stringify(data))
     } catch (error) {
-      console.warn('Failed to save persistent cache:', error)
+      logger.warn('Failed to save persistent cache:', error)
     }
   }
 }

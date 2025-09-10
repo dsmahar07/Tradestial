@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Sidebar } from '@/components/layout/sidebar'
@@ -121,11 +123,11 @@ export default function OverviewPage() {
   }, [pnlMetric, selectedTimeframe, updateFilters])
 
   const derived = useMemo(() => {
-    console.log('🔍 Derived calculation - trades:', trades?.length || 0)
-    console.log('🔍 Derived calculation - trades data:', trades?.slice(0, 2)) // Show first 2 trades
+    logger.debug('🔍 Derived calculation - trades:', trades?.length || 0)
+    logger.debug('🔍 Derived calculation - trades data:', trades?.slice(0, 2)) // Show first 2 trades
     
     if (!trades?.length) {
-      console.log('❌ Derived returning empty - no trades')
+      logger.debug('❌ Derived returning empty - no trades')
       return {
         totalTrades: 0,
         totals: { pnl: 0, commissions: 0, fees: 0, swap: 0 },
@@ -306,11 +308,11 @@ export default function OverviewPage() {
   }, [trades, pnlMetric, getTradeMetadata])
 
   const handleTabChange = (tabId: string) => {
-    console.log('Active tab:', tabId)
+    logger.debug('Active tab:', tabId)
   }
 
   const handleDropdownItemClick = (tabId: string, itemId: string) => {
-    console.log(`Selected ${itemId} from ${tabId} tab`)
+    logger.debug(`Selected ${itemId} from ${tabId} tab`)
   }
 
   return (
@@ -432,7 +434,7 @@ export default function OverviewPage() {
                           await loadTestDataFromCSV()
                           window.location.reload()
                         } catch (err) {
-                          console.error('Failed to load test data:', err)
+                          logger.error('Failed to load test data:', err)
                           alert('Failed to load test data. Please import CSV manually.')
                         }
                       }}
@@ -447,12 +449,12 @@ export default function OverviewPage() {
                           const { DataStore } = await import('@/services/data-store.service')
                           const directTrades = DataStore.getAllTrades()
                           
-                          console.log(' Debug Results:')
-                          console.log('  - DataStore trades:', directTrades.length)
-                          console.log('  - useAnalytics trades:', trades?.length || 0)
-                          console.log('  - Loading state:', loading)
-                          console.log('  - Error state:', error)
-                          console.log('  - Full state:', state)
+                          logger.debug(' Debug Results:')
+                          logger.debug('  - DataStore trades:', directTrades.length)
+                          logger.debug('  - useAnalytics trades:', trades?.length || 0)
+                          logger.debug('  - Loading state:', loading)
+                          logger.debug('  - Error state:', error)
+                          logger.debug('  - Full state:', state)
                           
                           if (directTrades.length > 0) {
                             alert(`DataStore has ${directTrades.length} trades, but useAnalytics shows ${trades?.length || 0} trades. Check console for details.`)
@@ -460,7 +462,7 @@ export default function OverviewPage() {
                             alert('DataStore is empty. CSV import may have failed.')
                           }
                         } catch (err) {
-                          console.error('Debug failed:', err)
+                          logger.error('Debug failed:', err)
                           alert('Debug failed. Check console.')
                         }
                       }}
@@ -470,7 +472,7 @@ export default function OverviewPage() {
                     </button>
                     <button
                       onClick={() => {
-                        console.log(' Refreshing analytics page...')
+                        logger.debug(' Refreshing analytics page...')
                         window.location.reload()
                       }}
                       className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-700 transition-colors"

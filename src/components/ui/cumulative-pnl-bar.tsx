@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { motion } from 'framer-motion'
 import { ChevronDown, TrendingUp, TrendingDown, Info } from 'lucide-react'
 import { Button } from './button'
@@ -108,11 +110,11 @@ export function CumulativePnlBar() {
   // Load trades and subscribe to changes
   useEffect(() => {
     const initialTrades = DataStore.getAllTrades()
-    console.log(' Cumulative PNL Bar - Initial load:', initialTrades.length)
+    logger.debug(' Cumulative PNL Bar - Initial load:', initialTrades.length)
     setTrades(initialTrades)
     const unsubscribe = DataStore.subscribe(() => {
       const updatedTrades = DataStore.getAllTrades()
-      console.log(' Cumulative PNL Bar - Data update received:', updatedTrades.length)
+      logger.debug(' Cumulative PNL Bar - Data update received:', updatedTrades.length)
       setTrades(updatedTrades)
     })
     return unsubscribe
@@ -120,11 +122,11 @@ export function CumulativePnlBar() {
 
   // Generate P&L data from real trades
   const pnlData = useMemo(() => {
-    console.log(' Cumulative PNL Bar - Generating data from trades:', trades.length)
+    logger.debug(' Cumulative PNL Bar - Generating data from trades:', trades.length)
     const data = generatePnlDataFromTrades(trades)
-    console.log(' Generated P&L data:', data.length, 'periods')
+    logger.debug(' Generated P&L data:', data.length, 'periods')
     if (data.length > 0) {
-      console.log(' Sample data point:', data[0])
+      logger.debug(' Sample data point:', data[0])
     }
     return data
   }, [trades])

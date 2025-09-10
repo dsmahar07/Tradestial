@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Reactive analytics data store with real-time subscriptions
  * Provides automatic recalculation and UI updates when data or filters change
@@ -276,7 +278,7 @@ export class ReactiveAnalyticsService {
 
     while (this.calculationQueue.length > 0 || this.activeCalculations > 0) {
       if (Date.now() - startTime > maxWaitTime) {
-        console.warn('Data preparation timed out after 30 seconds')
+        logger.warn('Data preparation timed out after 30 seconds')
         break
       }
 
@@ -307,7 +309,7 @@ export class ReactiveAnalyticsService {
       try {
         await this.getChartData(chartType)
       } catch (error) {
-        console.warn(`Failed to pre-calculate ${chartType}:`, error)
+        logger.warn(`Failed to pre-calculate ${chartType}:`, error)
       }
     }
   }
@@ -700,7 +702,7 @@ export class ReactiveAnalyticsService {
 
         subscription.callback(state)
       } catch (error) {
-        console.error('Subscription callback error:', error)
+        logger.error('Subscription callback error:', error)
       }
     }
   }
@@ -713,7 +715,7 @@ export class ReactiveAnalyticsService {
       await this.recalculateFiltered()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateFiltered failed in recalculateAll', message)
+      if (this.config.debug) logger.error('[ReactiveAnalytics] recalculateFiltered failed in recalculateAll', message)
       this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'filter', message } })
     }
 
@@ -721,7 +723,7 @@ export class ReactiveAnalyticsService {
       await this.recalculateMetrics()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateMetrics failed in recalculateAll', message)
+      if (this.config.debug) logger.error('[ReactiveAnalytics] recalculateMetrics failed in recalculateAll', message)
       this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'metrics', message } })
     }
 
@@ -729,7 +731,7 @@ export class ReactiveAnalyticsService {
       await this.recalculateAggregations()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateAggregations failed in recalculateAll', message)
+      if (this.config.debug) logger.error('[ReactiveAnalytics] recalculateAggregations failed in recalculateAll', message)
       this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'aggregations', message } })
     }
 
@@ -737,7 +739,7 @@ export class ReactiveAnalyticsService {
       await this.recalculateChartData()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (this.config.debug) console.error('[ReactiveAnalytics] recalculateChartData failed in recalculateAll', message)
+      if (this.config.debug) logger.error('[ReactiveAnalytics] recalculateChartData failed in recalculateAll', message)
       this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'charts', message } })
     }
   }
@@ -779,7 +781,7 @@ export class ReactiveAnalyticsService {
         })
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to filter trades'
-        if (this.config.debug) console.error('[ReactiveAnalytics] Filter step failed', error)
+        if (this.config.debug) logger.error('[ReactiveAnalytics] Filter step failed', error)
         this.setState({
           ...this.state,
           loading: false,
@@ -834,7 +836,7 @@ export class ReactiveAnalyticsService {
         })
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to calculate metrics'
-        if (this.config.debug) console.error('[ReactiveAnalytics] Metrics step failed', error)
+        if (this.config.debug) logger.error('[ReactiveAnalytics] Metrics step failed', error)
         this.setState({
           ...this.state,
           error: message
@@ -870,7 +872,7 @@ export class ReactiveAnalyticsService {
         if (this.config.debug) console.debug('[ReactiveAnalytics] Aggregations recalculated', { ms: dt })
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to calculate aggregations'
-        if (this.config.debug) console.error('[ReactiveAnalytics] Aggregations step failed', error)
+        if (this.config.debug) logger.error('[ReactiveAnalytics] Aggregations step failed', error)
         this.setState({
           ...this.state,
           error: message
@@ -959,7 +961,7 @@ export class ReactiveAnalyticsService {
             } catch (err) {
               const message = err instanceof Error ? err.message : String(err)
               chartData[chartType] = []
-              if (this.config.debug) console.error('[ReactiveAnalytics] Series failed', { chartType, error: message })
+              if (this.config.debug) logger.error('[ReactiveAnalytics] Series failed', { chartType, error: message })
               this.emitEvent({ type: 'ERROR', timestamp: Date.now(), payload: { stage: 'chart-series', chartType, message } })
             }
           }
@@ -983,7 +985,7 @@ export class ReactiveAnalyticsService {
         if (this.config.debug) console.debug('[ReactiveAnalytics] All charts recalculated', { ms: dt, series: Object.keys(chartData).length })
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to calculate chart data'
-        if (this.config.debug) console.error('[ReactiveAnalytics] Chart data step failed', error)
+        if (this.config.debug) logger.error('[ReactiveAnalytics] Chart data step failed', error)
         this.setState({
           ...this.state,
           error: message

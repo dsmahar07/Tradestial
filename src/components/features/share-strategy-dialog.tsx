@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Share2, Tag } from 'lucide-react'
@@ -82,7 +84,7 @@ export function ShareStrategyDialog({ open, onOpenChange, strategy, stats }: Sha
       // Show success message (you could add a toast notification here)
       alert('Strategy shared successfully!')
     } catch (error) {
-      console.error('Failed to share strategy:', error)
+      logger.error('Failed to share strategy:', error)
       alert('Failed to share strategy. Please try again.')
     } finally {
       setIsSharing(false)

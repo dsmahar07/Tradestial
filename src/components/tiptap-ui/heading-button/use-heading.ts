@@ -1,5 +1,6 @@
 "use client"
 
+import { logger } from '@/lib/logger'
 import * as React from "react"
 import { type Editor } from "@tiptap/react"
 import { NodeSelection, TextSelection } from "@tiptap/pm/state"
@@ -244,7 +245,7 @@ export function shouldShowButton(props: {
  *     level: 2,
  *     editor: myEditor,
  *     hideWhenUnavailable: true,
- *     onToggled: (isActive) => console.log('Heading toggled:', isActive)
+ *     onToggled: (isActive) => logger.debug('Heading toggled:', isActive)
  *   })
  *
  *   if (!isVisible) return null

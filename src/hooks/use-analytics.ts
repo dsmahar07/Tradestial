@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Hook for using the reactive analytics system
  * Provides easy access to analytics state and methods
@@ -95,7 +97,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}) {
         }
 
       } catch (err) {
-        console.error('❌ Failed to initialize analytics:', err)
+        logger.error('❌ Failed to initialize analytics:', err)
         setError(err instanceof Error ? err.message : 'Failed to initialize analytics')
         setLoading(false)
       }
@@ -188,7 +190,7 @@ export function useChartData(chartType: string, config?: any, deps: any[] = []) 
           setData(chartData)
         }
       } catch (error) {
-        console.error(`Failed to fetch chart data for ${chartType}:`, error)
+        logger.error(`Failed to fetch chart data for ${chartType}:`, error)
       } finally {
         if (mounted) {
           setLoading(false)

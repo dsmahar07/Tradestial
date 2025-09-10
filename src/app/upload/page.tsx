@@ -30,7 +30,7 @@ export default function UploadPage() {
   const selectedBroker = useMemo(() => {
     const brokerId = searchParams.get('brokerId') || 'tradovate'
     const brokerName = searchParams.get('brokerName') || 'Tradovate'
-    const brokerIcon = searchParams.get('brokerIcon') || '/Brokers Logo/Tradovate.png'
+    const brokerIcon = searchParams.get('brokerIcon') || '/brokers-logo/Tradovate.png'
     
     return {
       id: brokerId,

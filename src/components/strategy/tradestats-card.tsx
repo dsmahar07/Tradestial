@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 "use client"
 
 import * as React from "react"
@@ -153,7 +155,7 @@ export function StrategyCard({
     try {
       localStorage.setItem(`tradestial:rule-checks:${trade.id}`, JSON.stringify(updated))
     } catch (e) {
-      console.warn('Failed to persist rule check:', e)
+      logger.warn('Failed to persist rule check:', e)
     }
   }
 
@@ -183,7 +185,7 @@ export function StrategyCard({
   const points = trade ? Math.abs((trade.exitPrice || 0) - (trade.entryPrice || 0)) : 0
 
   // Debug logging
-  console.log('🎯 TradeStatsCard - Received props:', {
+  logger.debug('🎯 TradeStatsCard - Received props:', {
     title,
     subtitle,
     trade: trade ? {
@@ -203,8 +205,8 @@ export function StrategyCard({
     points
   })
   
-  console.log('🔍 Raw trade.side value:', trade?.side)
-  console.log('🔍 Badge will show:', trade?.side?.toUpperCase() || 'UNKNOWN')
+  logger.debug('🔍 Raw trade.side value:', trade?.side)
+  logger.debug('🔍 Badge will show:', trade?.side?.toUpperCase() || 'UNKNOWN')
 
   return (
     <div className="relative w-full">

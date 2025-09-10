@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 // AlignUI FancyButton v0.0.0
 
 import * as React from 'react';
@@ -126,7 +128,7 @@ const FancyButtonRoot = React.forwardRef<HTMLButtonElement, FancyButtonProps>(
         </Component>
       );
     } catch (error) {
-      console.error('FancyButton error:', error);
+      logger.error('FancyButton error:', error);
       // Fallback to basic button if variants fail
       return (
         <Component

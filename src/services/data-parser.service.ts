@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { Trade } from './trade-data.service'
 import { convertToUTC } from '@/utils/timezones'
 
@@ -584,7 +586,7 @@ export class DataParserService {
         // For datetime fields, return the full ISO string
         return utcIsoString
       } catch (error) {
-        console.warn('Failed to convert datetime to UTC:', error, { datetimeString: trimmed, timezoneOffset })
+        logger.warn('Failed to convert datetime to UTC:', error, { datetimeString: trimmed, timezoneOffset })
         // Fall back to local parsing
       }
     }

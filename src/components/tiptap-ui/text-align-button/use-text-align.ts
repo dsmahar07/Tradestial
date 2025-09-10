@@ -1,5 +1,7 @@
 "use client"
 
+import { logger } from '@/lib/logger'
+
 import * as React from "react"
 import type { ChainedCommands } from "@tiptap/react"
 import { type Editor } from "@tiptap/react"
@@ -156,7 +158,7 @@ export function shouldShowButton(props: {
  *     editor: myEditor,
  *     align: "right",
  *     hideWhenUnavailable: true,
- *     onAligned: () => console.log('Text aligned!')
+ *     onAligned: () => logger.debug('Text aligned!')
  *   })
  *
  *   if (!isVisible) return null

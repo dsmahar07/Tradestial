@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import React, { forwardRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/utils/editor/html-sanitizer'
@@ -81,7 +83,7 @@ export const EditorContent = forwardRef<HTMLDivElement, EditorContentProps>(
           onEditorPaste(e)
         }
       } catch (error) {
-        console.error('Error handling paste:', error)
+        logger.error('Error handling paste:', error)
         // Fallback to default paste behavior
         onEditorPaste(e)
       }

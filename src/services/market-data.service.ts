@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 import { Bar } from '@/config/instruments'
 
 export type Provider = 'yahoo' | 'binance'
@@ -40,7 +42,7 @@ export class MarketDataService {
         return this.sliceWindow(bucket, startISO, endISO)
       } catch (e) {
         // Continue to next provider
-        // console.warn('Provider failed', provider, e)
+        // logger.warn('Provider failed', provider, e)
       }
     }
     return []

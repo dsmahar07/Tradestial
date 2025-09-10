@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import * as React from 'react'
 import { useState, useRef, useEffect } from 'react'
 import { X, Send, Sparkles, ArrowUp, Download, Copy, ThumbsUp, ThumbsDown } from 'lucide-react'
@@ -58,12 +60,12 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
 
   const fetchTradingContext = async (): Promise<any> => {
     try {
-      console.log('Fetching trading context...')
+      logger.debug('Fetching trading context...')
       const trades: Trade[] = DataStore.getAllTrades() as unknown as Trade[]
-      console.log('Fetched trades:', trades.length, trades)
+      logger.debug('Fetched trades:', trades.length, trades)
       
       if (trades.length === 0) {
-        console.log('No trades found, setting empty context')
+        logger.debug('No trades found, setting empty context')
         const emptyCtx = {
           totalTrades: 0,
           winRate: '0.00',
@@ -189,11 +191,11 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
           }))
       }
       
-      console.log('Calculated trading context:', context)
+      logger.debug('Calculated trading context:', context)
       setTradingContext(context)
       return context
     } catch (error) {
-      console.error('Error fetching trading context:', error)
+      logger.error('Error fetching trading context:', error)
       // Set fallback context
       const fb = {
         totalTrades: 0,
@@ -253,7 +255,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
       ]
 
       // Call AI API with trading context
-      console.log('Sending request to AI API with context:', tradingContext)
+      logger.debug('Sending request to AI API with context:', tradingContext)
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
@@ -265,10 +267,10 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
         })
       })
 
-      console.log('API Response status:', response.status)
+      logger.debug('API Response status:', response.status)
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('API Error:', errorText)
+        logger.error('API Error:', errorText)
         throw new Error(`Failed to get AI response: ${response.status}`)
       }
 
@@ -288,7 +290,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
           : conv
       ))
     } catch (error) {
-      console.error('Error getting AI response:', error)
+      logger.error('Error getting AI response:', error)
       
       // Fallback response on error
       const errorResponse: ChatMessage = {
@@ -363,7 +365,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
         document.body.removeChild(textArea)
       }
     } catch (err) {
-      console.error('Failed to copy conversation:', err)
+      logger.error('Failed to copy conversation:', err)
     }
   }
 
@@ -379,13 +381,13 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
       // Check if clipboard API is available and we have permissions
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(content)
-        console.log('Message copied to clipboard')
+        logger.debug('Message copied to clipboard')
         setCopiedMessageId(messageId)
         setTimeout(() => setCopiedMessageId(null), 2000)
         return
       }
     } catch (err) {
-      console.error('Clipboard API failed:', err)
+      logger.error('Clipboard API failed:', err)
     }
     
     // Fallback method for all cases where clipboard API fails
@@ -403,14 +405,14 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
       document.body.removeChild(textArea)
       
       if (successful) {
-        console.log('Message copied to clipboard (fallback)')
+        logger.debug('Message copied to clipboard (fallback)')
         setCopiedMessageId(messageId)
         setTimeout(() => setCopiedMessageId(null), 2000)
       } else {
-        console.error('Copy command failed')
+        logger.error('Copy command failed')
       }
     } catch (fallbackErr) {
-      console.error('Fallback copy failed:', fallbackErr)
+      logger.error('Fallback copy failed:', fallbackErr)
     }
   }
 

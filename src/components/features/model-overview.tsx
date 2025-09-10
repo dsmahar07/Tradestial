@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/logger'
+
 import { useState, useEffect } from 'react'
 import { modelStatsService } from '@/services/model-stats.service'
 import { DataStore } from '@/services/data-store.service'
@@ -73,7 +75,7 @@ const OverviewStatsCard = ({
 }
 
 export function ModelOverview() {
-  console.log('ModelOverview component mounting...')
+  logger.debug('ModelOverview component mounting...')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isMarketplaceOpen, setIsMarketplaceOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('models')
@@ -170,7 +172,7 @@ export function ModelOverview() {
           bestWinRate
         })
       } catch (error) {
-        console.error('Error loading model stats:', error)
+        logger.error('Error loading model stats:', error)
       }
     }
 
