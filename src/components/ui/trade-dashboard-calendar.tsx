@@ -36,24 +36,26 @@ const toYMD = (date: Date) => {
 
 // Generate trading days from real trade data
 const generateTradingDays = (trades: Trade[]): TradingDay[] => {
-  if (trades.length === 0) return []
+  if (!trades || trades.length === 0) return []
 
   const dailyMap = new Map<string, { pnl: number; tradesCount: number }>()
 
   trades.forEach(trade => {
+    if (!trade) return
     // DataStore normalizes dates to YYYY-MM-DD strings already
-    const dateKey = (trade.closeDate || trade.openDate).substring(0, 10)
+    const dateKey = (trade.closeDate || trade.openDate || '').substring(0, 10)
+    if (!dateKey) return
 
     const existing = dailyMap.get(dateKey) || { pnl: 0, tradesCount: 0 }
-    existing.pnl += trade.netPnl
+    existing.pnl += (trade.netPnl || 0)
     existing.tradesCount += 1
     dailyMap.set(dateKey, existing)
   })
 
   return Array.from(dailyMap.entries()).map(([date, data]) => ({
     date,
-    pnl: Math.round(data.pnl),
-    tradesCount: data.tradesCount
+    pnl: Math.round(data?.pnl || 0),
+    tradesCount: data?.tradesCount || 0
   }))
 }
 
@@ -159,15 +161,16 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
 
   // Weekly stats for the sidebar (6 weeks)
   const weeklyStats = useMemo(() => {
+    if (!calendar || calendar.length === 0) return []
     const weeks: Array<{ label: string; pnl: number; days: number }> = []
     for (let w = 0; w < 6; w++) {
       const start = w * 7
       const end = start + 7
-      const slice = calendar.slice(start, end)
+      const slice = calendar.slice(start, end) || []
       let sum = 0
       let daysWithTrades = 0
       for (const c of slice) {
-        if (c.isCurrentMonth && typeof c.pnl === 'number') {
+        if (c && c.isCurrentMonth && typeof c.pnl === 'number') {
           sum += c.pnl
           daysWithTrades += 1
         }
@@ -191,7 +194,11 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       if (!node) return
 
       // Dynamically import html-to-image on client
-      const { toPng } = await import('html-to-image')
+      const htmlToImageModule = await import('html-to-image')
+      if (!htmlToImageModule || !htmlToImageModule.toPng) {
+        throw new Error('Failed to load html-to-image module')
+      }
+      const { toPng } = htmlToImageModule
 
       // Temporarily hide export buttons
       const hiddenElements: HTMLElement[] = []
@@ -283,10 +290,14 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   }
 
   const monthlyTotal = useMemo(() => {
-    return weeklyStats.reduce((sum, w) => sum + w.pnl, 0)
+    if (!weeklyStats || weeklyStats.length === 0) return 0
+    return weeklyStats.reduce((sum, w) => sum + (w?.pnl || 0), 0)
   }, [weeklyStats])
 
-  const weeks = useMemo(() => Array.from({ length: 6 }, (_, i) => calendar.slice(i * 7, i * 7 + 7)), [calendar])
+  const weeks = useMemo(() => {
+    if (!calendar || calendar.length === 0) return []
+    return Array.from({ length: 6 }, (_, i) => calendar.slice(i * 7, i * 7 + 7) || [])
+  }, [calendar])
 
   // Helper: compact format like 10k, 10.1k
   const formatCompact = (n: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(n))
@@ -383,7 +394,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
     }
     const key = toYMD(d)
     // Compare against DataStore's normalized dates (YYYY-MM-DD)
-    const dayTrades = trades.filter(t => (t.closeDate || t.openDate || '').startsWith(key))
+    const dayTrades = (trades || []).filter(t => t && (t.closeDate || t.openDate || '').startsWith(key))
     // Debug: log filtering details (remove after verification)
     try {
       // eslint-disable-next-line no-console
@@ -411,7 +422,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   }
 
   return (
-    <div ref={calendarRef} className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 h-full flex flex-col', className)}>
+    <div ref={calendarRef} className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 flex flex-col', className)}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -548,7 +559,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 onClick={() => handleDayClick(c)}
                 disabled={!c.isCurrentMonth}
                 className={cn(
-                  'h-24 w-full rounded-lg border text-xs flex flex-col p-1.5 relative overflow-hidden',
+                  'h-[99px] w-full rounded-lg border text-xs flex flex-col p-1.5 relative overflow-hidden',
                   c.isCurrentMonth ? 'border-gray-200 dark:border-[#2a2a2a]' : 'border-gray-100 dark:border-[#2a2a2a]',
                   !c.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-600 cursor-default',
                   c.isToday && 'ring-1 ring-gray-400/50'
@@ -606,7 +617,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       </div>
 
       {/* Desktop: 8-column rows with perfect alignment */}
-      <div className="hidden lg:block flex-1 min-h-0">
+      <div className="hidden lg:block">
         {/* Header row */}
         <div className="grid grid-cols-8 gap-2 mb-2">
           {dayNames.map((d) => (
@@ -630,7 +641,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                   onClick={() => handleDayClick(c)}
                   disabled={!c.isCurrentMonth}
                   className={cn(
-                    'h-28 w-full rounded-xl border text-sm flex flex-col p-2 relative overflow-hidden',
+                    'h-[115px] w-full rounded-xl border text-sm flex flex-col p-2 relative overflow-hidden',
                     c.isCurrentMonth ? 'border-gray-200 dark:border-[#2a2a2a]' : 'border-gray-100 dark:border-[#2a2a2a]',
                     !c.isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/40 text-gray-400 dark:text-gray-600 cursor-default',
                     c.isToday && 'ring-1 ring-gray-400/50'
@@ -684,7 +695,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               )
             })}
             {/* Week summary cell */}
-            <div className="rounded-xl h-28 px-3 py-2 flex items-center justify-between">
+            <div className="rounded-xl h-[115px] px-3 py-2 flex items-center justify-between">
               <div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Week {i + 1}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{weeklyStats[i]?.days ?? 0} {(weeklyStats[i]?.days ?? 0) === 1 ? 'day' : 'days'}</div>

@@ -1034,7 +1034,7 @@ export default function NotesPage() {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <DashboardHeader />
         
-        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#fafafa] dark:bg-[#171717]">
+        <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#f8f9f8] dark:bg-[#171717]">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

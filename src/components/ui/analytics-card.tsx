@@ -113,7 +113,7 @@ export function AnalyticsCard({
       transition={{ duration: 0.5, delay }}
     >
       <div className={cn(
-        "bg-white dark:bg-[#0f0f0f] rounded-xl p-4 text-gray-900 dark:text-white relative overflow-visible",
+        "bg-white dark:bg-[#0f0f0f] rounded-2xl p-4 text-gray-900 dark:text-white relative overflow-visible",
         className
       )}>
         <div className="flex items-center justify-between mb-3">

@@ -10,10 +10,14 @@ import { DataStore } from '@/services/data-store.service'
 import { useRouter } from 'next/navigation'
 import { useHydrated } from '@/hooks/use-hydrated'
 import { DailyCheckListDialog } from '@/components/features/daily-checklist-dialog'
+import { CustomizableWidgetsBoard } from '@/components/features/customizable-widgets-board'
 import { MoodSelectionModal, MoodType } from '@/components/features/mood-selection-modal'
 import { MoodTrackerService } from '@/services/mood-tracker.service'
 import { RuleTrackingService } from '@/services/rule-tracking.service'
 import { usePrivacy } from '@/contexts/privacy-context'
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
+import { SortableContext, arrayMove, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
@@ -292,11 +296,38 @@ export function DashboardContent() {
     if (isHydrated) {
       // Small delay to ensure DOM is ready
       const timeoutId = setTimeout(() => {
-        setAnalyticsCards(getAnalyticsCardsConfig(true, isPrivacyMode)) // forceReal = true, pass privacy mode
+        const cards = getAnalyticsCardsConfig(true, isPrivacyMode) // forceReal = true, pass privacy mode
+        
+        // Apply saved order if it exists
+        try {
+          const savedOrder = localStorage.getItem('tradestial:analytics-cards-order')
+          if (savedOrder) {
+            const orderArray = JSON.parse(savedOrder) as string[]
+            const orderedCards = orderArray
+              .map(title => cards.find(card => card.title === title))
+              .filter(Boolean) as AnalyticsCardConfig[]
+            
+            // Add any new cards that weren't in the saved order
+            const existingTitles = new Set(orderArray)
+            const newCards = cards.filter(card => !existingTitles.has(card.title))
+            
+            setAnalyticsCards([...orderedCards, ...newCards])
+          } else {
+            setAnalyticsCards(cards)
+          }
+        } catch {
+          setAnalyticsCards(cards)
+        }
       }, 0)
       
       const unsubscribe = DataStore.subscribe(() => {
-        setAnalyticsCards(getAnalyticsCardsConfig(true, isPrivacyMode)) // forceReal = true, pass privacy mode
+        const cards = getAnalyticsCardsConfig(true, isPrivacyMode) // forceReal = true, pass privacy mode
+        
+        // Preserve current order when data updates
+        setAnalyticsCards(prevCards => {
+          const cardsByTitle = new Map(cards.map(card => [card.title, card]))
+          return prevCards.map(prevCard => cardsByTitle.get(prevCard.title) || prevCard)
+        })
       })
 
       return () => {
@@ -349,9 +380,63 @@ export function DashboardContent() {
     setIsNavigating(false)
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { 
+      activationConstraint: { 
+        distance: 8,
+        delay: 100,
+        tolerance: 5
+      } 
+    })
+  )
+
+  const handleAnalyticsCardDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = analyticsCards.findIndex(card => card.title === active.id)
+    const newIndex = analyticsCards.findIndex(card => card.title === over.id)
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const newCards = arrayMove(analyticsCards, oldIndex, newIndex)
+      setAnalyticsCards(newCards)
+
+      // Persist the new order to localStorage
+      try {
+        const cardOrder = newCards.map(card => card.title)
+        localStorage.setItem('tradestial:analytics-cards-order', JSON.stringify(cardOrder))
+      } catch {}
+    }
+  }
+
+// Sortable wrapper for Analytics Cards
+function SortableAnalyticsCard({ cardConfig }: { cardConfig: AnalyticsCardConfig }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: cardConfig.title 
+  })
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? 'none' : transition,
+    zIndex: isDragging ? 10 : undefined,
+  }
 
   return (
-    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#fafafa] dark:bg-[#171717]">
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners} 
+      className="cursor-grab active:cursor-grabbing touch-none"
+    >
+      <AnalyticsCard {...cardConfig} />
+    </div>
+  )
+}
+
+
+  return (
+    <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#f8f9f8] dark:bg-[#171717]">
       <div className="space-y-6">
         {/* Journal Button with Dropdown - Top Right of Content */}
         <div className="flex justify-end mb-4">
@@ -362,112 +447,29 @@ export function DashboardContent() {
         </div>
 
         {/* Analytics Cards Row - Load immediately */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-          {analyticsCards.map((cardConfig, index) => (
-            <AnalyticsCard
-              key={cardConfig.title}
-              {...cardConfig}
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} onDragEnd={handleAnalyticsCardDragEnd}>
+          <SortableContext items={analyticsCards.map(card => card.title)} strategy={horizontalListSortingStrategy}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+              {analyticsCards.map((cardConfig) => (
+                <SortableAnalyticsCard key={cardConfig.title} cardConfig={cardConfig} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
-        {/* Charts Row - Lazy loaded */}
+        {/* Customizable Widgets Board */}
         <div className="space-y-6">
-          {/* Top Row: SymbolPerformanceChart + AdvanceRadar + AccountBalanceChart */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            <Suspense fallback={<ChartSkeleton />}>
-              <SymbolPerformanceChart />
-            </Suspense>
-            <Suspense fallback={<ChartSkeleton />}>
-              <AdvanceRadar />
-            </Suspense>
-            <Suspense fallback={<ChartSkeleton />}>
-              <AccountBalanceChart />
-            </Suspense>
-          </div>
-          
-          {/* Second Row: TradingStreakHeatmap + DrawdownChart + DailyNetCumulativePnlChart */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            <Suspense fallback={<ChartSkeleton />}>
-              <TradingStreakHeatmap />
-            </Suspense>
-            <Suspense fallback={<ChartSkeleton />}>
-              <DrawdownChart />
-            </Suspense>
-            <Suspense fallback={<ChartSkeleton />}>
-              <DailyNetCumulativePnlChart />
-            </Suspense>
-          </div>
-          
-          {/* Third Row: CumulativePnlBar + ReportChart + ActivityJournalHeatmap */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            <Suspense fallback={<ChartSkeleton />}>
-              <CumulativePnlBar />
-            </Suspense>
-            <Suspense fallback={<ChartSkeleton />}>
-              <ReportChart />
-            </Suspense>
-            <Suspense fallback={<ChartSkeleton />}>
-              <ActivityJournalHeatmap 
-                todayScore={progressMetrics.percentage}
-                todayCompleted={progressMetrics.completed}
-                todayTotal={progressMetrics.total}
-                history={history}
-                onOpenDailyChecklist={() => setIsDailyChecklistOpen(true)} 
-              />
-            </Suspense>
-          </div>
-
-          {/* Fourth Row: PNL Overview + Daily & Cumulative P&L + Trade Time Performance */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            <div>
-              <Suspense fallback={<ChartSkeleton />}>
-                <PnlOverviewChart />
-              </Suspense>
-            </div>
-            <div>
-              <Suspense fallback={<ChartSkeleton />}>
-                <DailyCumulativePnlWidget />
-              </Suspense>
-            </div>
-            <div>
-              <Suspense fallback={<ChartSkeleton />}>
-                <TradeTimePerformance />
-              </Suspense>
-            </div>
-          </div>
-          
-          {/* Recent Trades + Calendar row */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-            <div className="lg:col-span-4 self-start">
-              <Suspense fallback={<ChartSkeleton />}>
-                <RecentTradesTable />
-              </Suspense>
-            </div>
-            <div className="lg:col-span-8 h-full">
-              <div className="h-full">
-                <TradeDashboardCalendar className="h-full" />
-              </div>
-            </div>
-          </div>
-          
-          {/* Yearly Calendar row */}
-          <div className="w-full">
-            <Suspense fallback={<ChartSkeleton />}>
-              <YearlyCalendar />
-            </Suspense>
-          </div>
-          
-          {/* Performance Week Days row - Same size as Daily & Cumulative P&L */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            <div>
-              <Suspense fallback={<ChartSkeleton />}>
-                <PerformanceWeekDays />
-              </Suspense>
-            </div>
-          </div>
-          
+          <CustomizableWidgetsBoard 
+            activity={{
+              todayScore: progressMetrics.percentage,
+              todayCompleted: progressMetrics.completed,
+              todayTotal: progressMetrics.total,
+              history: history,
+              onOpenDailyChecklist: () => setIsDailyChecklistOpen(true)
+            }}
+          />
         </div>
+
       </div>
 
       {/* Daily Checklist Dialog */}

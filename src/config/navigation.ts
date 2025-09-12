@@ -96,7 +96,7 @@ export const navigationConfig: NavigationSection[] = [
         label: 'Gallery',
         href: '/gallery',
         tooltip: 'Media gallery',
-        isEnabled: false
+        isEnabled: true
       }
     ]
   }
