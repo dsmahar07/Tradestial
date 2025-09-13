@@ -21,112 +21,6 @@ interface Strategy {
   profitFactor: string
 }
 
-const strategies: Strategy[] = [
-  {
-    id: 'ict-2022-model',
-    name: 'ICT 2022 Model',
-    description: 'Inner Circle Trader institutional concepts with smart money flow analysis and market structure...',
-    icon: '📈',
-    category: 'Breakout',
-    color: 'bg-purple-500',
-    author: 'ICT Trader',
-    rating: 4.8,
-    downloads: 1247,
-    winRate: '72%',
-    profitFactor: '2.4:1'
-  },
-  {
-    id: 'smc-strategy',
-    name: 'Smart Money Concepts',
-    description: 'Advanced smart money concepts focusing on institutional order flow and liquidity grabs...',
-    icon: '💰',
-    category: 'Smart Money',
-    color: 'bg-blue-500',
-    author: 'SMC Expert',
-    rating: 4.6,
-    downloads: 892,
-    winRate: '68%',
-    profitFactor: '2.1:1'
-  },
-  {
-    id: 'scalping-master',
-    name: 'Scalping Master',
-    description: 'High-frequency scalping strategy optimized for quick profits in volatile markets...',
-    icon: '⚡',
-    category: 'Scalping',
-    color: 'bg-orange-500',
-    author: 'Speed Trader',
-    rating: 4.5,
-    downloads: 623,
-    winRate: '65%',
-    profitFactor: '1.8:1'
-  },
-  {
-    id: 'trend-following-pro',
-    name: 'Trend Following Pro',
-    description: 'Professional trend following system with advanced momentum indicators and risk management...',
-    icon: '📊',
-    category: 'Trend Following',
-    color: 'bg-green-500',
-    author: 'Trend Master',
-    rating: 4.7,
-    downloads: 1056,
-    winRate: '74%',
-    profitFactor: '2.6:1'
-  },
-  {
-    id: 'reversal-king',
-    name: 'Reversal King',
-    description: 'Mean reversion strategy targeting oversold/overbought conditions with precise entries...',
-    icon: '🔄',
-    category: 'Mean Reversion',
-    color: 'bg-red-500',
-    author: 'Reversal Pro',
-    rating: 4.4,
-    downloads: 734,
-    winRate: '63%',
-    profitFactor: '2.0:1'
-  },
-  {
-    id: 'momentum-trader',
-    name: 'Momentum Trader',
-    description: 'Momentum-based strategy capturing strong directional moves with tight risk control...',
-    icon: '🚀',
-    category: 'Momentum',
-    color: 'bg-cyan-500',
-    author: 'Momentum Pro',
-    rating: 4.6,
-    downloads: 945,
-    winRate: '69%',
-    profitFactor: '2.3:1'
-  },
-  {
-    id: 'support-resistance',
-    name: 'Support & Resistance',
-    description: 'Classic support and resistance trading with modern refinements and automated signals...',
-    icon: '📏',
-    category: 'Support/Resistance',
-    color: 'bg-indigo-500',
-    author: 'Classic Trader',
-    rating: 4.3,
-    downloads: 567,
-    winRate: '61%',
-    profitFactor: '1.9:1'
-  },
-  {
-    id: 'breakout-master',
-    name: 'Breakout Master',
-    description: 'Advanced breakout strategy with volume confirmation and false breakout filtering...',
-    icon: '💥',
-    category: 'Breakout',
-    color: 'bg-pink-500',
-    author: 'Breakout King',
-    rating: 4.5,
-    downloads: 812,
-    winRate: '67%',
-    profitFactor: '2.2:1'
-  }
-]
 
 interface StrategyMarketplaceProps {
   open: boolean
@@ -136,6 +30,7 @@ interface StrategyMarketplaceProps {
 export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sharedStrategies, setSharedStrategies] = useState<SharedStrategy[]>([])
+  const [importingStrategy, setImportingStrategy] = useState<string | null>(null)
 
   useEffect(() => {
     setSharedStrategies(getSharedStrategies())
@@ -148,8 +43,58 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
     return () => window.removeEventListener('tradestial:shared-strategies-updated', handleUpdate)
   }, [])
 
+  const handleImportStrategy = async (strategy: Strategy) => {
+    setImportingStrategy(strategy.id)
+    
+    try {
+      // Find the original shared strategy
+      const sharedStrategy = sharedStrategies.find(s => s.id === strategy.id)
+      if (!sharedStrategy) {
+        throw new Error('Shared strategy not found')
+      }
+
+      // Create a new strategy object for the user's collection
+      const importedStrategy = {
+        id: `strategy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: `${sharedStrategy.name} (Imported)`,
+        emoji: sharedStrategy.emoji || '📈',
+        emojiUnified: '1f4c8',
+        image: null,
+        updatedAt: Date.now(),
+        description: sharedStrategy.description,
+        ruleGroups: sharedStrategy.ruleGroups || [] // Preserve rule groups from shared strategy
+      }
+
+      // Get existing strategies from localStorage
+      let existingStrategies = []
+      try {
+        const existingStrategiesRaw = localStorage.getItem('tradestial:strategies')
+        existingStrategies = existingStrategiesRaw ? JSON.parse(existingStrategiesRaw) : []
+      } catch (parseError) {
+        existingStrategies = []
+      }
+      
+      // Add imported strategy to the beginning of the list
+      const updatedStrategies = [importedStrategy, ...existingStrategies]
+      
+      // Save back to localStorage
+      localStorage.setItem('tradestial:strategies', JSON.stringify(updatedStrategies))
+      
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
+      
+      // Show success feedback (you could add a toast notification here)
+      console.log(`Successfully imported strategy: ${sharedStrategy.name}`)
+      
+    } catch (error) {
+      console.error('Failed to import strategy:', error)
+    } finally {
+      setImportingStrategy(null)
+    }
+  }
+
   // Convert shared strategies to marketplace format
-  const convertedSharedStrategies: Strategy[] = sharedStrategies.map(shared => ({
+  const allStrategies: Strategy[] = sharedStrategies.map(shared => ({
     id: shared.id,
     name: shared.name,
     description: shared.description,
@@ -162,9 +107,6 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
     winRate: `${shared.stats.winRate}%`,
     profitFactor: `${shared.stats.profitFactor}:1`
   }))
-
-  // Combine default strategies with shared strategies
-  const allStrategies = [...convertedSharedStrategies, ...strategies]
 
   const filteredStrategies = allStrategies.filter(strategy =>
     strategy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -232,103 +174,126 @@ export function StrategyMarketplace({ open, onOpenChange }: StrategyMarketplaceP
             />
           </div>
 
-          {/* Categories */}
-          {categories.map((category) => {
-            const categoryStrategies = filteredStrategies.filter(s => s.category === category)
-            if (categoryStrategies.length === 0) return null
+          {/* Content */}
+          {filteredStrategies.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-[#171717] flex items-center justify-center">
+                <span className="text-2xl">📈</span>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No strategies found
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                {searchQuery ? 'Try adjusting your search terms.' : 'Share your first strategy to get started!'}
+              </p>
+              <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                Share Strategy
+              </Button>
+            </div>
+          ) : (
+            categories.map((category) => {
+              const categoryStrategies = filteredStrategies.filter(s => s.category === category)
+              if (categoryStrategies.length === 0) return null
 
-            return (
-              <div key={category}>
-                <div className="flex items-center space-x-2 mb-4">
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white">{category}</h3>
-                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-[#171717] text-gray-600 dark:text-gray-400 rounded">
-                    {categoryStrategies.length}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {categoryStrategies.map((strategy) => (
-                    <div
-                      key={strategy.id}
-                      className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#0f0f0f] hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start space-x-3 mb-3">
-                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-white relative", strategy.color)}>
-                          <span className="text-lg">{strategy.icon}</span>
-                          {strategy.author === 'You' && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                              <span className="text-xs text-white">✓</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                              {strategy.name}
-                            </h4>
+              return (
+                <div key={category}>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <h3 className="text-base font-medium text-gray-900 dark:text-white">{category}</h3>
+                    <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-[#171717] text-gray-600 dark:text-gray-400 rounded">
+                      {categoryStrategies.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {categoryStrategies.map((strategy) => (
+                      <div
+                        key={strategy.id}
+                        className="p-4 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#0f0f0f] hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start space-x-3 mb-3">
+                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-white relative", strategy.color)}>
+                            <span className="text-lg">{strategy.icon}</span>
                             {strategy.author === 'You' && (
-                              <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 rounded">
-                                Your Strategy
-                              </span>
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                <span className="text-xs text-white">✓</span>
+                              </div>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            by {strategy.author}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                        {strategy.description}
-                      </p>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {strategy.winRate}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                                {strategy.name}
+                              </h4>
+                              {strategy.author === 'You' && (
+                                <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 rounded">
+                                  Your Strategy
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              by {strategy.author}
+                            </p>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Win Rate</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {strategy.profitFactor}
+                        
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                          {strategy.description}
+                        </p>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <div className="text-center">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {strategy.winRate}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Win Rate</div>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Profit Factor</div>
+                          <div className="text-center">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {strategy.profitFactor}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Profit Factor</div>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Rating and Downloads */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-1">
-                          {renderStars(strategy.rating)}
-                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                            {strategy.rating}
-                          </span>
+                        {/* Rating and Downloads */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-1">
+                            {renderStars(strategy.rating)}
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                              {strategy.rating}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {strategy.downloads} downloads
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {strategy.downloads} downloads
-                        </div>
-                      </div>
 
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs h-8"
-                      >
-                        <button className="w-full text-xs h-8 border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#171717]">
-                          <span className="inline-flex items-center justify-center">
-                            <Plus className="w-3 h-3 mr-1" />
-                            Add Strategy
-                          </span>
-                        </button>
-                      </Button>
-                    </div>
-                  ))}
+                        <Button
+                          onClick={() => handleImportStrategy(strategy)}
+                          disabled={importingStrategy === strategy.id}
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-xs h-8"
+                        >
+                          {importingStrategy === strategy.id ? (
+                            <span className="inline-flex items-center justify-center">
+                              <div className="w-3 h-3 mr-1 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                              Importing...
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center">
+                              <Plus className="w-3 h-3 mr-1" />
+                              Add Strategy
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

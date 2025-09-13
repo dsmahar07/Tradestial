@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation'
 import { MoreHorizontal, Edit, Copy, Share, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
 import { ShareStrategyDialog } from './share-strategy-dialog'
 import { createPortal } from 'react-dom'
+import * as AlertDialog from '@radix-ui/react-alert-dialog'
+import { Button } from '@/components/ui/button'
 
 type Strategy = {
   id: string
@@ -60,37 +62,78 @@ export function ModelCardsView() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null)
   const [mounted, setMounted] = useState(false)
   const isDev = typeof process !== 'undefined' && process.env.NODE_ENV !== 'production'
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const handleShare = (strategy: Strategy, stats: StrategyStats) => {
     setSelectedStrategy({ strategy, stats })
     setShareDialogOpen(true)
   }
 
-  const handleDelete = (strategyId: string) => {
-    if (confirm('Are you sure you want to delete this model? This action cannot be undone.')) {
-      try {
-        const currentStrategiesRaw = localStorage.getItem(STRATEGIES_KEY)
-        const currentStrategies = currentStrategiesRaw ? JSON.parse(currentStrategiesRaw) : []
-        
-        const updatedStrategies = currentStrategies.filter((s: Strategy) => s.id !== strategyId)
-        localStorage.setItem(STRATEGIES_KEY, JSON.stringify(updatedStrategies))
-        
-        const updatedAssignments = { ...assignments }
-        delete updatedAssignments[strategyId]
-        localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(updatedAssignments))
-        
-        localStorage.removeItem(`tradestial:strategy-notes:${strategyId}`)
-        localStorage.removeItem(`tradestial:strategy-note:${strategyId}`)
-        
-        setStrategies(updatedStrategies)
-        setAssignments(updatedAssignments)
-        
-        window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
-      } catch (error) {
-        logger.error('Failed to delete strategy:', error)
-        alert('Failed to delete model. Please try again.')
+  const executeDelete = (strategyId: string) => {
+    try {
+      // Read latest strategies from storage
+      const currentStrategiesRaw = localStorage.getItem(STRATEGIES_KEY)
+      const currentStrategies = currentStrategiesRaw ? JSON.parse(currentStrategiesRaw) : []
+
+      if (isDev) console.debug('[Cards] Deleting strategy:', strategyId)
+      if (isDev) console.debug('[Cards] Strategies before delete:', currentStrategies)
+
+      // Remove the strategy itself (by id)
+      let updatedStrategies = currentStrategies.filter((s: Strategy) => String(s.id) !== String(strategyId))
+
+      // Fallback: If nothing was removed (legacy/mismatched IDs), try by name (remove all matches)
+      if (updatedStrategies.length === currentStrategies.length) {
+        const target = currentStrategies.find((s: Strategy) => s.id === strategyId)
+        const targetName = target?.name
+        if (targetName) {
+          const beforeLen = currentStrategies.length
+          updatedStrategies = currentStrategies.filter((s: Strategy) => s.name !== targetName)
+          if (isDev) console.debug('[Cards] Fallback delete by name removed count:', beforeLen - updatedStrategies.length, 'name:', targetName)
+        }
       }
+
+      localStorage.setItem(STRATEGIES_KEY, JSON.stringify(updatedStrategies))
+
+      if (isDev) console.debug('[Cards] Strategies after delete:', updatedStrategies)
+      if (isDev) console.debug('[Cards] Removed count:', currentStrategies.length - updatedStrategies.length)
+
+      // Clean up model assignments using the service so caches/events stay in sync
+      const tradeIds = modelStatsService.getModelTrades(strategyId)
+      if (isDev) console.debug('[Cards] Removing assignments for model:', strategyId, 'tradeIds:', tradeIds)
+      tradeIds.forEach(tid => modelStatsService.removeTradeFromModel(tid, strategyId))
+
+      // Clear stats cache to prevent stale metrics keeping the card visible
+      try {
+        modelStatsService.clearStatsCache()
+      } catch {}
+
+      // Clean up associated notes (current + legacy)
+      localStorage.removeItem(`tradestial:strategy-notes:${strategyId}`)
+      localStorage.removeItem(`tradestial:strategy-note:${strategyId}`)
+
+      // Update state from authoritative sources
+      setStrategies(updatedStrategies)
+      const freshAssignments = modelStatsService.getAllAssignments()
+      setAssignments(freshAssignments)
+      try {
+        localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(freshAssignments))
+      } catch {}
+
+      // Notify other components/views
+      window.dispatchEvent(new CustomEvent('tradestial:strategies-updated'))
+
+      // Guarantee UI sync across views
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
+    } catch (error) {
+      logger.error('Failed to delete strategy:', error)
+      alert('Failed to delete model. Please try again.')
     }
+  }
+
+  const handleDelete = (strategyId: string) => {
+    setConfirmDeleteId(strategyId)
   }
 
   const handleDuplicate = (strategy: Strategy) => {
@@ -198,10 +241,15 @@ export function ModelCardsView() {
             tabIndex={0}
             aria-label={`Open model ${strategy.name}`}
             className="group relative w-full rounded-[32px] bg-[#fafcff] dark:bg-[#171717] ring-1 ring-gray-200 dark:ring-gray-700 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-visible cursor-pointer transform transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-[0_12px_40px_rgba(93,60,210,0.18)] hover:ring-[#c7b8ff] dark:hover:ring-[#5d3cd2] active:opacity-80 focus:outline-none focus:ring-2 focus:ring-[#c7b8ff] dark:focus:ring-[#5d3cd2]"
-            onClick={() => window.location.href = `/model/${strategy.id}`}
+            onClick={() => {
+              // If the action dropdown is open, do not navigate
+              if (openDropdownId) return
+              window.location.href = `/model/${strategy.id}`
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
+                if (openDropdownId) return
                 window.location.href = `/model/${strategy.id}`
               }
             }}
@@ -258,7 +306,8 @@ export function ModelCardsView() {
                       top: rect.bottom + 8,
                       right: window.innerWidth - rect.right
                     })
-                    setOpenDropdownId(openDropdownId === strategy.id ? null : strategy.id)
+                    const nextId = openDropdownId === strategy.id ? null : strategy.id
+                    setOpenDropdownId(nextId)
                   }}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
                 >
@@ -358,6 +407,32 @@ export function ModelCardsView() {
         strategy={selectedStrategy?.strategy || null}
         stats={selectedStrategy?.stats || null}
       />
+
+      {/* Confirm Delete Dialog */}
+      <AlertDialog.Root open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="fixed inset-0 z-[1000] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 z-[1001] grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 bg-white dark:bg-[#0f0f0f] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
+            <AlertDialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">Delete model?</AlertDialog.Title>
+            <AlertDialog.Description className="text-sm text-gray-600 dark:text-gray-400">
+              This action cannot be undone. This will permanently delete the model and its local assignments.
+            </AlertDialog.Description>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={() => {
+                  const id = confirmDeleteId
+                  setConfirmDeleteId(null)
+                  if (id) executeDelete(id)
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
       
       {/* Portal Dropdown */}
       {mounted && openDropdownId && dropdownPosition && createPortal(
@@ -370,7 +445,10 @@ export function ModelCardsView() {
             backgroundColor: '#ffffff',
             border: '1px solid #e5e7eb'
           }}
-          onClick={(e) => e.stopPropagation()}
+          role="menu"
+          onClick={(e) => { e.stopPropagation(); }}
+          onMouseDown={(e) => { e.stopPropagation(); }}
+          onMouseUp={(e) => { e.stopPropagation(); }}
         >
           {strategies.find(s => s.id === openDropdownId) && (
             <>
@@ -416,9 +494,16 @@ export function ModelCardsView() {
               <div className="h-px bg-gray-200 my-1" />
               
               <button
-                onClick={(e) => {
+                onMouseDown={(e) => {
+                  // Use mousedown so document-level outside-click handlers don't fire first
+                  e.preventDefault()
                   e.stopPropagation()
-                  handleDelete(openDropdownId)
+                  const s = strategies.find(s => String(s.id) === String(openDropdownId))
+                  if (!s) {
+                    if (isDev) console.debug('[Cards] Delete clicked but no strategy resolved for id:', openDropdownId)
+                    return
+                  }
+                  handleDelete(s.id)
                   setOpenDropdownId(null)
                 }}
                 className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"

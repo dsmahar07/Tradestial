@@ -12,6 +12,15 @@ type Strategy = {
   id: string
   name: string
   emoji?: string
+  ruleGroups?: Array<{
+    id: string
+    title: string
+    rules: Array<{
+      id: string
+      text: string
+      frequency: string
+    }>
+  }>
 }
 
 type StrategyStats = {
@@ -69,7 +78,8 @@ export function ShareStrategyDialog({ open, onOpenChange, strategy, stats }: Sha
         },
         emoji: strategy.emoji,
         sharedAt: Date.now(),
-        originalId: strategy.id
+        originalId: strategy.id,
+        ruleGroups: strategy.ruleGroups || []
       }
 
       addSharedStrategy(sharedStrategy)

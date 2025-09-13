@@ -16,6 +16,15 @@ export interface SharedStrategy {
   emoji?: string
   sharedAt: number
   originalId: string
+  ruleGroups?: Array<{
+    id: string
+    title: string
+    rules: Array<{
+      id: string
+      text: string
+      frequency: string
+    }>
+  }>
 }
 
 const SHARED_STRATEGIES_KEY = 'tradestial:shared-strategies'
