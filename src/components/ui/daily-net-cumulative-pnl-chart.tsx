@@ -133,12 +133,29 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
       return ta.toMillis() - tb.toMillis()
     })
 
+    // Smooth values with a small moving average to reduce sharp turns (Option B)
+    const windowSize = 5 // 3 or 5 recommended; must be odd
+    const half = Math.floor(windowSize / 2)
+    const rawValues = sorted.map((d: any) => (typeof (d as any).cumulative === 'number' ? (d as any).cumulative : 0))
+    const smoothedValues = rawValues.map((_, i) => {
+      let sum = 0
+      let count = 0
+      for (let j = i - half; j <= i + half; j++) {
+        if (j >= 0 && j < rawValues.length) {
+          sum += rawValues[j]
+          count++
+        }
+      }
+      return count > 0 ? sum / count : rawValues[i]
+    })
+
     // Map to display-friendly labels with robust value handling
     const mapped: Array<{ time: string; value: number; positiveValue: number | null; negativeValue: number | null; index: number }> = []
     let runningIndex = 0
     let prevValue: number | null = null
     
-    for (const d of sorted) {
+    for (let i = 0; i < sorted.length; i++) {
+      const d = sorted[i]
       const dt = DateTime.fromISO(d.date)
       let label: string
       
@@ -160,7 +177,7 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
       }
       
       // Robust value handling with bounds checking
-      let value = d.cumulative || 0
+      let value = smoothedValues[i] ?? 0
       
       // Handle extreme values
       const MAX_SAFE_VALUE = 1e12 // 1 trillion
@@ -452,7 +469,7 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
             
             {/* Positive area - clip to line using split series */}
             <Area
-              type="linear"
+              type="monotone"
               dataKey="positiveValue"
               stroke="none"
               fill="url(#positiveGradient)"
@@ -466,7 +483,7 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
             
             {/* Negative area - clip to line using split series */}
             <Area
-              type="linear"
+              type="monotone"
               dataKey="negativeValue"
               stroke="none"
               fill="url(#negativeGradient)"
@@ -480,10 +497,12 @@ export const DailyNetCumulativePnlChart = React.memo(function DailyNetCumulative
             
             {/* Main line stroke - enhanced styling */}
             <Area
-              type="linear"
+              type="monotone"
               dataKey="value"
               stroke="#5B2CC9"
               strokeWidth={1.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
               fill="none"
               connectNulls={true}
               isAnimationActive={shouldAnimate}

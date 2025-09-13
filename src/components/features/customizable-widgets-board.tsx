@@ -29,6 +29,7 @@ const TradeDashboardCalendar = React.lazy(() => import("@/components/ui/trade-da
 const LS_KEY = "tradestial:dashboard:widgets:v1" // legacy single-layout key
 const LAYOUTS_KEY = "tradestial:dashboard:layouts:v1" // map of name -> layout
 const ACTIVE_LAYOUT_KEY = "tradestial:dashboard:active-layout:v1"
+const SWAP_MIGRATION_KEY = "tradestial:dashboard:migr:swap-daily-cum-and-bar:v1"
 
 export type WidgetId =
   | "symbol-performance"
@@ -79,8 +80,8 @@ const DEFAULT_ORDER: WidgetId[] = [
   "account-balance",
   "trading-streak",
   "drawdown",
-  "daily-net-cum-pnl",
   "cumulative-pnl-bar",
+  "daily-net-cum-pnl",
   "report-chart",
   "pnl-overview",
   "daily-cum-pnl-widget",
@@ -127,9 +128,45 @@ function usePersistentLayout(isEditing?: boolean) {
       const activeRaw = localStorage.getItem(ACTIVE_LAYOUT_KEY)
       const layouts = layoutsRaw ? (JSON.parse(layoutsRaw) as Record<string, PersistedState>) : {}
 
+      // One-time migration: ensure cumulative-pnl-bar is placed before daily-net-cum-pnl
+      try {
+        const migrated = localStorage.getItem(SWAP_MIGRATION_KEY)
+        if (!migrated) {
+          let changed = false
+          for (const key of Object.keys(layouts)) {
+            const state = layouts[key]
+            if (state?.order) {
+              const iDaily = state.order.indexOf("daily-net-cum-pnl")
+              const iBar = state.order.indexOf("cumulative-pnl-bar")
+              // Only adjust if currently daily comes before bar
+              if (iDaily !== -1 && iBar !== -1 && iDaily < iBar) {
+                const newOrder = [...state.order]
+                ;[newOrder[iDaily], newOrder[iBar]] = [newOrder[iBar], newOrder[iDaily]]
+                layouts[key] = { ...state, order: newOrder }
+                changed = true
+              }
+            }
+          }
+          if (changed) {
+            localStorage.setItem(LAYOUTS_KEY, JSON.stringify(layouts))
+          }
+          localStorage.setItem(SWAP_MIGRATION_KEY, "true")
+        }
+      } catch {}
+
       // Migrate legacy single layout into "Default" if no layouts exist
       if (!layoutsRaw) {
         const legacy = loadState()
+        // Apply the same swap to legacy layout so users without named layouts also get the new order
+        if (legacy?.order) {
+          const iDaily = legacy.order.indexOf("daily-net-cum-pnl")
+          const iBar = legacy.order.indexOf("cumulative-pnl-bar")
+          if (iDaily !== -1 && iBar !== -1 && iDaily < iBar) {
+            const newOrder = [...legacy.order]
+            ;[newOrder[iDaily], newOrder[iBar]] = [newOrder[iBar], newOrder[iDaily]]
+            legacy.order = newOrder
+          }
+        }
         layouts["Default"] = legacy
         localStorage.setItem(LAYOUTS_KEY, JSON.stringify(layouts))
         localStorage.setItem(ACTIVE_LAYOUT_KEY, JSON.stringify("Default"))
@@ -360,6 +397,29 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
   }, [props.activity])
   const visibleOrder = order.filter(id => !hidden[id])
 
+  // Auto-recover from an empty layout: if all widgets are hidden or order is empty,
+  // restore a sane default so the dashboard never appears empty.
+  useEffect(() => {
+    try {
+      const anyVisible = order.some(id => !hidden[id])
+      if (!anyVisible) {
+        const baselineOrder = (order && order.length ? order.filter(id => DEFAULT_ORDER.includes(id)) : DEFAULT_ORDER)
+        if (!order || order.length === 0) {
+          setOrder(DEFAULT_ORDER)
+        } else if (baselineOrder.length !== order.length) {
+          // Clean up any invalid ids that are not in DEFAULT_ORDER
+          setOrder(baselineOrder.length ? baselineOrder : DEFAULT_ORDER)
+        }
+        // Make all items visible except yearly-calendar
+        const idsToShow = (order && order.length ? order : DEFAULT_ORDER)
+        idsToShow.forEach(id => {
+          const shouldShow = id !== 'yearly-calendar'
+          show(id, shouldShow)
+        })
+      }
+    } catch {}
+  }, [order, hidden, show, setOrder])
+
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
     if (!over || active.id === over.id) return
@@ -407,8 +467,6 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
 
   return (
     <div className="space-y-3">
-      
-
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <SortableContext items={visibleOrder}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 grid-flow-row-dense">

@@ -165,7 +165,7 @@ export function Sidebar() {
           role="navigation"
           aria-label="Main navigation"
           className={cn(
-            "bg-[#f8f9f8] dark:bg-[#171717] text-gray-700 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto flex flex-col transition-[width] duration-300 ease-out relative",
+            "bg-[#f8f9f8] dark:bg-[#171717] text-gray-700 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto flex flex-col transition-[width] duration-300 ease-out relative border-r border-gray-200 dark:border-[#2a2a2a]",
             "fixed lg:sticky z-[9998] lg:z-auto",
             isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
             isCollapsed ? "w-20" : "w-52"
