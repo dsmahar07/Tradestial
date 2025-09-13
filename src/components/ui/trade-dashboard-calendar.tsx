@@ -464,8 +464,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   const formatCompact = (n: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(n))
   const formatMonthlyDisplay = (n: number) => {
     if (n === 0) return '$0'
-    const sign = n > 0 ? '+' : '-'
-    return `${sign}$${formatCompact(n)}`
+    return `$${formatCompact(n)}`
   }
 
   // Helper: generate gradient background based on PnL performance
@@ -677,7 +676,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       <div className="lg:hidden">
         <div className="grid grid-cols-7 gap-2 mb-2">
           {dayNames.map((d) => (
-            <div key={d} className="text-center text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 py-2">
+            <div key={d} className="text-center text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 py-2 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#0f0f0f]">
               {d}
             </div>
           ))}
@@ -720,7 +719,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                   <div className="flex-grow flex flex-col items-center justify-center -mt-2">
                     {/* P&L display - always at top */}
                     <div className={cn(useCompact ? 'text-center text-sm font-bold mb-1' : 'text-center text-base font-bold mb-1', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                      {isPrivacyMode ? maskCurrencyValue(pnl, true) : `${pnl > 0 ? '+' : ''}$${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}`}
+                      {isPrivacyMode ? maskCurrencyValue(pnl, true) : `$${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}`}
                     </div>
                     {/* Secondary metrics in organized grid */}
                     {(settings.rMultiple || settings.ticks || settings.pips || settings.points) && (
@@ -763,7 +762,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
         {/* Header row */}
         <div className="grid grid-cols-8 gap-2 mb-2">
           {dayNames.map((d) => (
-            <div key={d} className="text-center text-sm font-medium text-gray-600 dark:text-gray-400 py-2">
+            <div key={d} className="text-center text-sm font-medium text-gray-600 dark:text-gray-400 py-2 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#0f0f0f]">
               {d}
             </div>
           ))}
@@ -817,7 +816,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                           {settings.points ? `${Math.abs(Math.round(pnl / 25))} pts` : ''}
                         </span>
                         <span className={cn('font-bold text-xl font-inter ml-auto mr-2 mt-3', isPositive ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                          {isPrivacyMode ? maskCurrencyValue(pnl, true) : `${pnl > 0 ? '+' : ''}$${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}`}
+                          {isPrivacyMode ? maskCurrencyValue(pnl, true) : `$${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl)/1000).toFixed(1)}k` : Math.abs(pnl)}`}
                         </span>
                       </div>
                       {/* Row 2: T 20 | 5 trades | */}
@@ -851,7 +850,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                 <div className="text-xs text-gray-500 dark:text-gray-400">{weeklyStats[i]?.days ?? 0} {(weeklyStats[i]?.days ?? 0) === 1 ? 'day' : 'days'}</div>
               </div>
               <div className={cn('text-base font-semibold', (weeklyStats[i]?.pnl ?? 0) >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}>
-                {isPrivacyMode ? maskCurrencyValue(weeklyStats[i]?.pnl ?? 0, true) : ((weeklyStats[i]?.pnl ?? 0) === 0 ? '$0' : `${(weeklyStats[i]?.pnl ?? 0) > 0 ? '+' : '-'}$${Math.abs(weeklyStats[i]?.pnl ?? 0)}`)}
+                {isPrivacyMode ? maskCurrencyValue(weeklyStats[i]?.pnl ?? 0, true) : ((weeklyStats[i]?.pnl ?? 0) === 0 ? '$0' : `$${Math.abs(weeklyStats[i]?.pnl ?? 0)}`)}
               </div>
             </div>
           </div>
