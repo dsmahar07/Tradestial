@@ -100,7 +100,10 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
         const key = localStorage.key(i) || ''
         if (!key.startsWith('day-note:')) continue
         const val = localStorage.getItem(key) || ''
-        if (val && val.trim() !== '') {
+        // Check if content has actual text (not just HTML tags) OR contains media
+        const textContent = val.replace(/<[^>]*>/g, '').trim()
+        const hasMedia = /<(img|video|audio|svg|canvas|iframe)\b/i.test(val)
+        if ((textContent && textContent !== '') || hasMedia) {
           const dateKey = key.replace('day-note:', '')
           next.add(dateKey)
         }
@@ -120,7 +123,10 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       try {
         const dateKey = e?.detail?.dateKey
         if (!dateKey) return
-        const has = !!(localStorage.getItem(`day-note:${dateKey}`) || '').trim()
+        const val = localStorage.getItem(`day-note:${dateKey}`) || ''
+        const textContent = val.replace(/<[^>]*>/g, '').trim()
+        const hasMedia = /<(img|video|audio|svg|canvas|iframe)\b/i.test(val)
+        const has = (textContent && textContent !== '') || hasMedia
         setNotedDays(prev => {
           const next = new Set(prev)
           if (has) next.add(dateKey); else next.delete(dateKey)

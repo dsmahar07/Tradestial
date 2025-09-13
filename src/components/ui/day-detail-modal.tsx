@@ -171,14 +171,26 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     return `$${value.toFixed(2)}`
   }
 
-  // Note editor state
+  // Note editor state - always start with notes closed
   const [isNoteMode, setIsNoteMode] = useState<boolean>(false)
+
+  // Reset note mode when modal opens
+  useEffect(() => {
+    if (open) {
+      setIsNoteMode(false)
+    }
+  }, [open])
   const [noteContent, setNoteContent] = useState<string>('')
   const [fontFamily, setFontFamily] = useState<string>('Arial')
   const FONT_SIZES = [12, 14, 15, 16, 18, 20, 24]
   const [fontSizeIndex, setFontSizeIndex] = useState<number>(2)
   const editorRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Track last saved value to avoid autosave clearing content on first open
+  const lastSavedRef = useRef<string>('')
+  const isDirtyRef = useRef<boolean>(false)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Minimal sanitizer to strip scripts, event handlers, and unsafe URLs
   const sanitizeHtml = useCallback((dirty: string): string => {
@@ -201,7 +213,8 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
             const http = lower.startsWith('http://') || lower.startsWith('https://')
             const dataImg = lower.startsWith('data:image/')
             const local = lower.startsWith('/') || lower.startsWith('./')
-            if (!(http || dataImg || local)) el.removeAttribute(attr.name)
+            const blob = lower.startsWith('blob:')
+            if (!(http || dataImg || local || blob)) el.removeAttribute(attr.name)
             if (name === 'href' && lower.startsWith('javascript:')) el.removeAttribute(attr.name)
           }
         })
@@ -212,60 +225,219 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     }
   }, [])
 
-  const storageKey = date ? `day-note:${new Date(date).toISOString().split('T')[0]}` : undefined
+  // Determine if HTML has meaningful content (text or media like images)
+  const hasMeaningfulContent = useCallback((html: string): boolean => {
+    if (!html) {
+      console.log('[DayDetailModal] hasMeaningfulContent: empty html')
+      return false
+    }
+    try {
+      const text = html.replace(/<[^>]*>/g, '').trim()
+      console.log('[DayDetailModal] hasMeaningfulContent: extracted text:', text)
+      if (text) return true
+      // Consider media as content too (img/video/audio/svg/canvas/iframe)
+      const hasMedia = /<(img|video|audio|svg|canvas|iframe)\b/i.test(html)
+      console.log('[DayDetailModal] hasMeaningfulContent: has media:', hasMedia)
+      return hasMedia
+    } catch {
+      console.log('[DayDetailModal] hasMeaningfulContent: error parsing html')
+      return false
+    }
+  }, [])
+
+  const storageKey = date ? `day-note:${toYMD(date)}` : undefined
+  
+  // Helper function to format date consistently
+  function toYMD(date: Date) {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
 
   // Load note when date changes or modal opens
   useEffect(() => {
-    if (!storageKey) return
-    const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
+    if (!storageKey || !open) return
+    
+    // Prevent StrictMode double execution from clearing notes
+    const loadKey = `${storageKey}:loading`
+    if (typeof window !== 'undefined' && sessionStorage.getItem(loadKey)) {
+      return
+    }
+    
+    // Attempt legacy UTC-based key migration
+    let saved: string | null = null
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(loadKey, 'true')
+      saved = localStorage.getItem(storageKey)
+      // If no local-based note, try migrating from legacy UTC key
+      if (!saved && date) {
+        const legacyKey = `day-note:${new Date(date).toISOString().split('T')[0]}`
+        if (legacyKey !== storageKey) {
+          const legacyVal = localStorage.getItem(legacyKey)
+          if (legacyVal) {
+            try {
+              localStorage.setItem(storageKey, legacyVal)
+              saved = legacyVal
+            } catch {}
+          }
+        }
+      }
+    }
     const safe = sanitizeHtml(saved || '')
     setNoteContent(safe)
-    // sync editor DOM
-    if (editorRef.current) {
-      editorRef.current.innerHTML = safe
+    // Initialize last saved content so autosave won't wipe on first run
+    lastSavedRef.current = safe
+    // Reset dirty flag on load
+    isDirtyRef.current = false
+    
+    // Cleanup session flag after a short delay
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(loadKey)
+      }
+    }, 100)
+    
+    return () => {
+      clearTimeout(timer)
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(loadKey)
+      }
     }
-  }, [storageKey, open, sanitizeHtml])
+  }, [storageKey, open, sanitizeHtml, date])
 
-  const handleSaveNote = () => {
+  // Sync editor DOM when noteContent changes or when editor becomes available
+  useEffect(() => {
+    if (editorRef.current && noteContent !== undefined && isNoteMode) {
+      // Only update DOM if it's different from current content
+      if (editorRef.current.innerHTML !== noteContent) {
+        editorRef.current.innerHTML = noteContent
+      }
+    }
+  }, [noteContent, isNoteMode])
+
+  // Additional effect to handle case when modal opens with note area already expanded
+  useEffect(() => {
+    if (open && isNoteMode && editorRef.current && noteContent !== undefined) {
+      // Small delay to ensure DOM is fully rendered
+      const timer = setTimeout(() => {
+        if (editorRef.current && editorRef.current.innerHTML !== noteContent) {
+          editorRef.current.innerHTML = noteContent
+        }
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [open, isNoteMode, noteContent])
+
+  const handleSaveNote = useCallback(() => {
     if (!storageKey) return
-    const content = editorRef.current?.innerHTML ?? noteContent
-    localStorage.setItem(storageKey, sanitizeHtml(content || ''))
+    const content = editorRef.current?.innerHTML || ''
+    const sanitized = sanitizeHtml(content)
+    
+    console.log('[DayDetailModal] Attempting to save:', { content: content.substring(0, 100), sanitized: sanitized.substring(0, 100), lastSaved: lastSavedRef.current.substring(0, 100) })
+    
+    // Skip if content hasn't changed
+    if (sanitized === lastSavedRef.current) {
+      console.log('[DayDetailModal] Content unchanged, skipping save')
+      return
+    }
+    
+    if (hasMeaningfulContent(sanitized)) {
+      console.log('[DayDetailModal] Saving meaningful content')
+      setSaveState('saving')
+      try {
+        localStorage.setItem(storageKey, sanitized)
+        const verify = localStorage.getItem(storageKey) || ''
+        if (verify !== sanitized) {
+          console.warn('[DayDetailModal] Write verification failed', { key: storageKey, wantLen: sanitized.length, gotLen: verify.length })
+          setSaveState('error')
+          return
+        }
+        console.log('[DayDetailModal] Successfully saved to localStorage')
+      } catch (err) {
+        console.error('[DayDetailModal] Save error', err)
+        setSaveState('error')
+        return
+      }
+    } else {
+      console.log('[DayDetailModal] Removing empty content')
+      // Explicit user-triggered save with empty content clears note
+      try {
+        localStorage.removeItem(storageKey)
+        const verify = localStorage.getItem(storageKey)
+        if (verify != null) {
+          console.warn('[DayDetailModal] Remove verification failed', { key: storageKey })
+          setSaveState('error')
+          return
+        }
+      } catch (err) {
+        console.error('[DayDetailModal] Remove error', err)
+        setSaveState('error')
+        return
+      }
+    }
+    // Update last saved snapshot
+    lastSavedRef.current = sanitized
     try {
       const dateKey = storageKey.replace('day-note:', '')
       window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
+      setSaveState('saved')
+      setTimeout(() => setSaveState('idle'), 1200)
     } catch {}
-  }
+  }, [storageKey, sanitizeHtml, hasMeaningfulContent])
 
-  // Auto-save with debounce when content changes
+  // Auto-save with debounce when content changes - saves after user stops typing
   useEffect(() => {
-    if (!storageKey || !noteContent) return
-    const timer = setTimeout(() => {
-      const content = editorRef.current?.innerHTML ?? noteContent
-      const sanitized = sanitizeHtml(content || '')
-      if (sanitized.trim()) {
-        localStorage.setItem(storageKey, sanitized)
-        try {
-          const dateKey = storageKey.replace('day-note:', '')
-          window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
-        } catch {}
-      }
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [noteContent, storageKey, sanitizeHtml])
-
-  // Ensure save on close/unmount
-  useEffect(() => {
-    if (!storageKey) return
-    if (!open) return
-    return () => {
-      const content = editorRef.current?.innerHTML ?? noteContent
-      localStorage.setItem(storageKey, sanitizeHtml(content || ''))
-      try {
-        const dateKey = storageKey.replace('day-note:', '')
-        window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
-      } catch {}
+    console.log('[DayDetailModal] Autosave effect triggered:', { storageKey, isDirty: isDirtyRef.current, noteContent: noteContent.substring(0, 50) })
+    if (!storageKey || !isDirtyRef.current) return
+    
+    // Clear any existing timer
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current)
     }
-  }, [open, storageKey, noteContent, sanitizeHtml])
+    
+    console.log('[DayDetailModal] Setting autosave timer')
+    autosaveTimerRef.current = setTimeout(() => {
+      console.log('[DayDetailModal] Autosave timer triggered')
+      handleSaveNote()
+      autosaveTimerRef.current = null
+    }, 800)
+    
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current)
+        autosaveTimerRef.current = null
+      }
+    }
+  }, [noteContent, storageKey, handleSaveNote])
+
+  // Ensure save on close/unmount - with StrictMode protection
+  useEffect(() => {
+    if (!storageKey || !open) return
+    
+    // Track if this effect has been cleaned up to prevent StrictMode double execution
+    let isCleanedUp = false
+    
+    return () => {
+      // Prevent StrictMode from triggering save during development double execution
+      if (isCleanedUp) return
+      isCleanedUp = true
+      
+      // Only save if we have meaningful content and this is a real unmount
+      setTimeout(() => {
+        const content = editorRef.current?.innerHTML ?? noteContent
+        const sanitized = sanitizeHtml(content || '')
+        if (hasMeaningfulContent(sanitized)) {
+          localStorage.setItem(storageKey, sanitized)
+          lastSavedRef.current = sanitized
+          try {
+            const dateKey = storageKey.replace('day-note:', '')
+            window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
+          } catch {}
+        }
+      }, 0)
+    }
+  }, [open, storageKey, noteContent, sanitizeHtml, hasMeaningfulContent])
 
   const onEditorInput = useCallback(() => {
     if (editorRef.current) {
@@ -275,17 +447,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
         editorRef.current.innerHTML = safe
       }
       setNoteContent(safe)
-      
-      // Immediate save for better UX
-      if (storageKey && safe.trim()) {
-        localStorage.setItem(storageKey, safe)
-        try {
-          const dateKey = storageKey.replace('day-note:', '')
-          window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
-        } catch {}
-      }
+      // Mark as dirty so autosave will run
+      isDirtyRef.current = true
+      console.log('[DayDetailModal] Editor input detected, content:', safe.substring(0, 100))
     }
-  }, [sanitizeHtml, storageKey])
+  }, [sanitizeHtml])
 
   const exec = (command: string, value?: string) => {
     try {
@@ -294,6 +460,28 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
       onEditorInput()
     } catch {}
   }
+
+  // Save on Ctrl/Cmd+S and visibility change
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().includes('MAC')
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        handleSaveNote()
+      }
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        handleSaveNote()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [handleSaveNote])
 
   const insertHTMLAtCursor = (html: string) => {
     const selection = window.getSelection()
@@ -384,7 +572,35 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                 Net P&L {typeof pnl === 'number' ? `${pnl >= 0 ? '+' : '-'}${formatCurrencyValue(Math.abs(pnl))}`.replace('$-', '-') : '$0'}
               </span>
             </div>
-            <div className="flex items-center gap-2 mr-4 sm:mr-6">
+            <div className="flex items-center gap-3 mr-4 sm:mr-6">
+              {/* Save state indicator */}
+              <div className="flex items-center gap-2 text-xs">
+                {saveState === 'saving' && (
+                  <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                    <span className="inline-block h-2 w-2 bg-blue-500 rounded-full animate-pulse" /> Saving…
+                  </span>
+                )}
+                {saveState === 'saved' && (
+                  <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                    <span className="inline-block h-2 w-2 bg-green-500 rounded-full" /> Saved
+                  </span>
+                )}
+                {saveState === 'error' && (
+                  <span className="flex items-center gap-1 text-red-500">
+                    <span className="inline-block h-2 w-2 bg-red-500 rounded-full" /> Save failed
+                  </span>
+                )}
+                {/* Debug save button */}
+                <button 
+                  onClick={() => {
+                    console.log('[DayDetailModal] Manual save triggered')
+                    handleSaveNote()
+                  }}
+                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Save Now
+                </button>
+              </div>
               <FancyButton.Root variant="primary" size="small" className="px-3" onClick={() => setIsNoteMode((v) => !v)}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19.0906 14.4414V18.8806C19.0906 19.1918 19.0293 19.4999 18.9102 19.7874C18.7912 20.0748 18.6166 20.336 18.3966 20.556C18.1766 20.7761 17.9154 20.9506 17.6279 21.0697C17.3405 21.1887 17.0324 21.25 16.7212 21.25H5.11939C4.80709 21.25 4.49787 21.1883 4.20951 21.0684C3.92116 20.9484 3.65935 20.7727 3.43915 20.5512C3.21896 20.3298 3.04471 20.067 2.92644 19.7779C2.80818 19.4889 2.74821 19.1793 2.75001 18.867V7.27882C2.7482 6.96716 2.80825 6.65824 2.92669 6.36996C3.04512 6.08168 3.21958 5.81976 3.43996 5.59938C3.66034 5.379 3.92225 5.20454 4.21054 5.08611C4.49882 4.96768 4.80774 4.90763 5.11939 4.90943H9.55858" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -568,6 +784,11 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   ref={editorRef}
                   contentEditable
                   onInput={onEditorInput}
+                  onBlur={() => {
+                    if (isDirtyRef.current) {
+                      handleSaveNote()
+                    }
+                  }}
                   suppressContentEditableWarning={true}
                   className="min-h-[520px] max-h-[70vh] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 leading-relaxed transition-colors text-gray-900 dark:text-gray-100 smooth-scrollbar"
                   style={{ fontFamily }}
