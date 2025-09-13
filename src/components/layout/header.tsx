@@ -9,15 +9,13 @@ import { AskStial } from "@/components/ui/ask-stial"
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { usePrivacy } from '@/contexts/privacy-context'
-import { Cog6ToothIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { Cog6ToothIcon, TrashIcon, PlusIcon, BookmarkIcon } from '@heroicons/react/24/outline'
 import * as Dialog from '@radix-ui/react-dialog'
-import * as FancyButton from '@/components/ui/fancy-button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
   SelectGroup,
   SelectLabel,
   SelectSeparator,
@@ -25,6 +23,9 @@ import {
 import { RadixJournalDatePicker } from '@/components/ui/radix-journal-date-picker'
 import { MoodSelectionModal, MoodType } from '@/components/features/mood-selection-modal'
 import { MoodTrackerService } from '@/services/mood-tracker.service'
+
+const LAYOUTS_KEY = 'tradestial:dashboard:layouts:v1'
+const ACTIVE_LAYOUT_KEY = 'tradestial:dashboard:active-layout:v1'
 
 interface LayoutManagementDropdownProps {
   onCustomizeChange: (isCustomizing: boolean) => void
@@ -35,88 +36,104 @@ interface LayoutManagementDropdownProps {
 function LayoutManagementDropdown({ onCustomizeChange, isEditMode }: LayoutManagementDropdownProps) {
   const [savedLayouts, setSavedLayouts] = useState<Record<string, any>>({})
   const [activeLayout, setActiveLayout] = useState<string>("Default")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [layoutToDelete, setLayoutToDelete] = useState<string>("")
-  const [newLayoutName, setNewLayoutName] = useState("")
 
   // Load saved layouts from localStorage on component mount
   useEffect(() => {
-    const layouts = localStorage.getItem('customLayouts')
-    if (layouts) {
+    try {
+      const layoutsRaw = localStorage.getItem(LAYOUTS_KEY)
+      const activeRaw = localStorage.getItem(ACTIVE_LAYOUT_KEY)
+      const layouts = layoutsRaw ? JSON.parse(layoutsRaw) : undefined
+      if (!layoutsRaw) {
+        const initial = { Default: { order: [], hidden: {} } }
+        localStorage.setItem(LAYOUTS_KEY, JSON.stringify(initial))
+        localStorage.setItem(ACTIVE_LAYOUT_KEY, JSON.stringify("Default"))
+        setSavedLayouts(initial)
+        setActiveLayout("Default")
+      } else {
+        setSavedLayouts(layouts)
+        setActiveLayout(activeRaw ? JSON.parse(activeRaw) : "Default")
+      }
+    } catch {
+      setSavedLayouts({ Default: { order: [], hidden: {} } })
+      setActiveLayout("Default")
+    }
+  }, [])
+
+  // Refresh layouts/active name when a layout is saved or storage changes
+  useEffect(() => {
+    const refresh = () => {
       try {
-        const parsedLayouts = JSON.parse(layouts)
-        setSavedLayouts(parsedLayouts)
-      } catch (error) {
-        console.error('Error parsing saved layouts:', error)
+        const layoutsRaw = localStorage.getItem(LAYOUTS_KEY)
+        const activeRaw = localStorage.getItem(ACTIVE_LAYOUT_KEY)
+        if (layoutsRaw) setSavedLayouts(JSON.parse(layoutsRaw))
+        if (activeRaw) setActiveLayout(JSON.parse(activeRaw))
+      } catch {}
+    }
+    const onSave = () => setTimeout(refresh, 0)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LAYOUTS_KEY || e.key === ACTIVE_LAYOUT_KEY) {
+        refresh()
       }
     }
-
-    // Load active layout
-    const active = localStorage.getItem('activeLayout') || "Default"
-    setActiveLayout(active)
+    window.addEventListener('saveLayout', onSave as EventListener)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener('saveLayout', onSave as EventListener)
+      window.removeEventListener('storage', onStorage)
+    }
   }, [])
 
   const handleLoadLayout = (layoutName: string) => {
-    if (layoutName === "Default") {
-      // Clear any custom layout
-      localStorage.removeItem('activeLayout')
-      setActiveLayout("Default")
-      // Dispatch event to clear layout
-      window.dispatchEvent(new CustomEvent('loadLayout', { detail: null }))
-    } else {
-      const layout = savedLayouts[layoutName]
-      if (layout) {
-        localStorage.setItem('activeLayout', layoutName)
-        setActiveLayout(layoutName)
-        // Dispatch event to load layout
-        window.dispatchEvent(new CustomEvent('loadLayout', { detail: layout }))
+    try {
+      localStorage.setItem(ACTIVE_LAYOUT_KEY, JSON.stringify(layoutName))
+      setActiveLayout(layoutName)
+      // Notify widgets board to switch active layout
+      window.dispatchEvent(new CustomEvent('setActiveLayout', { detail: layoutName }))
+      // If switching to Default while editing, exit edit mode
+      if (layoutName === 'Default' && isEditMode) {
+        onCustomizeChange(false)
       }
-    }
+    } catch {}
   }
 
   const handleCreateLayout = () => {
-    if (newLayoutName.trim()) {
-      // Enter edit mode and set the layout name for saving
-      onCustomizeChange(true)
-      setIsCreateDialogOpen(false)
-      setNewLayoutName("")
-      
-      // Store the new layout name for when save is triggered
-      localStorage.setItem('pendingLayoutName', newLayoutName.trim())
-    }
+    // Enter edit mode without asking for name upfront
+    onCustomizeChange(true)
+    // Mark new layout editing session so board suppresses persistence until saved
+    window.dispatchEvent(new Event('startNewLayoutSession'))
   }
 
   const handleDeleteLayout = (layoutName: string) => {
-    setLayoutToDelete(layoutName)
-    setIsDeleteDialogOpen(true)
-  }
-
-  const confirmDeleteLayout = () => {
-    if (layoutToDelete && savedLayouts[layoutToDelete]) {
+    // Immediate delete (skip confirmation for now); protect Default
+    if (!layoutName || layoutName === 'Default') return
+    if (savedLayouts[layoutName]) {
       const updatedLayouts = { ...savedLayouts }
-      delete updatedLayouts[layoutToDelete]
+      delete updatedLayouts[layoutName]
       setSavedLayouts(updatedLayouts)
-      localStorage.setItem('customLayouts', JSON.stringify(updatedLayouts))
-      
-      // If deleted layout was active, switch to Default
-      if (activeLayout === layoutToDelete) {
-        setActiveLayout("Default")
-        localStorage.removeItem('activeLayout')
-        window.dispatchEvent(new CustomEvent('loadLayout', { detail: null }))
-      }
+      try {
+        localStorage.setItem(LAYOUTS_KEY, JSON.stringify(updatedLayouts))
+        if (activeLayout === layoutName) {
+          const fallback = 'Default'
+          setActiveLayout(fallback)
+          localStorage.setItem(ACTIVE_LAYOUT_KEY, JSON.stringify(fallback))
+          window.dispatchEvent(new CustomEvent('setActiveLayout', { detail: fallback }))
+        }
+      } catch {}
     }
-    setIsDeleteDialogOpen(false)
-    setLayoutToDelete("")
   }
 
-  const layoutNames = Object.keys(savedLayouts)
+  // Removed confirm delete flow; immediate delete instead
+
+  const layoutNames = Object.keys(savedLayouts).filter(name => name !== 'Default')
 
   const handleValueChange = (value: string) => {
     if (value === "create_new") {
-      setIsCreateDialogOpen(true)
+      onCustomizeChange(true)
+      window.dispatchEvent(new Event('startNewLayoutSession'))
     } else if (value === "edit_mode") {
-      onCustomizeChange(!isEditMode)
+      if (activeLayout !== "Default") {
+        onCustomizeChange(!isEditMode)
+      }
     } else if (value.startsWith("delete_")) {
       const layoutName = value.replace("delete_", "")
       handleDeleteLayout(layoutName)
@@ -151,7 +168,9 @@ function LayoutManagementDropdown({ onCustomizeChange, isEditMode }: LayoutManag
                 <div className="flex items-center justify-between w-full">
                   <span>{layoutName}</span>
                   <button
-                    onClick={(e) => {
+                    onMouseDown={(e) => {
+                      // Prevent Radix Select from selecting the item/closing the menu
+                      e.preventDefault()
                       e.stopPropagation()
                       handleDeleteLayout(layoutName)
                     }}
@@ -180,61 +199,20 @@ function LayoutManagementDropdown({ onCustomizeChange, isEditMode }: LayoutManag
               </div>
             </SelectItem>
             
-            <SelectItem value="edit_mode">
+            <SelectItem value="edit_mode" disabled={activeLayout === 'Default'}>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
                   <Cog6ToothIcon className="w-3 h-3 text-gray-600" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{isEditMode ? 'Exit Edit Mode' : 'Edit Current Layout'}</span>
-                  <span className="text-xs text-gray-500">Drag & drop widgets</span>
+                  <span className="text-xs text-gray-500">{activeLayout === 'Default' && !isEditMode ? "Default can't be edited. Create a layout." : 'Drag & drop widgets'}</span>
                 </div>
               </div>
             </SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
-
-      {/* Create New Layout Dialog */}
-      <Dialog.Root open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-xl p-6 w-full max-w-md z-50">
-            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Create New Layout
-            </Dialog.Title>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Layout Name
-                </label>
-                <input
-                  type="text"
-                  value={newLayoutName}
-                  onChange={(e) => setNewLayoutName(e.target.value)}
-                  placeholder="Enter layout name..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-md bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateLayout()}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Dialog.Close asChild>
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                </Dialog.Close>
-                <Button
-                  onClick={handleCreateLayout}
-                  disabled={!newLayoutName.trim()}
-                  size="sm"
-                >
-                  Create & Edit
-                </Button>
-              </div>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
     </>
   )
 }
@@ -256,6 +234,8 @@ export function DashboardHeader({ isEditMode = false, onEditModeChange }: Dashbo
       value: displayFormat
     }))
   )
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
+  const [saveLayoutName, setSaveLayoutName] = useState("")
   
   const getPageInfo = () => {
     switch (pathname) {
@@ -426,6 +406,69 @@ export function DashboardHeader({ isEditMode = false, onEditModeChange }: Dashbo
             />
           )}
           <AskStial />
+          {pathname === '/dashboard' && isEditMode && (
+            <Dialog.Root open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+              <Dialog.Trigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm rounded-lg">
+                  <BookmarkIcon className="w-4 h-4 mr-2" />
+                  Save
+                </Button>
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+                <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-xl p-6 w-full max-w-md z-50">
+                  <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Save Current Layout
+                  </Dialog.Title>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Layout Name
+                      </label>
+                      <input
+                        type="text"
+                        value={saveLayoutName}
+                        onChange={(e) => setSaveLayoutName(e.target.value)}
+                        placeholder="Enter layout name..."
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && saveLayoutName.trim()) {
+                            window.dispatchEvent(new CustomEvent('saveLayout', { detail: saveLayoutName.trim() }))
+                            setSaveLayoutName("")
+                            setIsSaveDialogOpen(false)
+                          } else if (e.key === 'Escape') {
+                            setIsSaveDialogOpen(false)
+                          }
+                        }}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Dialog.Close asChild>
+                        <Button variant="outline" className="px-3 py-2 text-sm">
+                          Cancel
+                        </Button>
+                      </Dialog.Close>
+                      <Dialog.Close asChild>
+                        <Button
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm"
+                          disabled={!saveLayoutName.trim()}
+                          onClick={() => {
+                            if (saveLayoutName.trim()) {
+                              window.dispatchEvent(new CustomEvent('saveLayout', { detail: saveLayoutName.trim() }))
+                              setSaveLayoutName("")
+                            }
+                          }}
+                        >
+                          Save Layout
+                        </Button>
+                      </Dialog.Close>
+                    </div>
+                  </div>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
+          )}
           {pathname === '/dashboard' && (
             <LayoutManagementDropdown 
               isEditMode={isEditMode}

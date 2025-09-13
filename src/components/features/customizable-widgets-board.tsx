@@ -1,15 +1,12 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import { SortableContext, arrayMove, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { ChartSkeleton } from "@/components/ui/chart-skeleton"
-import * as Select from "@radix-ui/react-select"
 import * as Dialog from "@radix-ui/react-dialog"
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { Root as FancyButton } from "@/components/ui/fancy-button"
-import { ChevronDownIcon, XMarkIcon, TrashIcon, Cog6ToothIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 
 // Lazy load heavy chart components (same as dashboard)
 const PnlOverviewChart = React.lazy(() => import("@/components/ui/pnl-overview-chart").then(m => ({ default: m.PnlOverviewChart })))
@@ -117,7 +114,7 @@ function saveState(state: PersistedState) {
   localStorage.setItem(LS_KEY, JSON.stringify(state))
 }
 
-function usePersistentLayout() {
+function usePersistentLayout(isEditing?: boolean) {
   const [order, setOrder] = useState<WidgetId[]>(DEFAULT_ORDER)
   const [hidden, setHidden] = useState<Record<WidgetId, boolean>>({} as Record<WidgetId, boolean>)
   const [activeLayout, setActiveLayout] = useState<string>("Default")
@@ -156,6 +153,10 @@ function usePersistentLayout() {
   useEffect(() => {
     // Persist into active named layout snapshot
     try {
+      // If editing the Default layout, do NOT persist changes to the Default entry
+      if (activeLayout === 'Default' && isEditing) {
+        return
+      }
       const layoutsRaw = localStorage.getItem(LAYOUTS_KEY)
       const layouts = layoutsRaw ? (JSON.parse(layoutsRaw) as Record<string, PersistedState>) : {}
       layouts[activeLayout] = { order, hidden }
@@ -164,7 +165,7 @@ function usePersistentLayout() {
       // Also keep legacy key updated for backward compatibility
       saveState({ order, hidden })
     } catch {}
-  }, [order, hidden, activeLayout])
+  }, [order, hidden, activeLayout, isEditing])
 
   const show = useCallback((id: WidgetId, v: boolean) => {
     setHidden(prev => ({ ...prev, [id]: !v ? true : false }))
@@ -220,7 +221,11 @@ function SortableTile({ id, title, children, customize }: { id: WidgetId; title:
     zIndex: isDragging ? 10 : undefined,
   }
   return (
-    <div ref={setNodeRef} style={style} className="relative">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${customize ? 'border border-dashed border-blue-400/60 dark:border-blue-500/50 rounded-lg' : ''}`}
+    >
       {customize && (
         <button
           {...listeners}
@@ -247,15 +252,41 @@ export interface CustomizableWidgetsBoardProps {
   }
   onCustomizeChange?: (isCustomizing: boolean) => void
   isEditMode?: boolean
+  onExitEditMode?: () => void
 }
 
 export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-  const { order, setOrder, hidden, show, reset, activeLayout, savedLayouts, saveLayoutAs, loadLayout, deleteLayout } = usePersistentLayout()
-  const [newLayoutName, setNewLayoutName] = useState("")
-  
-  // Use the prop isEditMode if provided, otherwise fall back to internal state
   const customize = props.isEditMode ?? false
+  const { order, setOrder, hidden, show, reset, activeLayout, savedLayouts, saveLayoutAs, loadLayout, deleteLayout } = usePersistentLayout(customize)
+  const [newLayoutName, setNewLayoutName] = useState("")
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [previousEditMode, setPreviousEditMode] = useState(false)
+  const [isNewLayoutSession, setIsNewLayoutSession] = useState(false)
+  const onCustomizeChangeRef = useRef(props.onCustomizeChange)
+
+  // Keep ref in sync so we can call latest callback from effects without changing deps shape
+  useEffect(() => {
+    onCustomizeChangeRef.current = props.onCustomizeChange
+  }, [props.onCustomizeChange])
+
+
+  // Track changes to detect when layout has been modified
+  useEffect(() => {
+    if (customize) {
+      setHasUnsavedChanges(true)
+    }
+  }, [order, hidden, customize])
+
+  // Detect when exiting edit mode and prompt for save if there are changes
+  useEffect(() => {
+    if (previousEditMode && !customize && hasUnsavedChanges) {
+      // User just exited edit mode and has unsaved changes
+      setShowSaveDialog(true)
+    }
+    setPreviousEditMode(customize)
+  }, [customize, previousEditMode, hasUnsavedChanges])
 
   // Listen for save layout events from the main toolbar
   useEffect(() => {
@@ -263,6 +294,10 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
       const layoutName = event.detail
       if (layoutName) {
         saveLayoutAs(layoutName)
+        setHasUnsavedChanges(false)
+        setIsNewLayoutSession(false)
+        // Exit edit mode after saving
+        onCustomizeChangeRef.current?.(false)
       }
     }
 
@@ -271,6 +306,32 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
       window.removeEventListener('saveLayout', handleSaveLayout as EventListener)
     }
   }, [saveLayoutAs])
+
+  // Listen for active layout switch requests from header
+  useEffect(() => {
+    const handleSetActiveLayout = (event: CustomEvent) => {
+      const name = event.detail as string
+      if (name) {
+        loadLayout(name)
+      }
+    }
+    window.addEventListener('setActiveLayout', handleSetActiveLayout as EventListener)
+    return () => {
+      window.removeEventListener('setActiveLayout', handleSetActiveLayout as EventListener)
+    }
+  }, [loadLayout])
+
+  // Start a new layout session from header
+  useEffect(() => {
+    const handleStartNew = () => {
+      setIsNewLayoutSession(true)
+      setHasUnsavedChanges(true)
+    }
+    window.addEventListener('startNewLayoutSession', handleStartNew)
+    return () => {
+      window.removeEventListener('startNewLayoutSession', handleStartNew)
+    }
+  }, [])
 
   const widgetsById = useMemo(() => {
     const map = Object.fromEntries(ALL_WIDGETS.map(w => [w.id, w])) as Record<WidgetId, WidgetDef>
@@ -311,6 +372,24 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
     setOrder([...rearranged, ...hiddenIds])
   }
 
+  const handleSaveLayout = () => {
+    const trimmed = newLayoutName.trim()
+    if (!trimmed) return
+    
+    saveLayoutAs(trimmed)
+    setHasUnsavedChanges(false)
+    setShowSaveDialog(false)
+    setNewLayoutName("")
+    // Ensure we exit edit mode after saving via dialog as well
+    onCustomizeChangeRef.current?.(false)
+  }
+
+  const handleSkipSave = () => {
+    setHasUnsavedChanges(false)
+    setShowSaveDialog(false)
+    setNewLayoutName("")
+  }
+
   const toggleHidden = (id: WidgetId) => show(id, hidden[id])
 
   const getSpanClasses = (id: WidgetId) => {
@@ -328,15 +407,7 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
 
   return (
     <div className="space-y-3">
-      {/* Show edit mode indicator when in customize mode */}
-      {customize && (
-        <div className="flex justify-end mb-4">
-          <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
-            <Cog6ToothIcon className="w-4 h-4 inline mr-2" />
-            Layout editing mode - Drag widgets to rearrange
-          </div>
-        </div>
-      )}
+      
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <SortableContext items={visibleOrder}>
@@ -356,6 +427,59 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
           </div>
         </SortableContext>
       </DndContext>
+
+      {/* Save Layout Dialog */}
+      <Dialog.Root open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-xl p-6 w-full max-w-md z-50">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Save Layout Changes
+            </Dialog.Title>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                You've made changes to your dashboard layout. Would you like to save these changes as a new layout?
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Layout Name
+                </label>
+                <input
+                  type="text"
+                  value={newLayoutName}
+                  onChange={(e) => setNewLayoutName(e.target.value)}
+                  placeholder="Enter layout name..."
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newLayoutName.trim()) {
+                      handleSaveLayout()
+                    } else if (e.key === 'Escape') {
+                      handleSkipSave()
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <FancyButton
+                  variant="outline"
+                  className="px-3 py-2 text-sm"
+                  onClick={handleSkipSave}
+                >
+                  Skip Saving
+                </FancyButton>
+                <FancyButton
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm"
+                  onClick={handleSaveLayout}
+                  disabled={!newLayoutName.trim()}
+                >
+                  Save Layout
+                </FancyButton>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
     </div>
   )

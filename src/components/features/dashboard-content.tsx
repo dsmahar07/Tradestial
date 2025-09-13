@@ -18,11 +18,7 @@ import { usePrivacy } from '@/contexts/privacy-context'
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import { SortableContext, arrayMove, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import * as Dialog from '@radix-ui/react-dialog'
-import * as Select from '@radix-ui/react-select'
-import { ChevronDownIcon, Cog6ToothIcon, EyeIcon, EyeSlashIcon, TrashIcon, BookmarkIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { Button } from '@/components/ui/button'
+ 
 
 // Lazy load heavy chart components
 const PnlOverviewChart = lazy(() => import('@/components/ui/pnl-overview-chart').then(m => ({ default: m.PnlOverviewChart })))
@@ -58,182 +54,7 @@ interface ManualRule {
   completed?: boolean
 }
 
-interface LayoutManagementDropdownProps {
-  onCustomizeChange: (isCustomizing: boolean) => void
-  isEditMode: boolean
-}
-
-// Layout Management Dropdown Component
-function LayoutManagementDropdown({ onCustomizeChange, isEditMode }: LayoutManagementDropdownProps) {
-  const [savedLayouts, setSavedLayouts] = useState<Record<string, any>>({})
-  const [activeLayout, setActiveLayout] = useState<string>("Default")
-  const [newLayoutName, setNewLayoutName] = useState("")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-
-  // Load layouts from localStorage
-  useEffect(() => {
-    try {
-      const layoutsRaw = localStorage.getItem('tradestial:dashboard:layouts:v1')
-      const activeRaw = localStorage.getItem('tradestial:dashboard:active-layout:v1')
-      const layouts = layoutsRaw ? JSON.parse(layoutsRaw) : { "Default": { order: [], hidden: {} } }
-      const active = activeRaw ? JSON.parse(activeRaw) : "Default"
-      
-      setSavedLayouts(layouts)
-      setActiveLayout(active)
-    } catch {
-      setSavedLayouts({ "Default": { order: [], hidden: {} } })
-      setActiveLayout("Default")
-    }
-  }, [])
-
-  const handleCreateNewLayout = () => {
-    if (!newLayoutName.trim()) return
-    
-    // Enter edit mode when creating new layout
-    onCustomizeChange(true)
-    setIsCreateDialogOpen(false)
-    setNewLayoutName("")
-    
-    // Save new layout
-    try {
-      const newLayouts = { ...savedLayouts, [newLayoutName.trim()]: { order: [], hidden: {} } }
-      localStorage.setItem('tradestial:dashboard:layouts:v1', JSON.stringify(newLayouts))
-      localStorage.setItem('tradestial:dashboard:active-layout:v1', JSON.stringify(newLayoutName.trim()))
-      setSavedLayouts(newLayouts)
-      setActiveLayout(newLayoutName.trim())
-    } catch {}
-  }
-
-  const handleLoadLayout = (layoutName: string) => {
-    setActiveLayout(layoutName)
-    try {
-      localStorage.setItem('tradestial:dashboard:active-layout:v1', JSON.stringify(layoutName))
-    } catch {}
-  }
-
-  const handleDeleteLayout = (layoutName: string) => {
-    if (Object.keys(savedLayouts).length <= 1) return
-    
-    const newLayouts = { ...savedLayouts }
-    delete newLayouts[layoutName]
-    
-    try {
-      localStorage.setItem('tradestial:dashboard:layouts:v1', JSON.stringify(newLayouts))
-      setSavedLayouts(newLayouts)
-      
-      if (activeLayout === layoutName) {
-        const fallback = Object.keys(newLayouts)[0] || "Default"
-        setActiveLayout(fallback)
-        localStorage.setItem('tradestial:dashboard:active-layout:v1', JSON.stringify(fallback))
-      }
-    } catch {}
-  }
-
-  return (
-    <>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium"
-          >
-            <Cog6ToothIcon className="w-4 h-4" />
-            Layout: {activeLayout}
-            <ChevronDownIcon className="w-4 h-4" />
-          </Button>
-        </DropdownMenu.Trigger>
-        
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content className="min-w-[200px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg p-2 z-50">
-            <div className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Layouts
-            </div>
-            
-            {Object.keys(savedLayouts).map(layoutName => (
-              <DropdownMenu.Item
-                key={layoutName}
-                className="flex items-center justify-between px-3 py-2 text-sm text-gray-900 dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none"
-                onSelect={() => handleLoadLayout(layoutName)}
-              >
-                <span className={activeLayout === layoutName ? "font-medium" : ""}>{layoutName}</span>
-                {Object.keys(savedLayouts).length > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteLayout(layoutName)
-                    }}
-                    className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-[#3a3a3a] text-red-500"
-                  >
-                    <TrashIcon className="w-3 h-3" />
-                  </button>
-                )}
-              </DropdownMenu.Item>
-            ))}
-            
-            <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-[#2a2a2a] my-2" />
-            
-            <DropdownMenu.Item
-              className="flex items-center px-3 py-2 text-sm text-blue-600 dark:text-blue-400 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none"
-              onSelect={() => setIsCreateDialogOpen(true)}
-            >
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Create New Layout
-            </DropdownMenu.Item>
-            
-            <DropdownMenu.Item
-              className="flex items-center px-3 py-2 text-sm text-gray-900 dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none"
-              onSelect={() => onCustomizeChange(!isEditMode)}
-            >
-              <Cog6ToothIcon className="w-4 h-4 mr-2" />
-              {isEditMode ? 'Exit Edit Mode' : 'Edit Current Layout'}
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-
-      {/* Create New Layout Dialog */}
-      <Dialog.Root open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-xl p-6 w-full max-w-md z-50">
-            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Create New Layout
-            </Dialog.Title>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Layout Name
-                </label>
-                <input
-                  type="text"
-                  value={newLayoutName}
-                  onChange={(e) => setNewLayoutName(e.target.value)}
-                  placeholder="Enter layout name..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-[#2a2a2a] rounded-md bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateNewLayout()}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Dialog.Close asChild>
-                  <Button variant="outline" size="sm">
-                    Cancel
-                  </Button>
-                </Dialog.Close>
-                <Button
-                  onClick={handleCreateNewLayout}
-                  disabled={!newLayoutName.trim()}
-                  size="sm"
-                >
-                  Create & Edit
-                </Button>
-              </div>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-    </>
-  )
-}
+ 
 
 interface DashboardContentProps {
   isEditMode?: boolean
@@ -622,7 +443,7 @@ function SortableAnalyticsCard({ cardConfig, isEditMode }: { cardConfig: Analyti
       style={style} 
       {...(isEditMode ? attributes : {})}
       {...(isEditMode ? listeners : {})}
-      className={isEditMode ? "cursor-grab active:cursor-grabbing touch-none will-change-transform" : ""}
+      className={isEditMode ? "cursor-grab active:cursor-grabbing touch-none will-change-transform border border-dashed border-blue-400/60 dark:border-blue-500/50 rounded-lg" : ""}
     >
       <AnalyticsCard {...cardConfig} />
     </div>
@@ -632,90 +453,8 @@ function SortableAnalyticsCard({ cardConfig, isEditMode }: { cardConfig: Analyti
   return (
     <main className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-[#f8f9f8] dark:bg-[#171717]">
       <div className="space-y-6">
-        {/* Edit mode toolbar with save functionality */}
-        {isEditMode && (
-          <div className="flex justify-between items-center mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center text-blue-700 dark:text-blue-300">
-              <Cog6ToothIcon className="w-5 h-5 mr-2" />
-              <span className="font-medium">Layout editing mode</span>
-              <span className="ml-2 text-sm opacity-75">Drag cards and widgets to rearrange</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Save Layout Dialog */}
-              <Dialog.Root>
-                <Dialog.Trigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm rounded-lg">
-                    <BookmarkIcon className="w-4 h-4 mr-2" />
-                    Save Layout
-                  </Button>
-                </Dialog.Trigger>
-                <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-                  <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-xl p-6 w-full max-w-md z-50">
-                    <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Save Current Layout
-                    </Dialog.Title>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Layout Name
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter layout name..."
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                              // Save layout logic will be handled by the widgets board
-                              const event = new CustomEvent('saveLayout', { detail: e.currentTarget.value.trim() })
-                              window.dispatchEvent(event)
-                              e.currentTarget.value = ""
-                              const dlg = e.currentTarget.closest('[role="dialog"]') as HTMLElement | null
-                              const closeBtn = dlg?.querySelector('[data-radix-dialog-close]') as HTMLButtonElement | null
-                              closeBtn?.click()
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Dialog.Close asChild>
-                          <Button variant="outline" className="px-3 py-2 text-sm">
-                            Cancel
-                          </Button>
-                        </Dialog.Close>
-                        <Dialog.Close asChild>
-                          <Button
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                              const input = e.currentTarget.closest('[role="dialog"]')?.querySelector('input') as HTMLInputElement
-                              if (input?.value.trim()) {
-                                const event = new CustomEvent('saveLayout', { detail: input.value.trim() })
-                                window.dispatchEvent(event)
-                                input.value = ""
-                              }
-                            }}
-                          >
-                            Save Layout
-                          </Button>
-                        </Dialog.Close>
-                      </div>
-                    </div>
-                  </Dialog.Content>
-                </Dialog.Portal>
-              </Dialog.Root>
-
-              {/* Exit Edit Mode */}
-              <Button 
-                variant="outline"
-                className="px-3 py-2 text-sm"
-                onClick={() => setIsEditMode(false)}
-              >
-                <XMarkIcon className="w-4 h-4 mr-2" />
-                Exit Edit Mode
-              </Button>
-            </div>
-          </div>
-        )}   {/* Analytics Cards Row - Load immediately */}
+        {/* Edit mode toolbar removed; Save control provided in header and edit toggle in header dropdown */}
+   {/* Analytics Cards Row - Load immediately */}
         <DndContext sensors={sensors} onDragEnd={handleAnalyticsCardDragEnd}>
           <SortableContext items={analyticsCards.map(card => card.title)} strategy={horizontalListSortingStrategy}>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">

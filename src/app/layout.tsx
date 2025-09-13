@@ -17,8 +17,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Tradestial',
-    default: 'Tradestial - Trading Analytics Platform',
+    template: '%s',
+    default: 'Dashboard',
   },
   description: 'A modern trading application built with Next.js',
 }
