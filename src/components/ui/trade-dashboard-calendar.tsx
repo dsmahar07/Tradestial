@@ -2,7 +2,7 @@
 
 import { logger } from '@/lib/logger'
 
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DayDetailModal } from '@/components/ui/day-detail-modal'
@@ -83,10 +83,60 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   const [selectedPnl, setSelectedPnl] = useState<number | undefined>(undefined)
   const [selectedTrades, setSelectedTrades] = useState<Trade[] | undefined>(undefined)
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
+  // Noted days indicator
+  const [notedDays, setNotedDays] = useState<Set<string>>(new Set())
 
   const today = new Date()
   const currentMonth = currentDate.getMonth()
   const currentYear = currentDate.getFullYear()
+
+  // Scan localStorage for saved notes and populate notedDays
+  const refreshNotedDays = useCallback(() => {
+    try {
+      if (typeof window === 'undefined') return
+      const next = new Set<string>()
+      // Collect all keys that match day-note:YYYY-MM-DD and have non-empty content
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || ''
+        if (!key.startsWith('day-note:')) continue
+        const val = localStorage.getItem(key) || ''
+        if (val && val.trim() !== '') {
+          const dateKey = key.replace('day-note:', '')
+          next.add(dateKey)
+        }
+      }
+      setNotedDays(next)
+    } catch {}
+  }, [])
+
+  // Initial load and when month/year changes, refresh indicated days
+  useEffect(() => {
+    refreshNotedDays()
+  }, [refreshNotedDays, currentMonth, currentYear])
+
+  // Listen for note updates from DayDetailModal
+  useEffect(() => {
+    const handler = (e: any) => {
+      try {
+        const dateKey = e?.detail?.dateKey
+        if (!dateKey) return
+        const has = !!(localStorage.getItem(`day-note:${dateKey}`) || '').trim()
+        setNotedDays(prev => {
+          const next = new Set(prev)
+          if (has) next.add(dateKey); else next.delete(dateKey)
+          return next
+        })
+      } catch {}
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('day-note:updated', handler as EventListener)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('day-note:updated', handler as EventListener)
+      }
+    }
+  }, [])
 
   // Normalize trading days to a map for quick lookup
   const tradingMap = useMemo(() => {
@@ -395,6 +445,15 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
     return Array.from({ length: 6 }, (_, i) => calendar.slice(i * 7, i * 7 + 7) || [])
   }, [calendar])
 
+  // Count number of traded days in the current month (days with any PnL value)
+  const tradedDaysInMonth = useMemo(() => {
+    if (!calendar || calendar.length === 0) return 0
+    return calendar.reduce((count, c) => {
+      if (c && c.isCurrentMonth && typeof c.tradesCount === 'number' && c.tradesCount > 0) return count + 1
+      return count
+    }, 0)
+  }, [calendar])
+
   // Helper: compact format like 10k, 10.1k
   const formatCompact = (n: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(Math.abs(n))
   const formatMonthlyDisplay = (n: number) => {
@@ -535,31 +594,23 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
             variant="outline"
             size="sm"
             onClick={handleToday}
-            className="bg-white text-gray-900 border-gray-200 hover:bg-gray-50
-                       dark:bg-[#0f0f0f] dark:text-white dark:border-[#2a2a2a] dark:hover:bg-[#171717]"
+            className="bg-white text-gray-900 border-gray-200 hover:bg-gray-50 dark:bg-[#0f0f0f] dark:text-white dark:border-[#2a2a2a] dark:hover:bg-[#171717]"
           >
             This month
           </Button>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" className="text-xs text-gray-900 dark:text-white bg-[#3559E9]/20 hover:bg-[#3559E9]/30 rounded-lg px-2 py-1 h-7">
-            1 day
+            {tradedDaysInMonth} {tradedDaysInMonth === 1 ? 'day' : 'days'}
           </Button>
           <div
-            className={cn(
-              'text-xs sm:text-sm font-semibold border rounded-md px-2 py-1 border-gray-200 dark:border-[#2a2a2a]',
-              monthlyTotal >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]'
-            )}
+            className={cn('text-xs sm:text-sm font-semibold border rounded-md px-2 py-1 border-gray-200 dark:border-[#2a2a2a]', monthlyTotal >= 0 ? 'text-[#10B981]' : 'text-[#FB3748]')}
           >
             {formatMonthlyDisplay(monthlyTotal)}
           </div>
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <button
-                onClick={handleHeaderIconClick}
-                aria-label="Header action"
-                className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent export-hidden"
-              >
+              <button onClick={handleHeaderIconClick} aria-label="Header action" className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent export-hidden">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20.5672 14.54V9.46002C20.5665 8.72983 20.3737 8.01267 20.0083 7.38049C19.6429 6.74831 19.1176 6.22334 18.4853 5.85825L14.0819 3.30786C13.449 2.9424 12.7309 2.75 12 2.75C11.2691 2.75 10.551 2.9424 9.91805 3.30786L5.51472 5.85825C4.88235 6.22334 4.35711 6.74831 3.99169 7.38049C3.62627 8.01267 3.43352 8.72983 3.43277 9.46002V14.54C3.43352 15.2702 3.62627 15.9873 3.99169 16.6195C4.35711 17.2517 4.88235 17.7767 5.51472 18.1418L9.91805 20.6921C10.551 21.0576 11.2691 21.25 12 21.25C12.7309 21.25 13.449 21.0576 14.0819 20.6921L18.4853 18.1418C19.1176 17.7767 19.6429 17.2517 20.0083 16.6195C20.3737 15.9873 20.5665 15.2702 20.5672 14.54Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M12.9057 8.34621H11.0944C10.7275 8.34475 10.3668 8.44026 10.0487 8.62306C9.73061 8.80586 9.46649 9.06947 9.28306 9.38718L8.37741 10.9591C8.19468 11.2756 8.09848 11.6346 8.09848 12C8.09848 12.3655 8.19468 12.7245 8.37741 13.041L9.28306 14.6129C9.46649 14.9306 9.73061 15.1942 10.0487 15.377C10.3668 15.5598 10.7275 15.6553 11.0944 15.6539H12.9057C13.2725 15.6553 13.6332 15.5598 13.9513 15.377C14.2694 15.1942 14.5335 14.9306 14.7169 14.6129L15.6226 13.041C15.8053 12.7245 15.9015 12.3655 15.9015 12C15.9015 11.6346 15.8053 11.2756 15.6226 10.9591L14.7169 9.38718C14.5335 9.06947 14.2694 8.80586 13.9513 8.62306C13.6332 8.44026 13.2725 8.34475 12.9057 8.34621Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -567,14 +618,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                sideOffset={8}
-                align="end"
-                className="z-50 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] shadow-lg p-2 w-56
-                data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95
-                data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95
-                data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2"
-              >
+              <DropdownMenu.Content sideOffset={8} align="end" className="z-50 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] shadow-lg p-2 w-56 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2">
                 <div className="px-2 pt-1 pb-2 text-xs font-medium text-gray-600 dark:text-gray-300">Display stats</div>
                 <div className="flex flex-col gap-1">
                   {[
@@ -585,15 +629,8 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                     { key: 'tradesCount', label: 'Number of trades' },
                     { key: 'dayWinrate', label: 'Day winrate' },
                   ].map(({ key, label }) => (
-                    <DropdownMenu.Item
-                      key={key}
-                      className="outline-none"
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <label
-                        className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                    <DropdownMenu.Item key={key} className="outline-none" onSelect={(e) => e.preventDefault()}>
+                      <label className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                         <Checkbox.Root
                           checked={settings[key as keyof typeof settings]}
                           onCheckedChange={(c) => toggleSetting(key as keyof typeof settings, c)}
@@ -613,11 +650,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
-          <button
-            onClick={exportCalendarAsImage}
-            aria-label="Export calendar as image"
-            className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent export-hidden"
-          >
+          <button onClick={exportCalendarAsImage} aria-label="Export calendar as image" className="p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 border border-transparent export-hidden">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5.83333 19.7083H18.1667C18.9844 19.7083 19.7687 19.3834 20.3469 18.8052C20.9252 18.227 21.25 17.4427 21.25 16.625V9.43051C21.25 8.61276 20.9252 7.82851 20.3469 7.25027C19.7687 6.67203 18.9844 6.34718 18.1667 6.34718H16.7483C16.3396 6.34682 15.9477 6.18416 15.6589 5.89496L14.5078 4.74385C14.2189 4.45465 13.8271 4.29199 13.4183 4.29163H10.5817C10.1729 4.29199 9.78106 4.45465 9.49222 4.74385L8.34111 5.89496C8.05227 6.18416 7.6604 6.34682 7.25167 6.34718H5.83333C5.01558 6.34718 4.23132 6.67203 3.65309 7.25027C3.07485 7.82851 2.75 8.61276 2.75 9.43051V16.625C2.75 17.4427 3.07485 18.227 3.65309 18.8052C4.23132 19.3834 5.01558 19.7083 5.83333 19.7083Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 16.6251C14.2705 16.6251 16.1111 14.7844 16.1111 12.5139C16.1111 10.2434 14.2705 8.40283 12 8.40283C9.7295 8.40283 7.88889 10.2434 7.88889 12.5139C7.88889 14.7844 9.7295 16.6251 12 16.6251Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -625,7 +658,6 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
           </button>
         </div>
       </div>
-
       {/* Feedback Message */}
       {feedbackMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-lg shadow-lg animate-in fade-in-0 slide-in-from-top-2">
@@ -649,6 +681,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
             const pnl = c.pnl
             const isPositive = typeof pnl === 'number' && pnl > 0
             const isNegative = typeof pnl === 'number' && pnl < 0
+            const hasNote = notedDays.has(toYMD(c.date))
             return (
               <button
                 key={idx}
@@ -669,6 +702,13 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                   })
                 }}
               >
+                {hasNote && (
+                  <img
+                    src="/icons/calendar-note.svg"
+                    alt="Note"
+                    className="absolute top-0.5 right-0.5 h-6 w-6 opacity-90 pointer-events-none"
+                  />
+                )}
                 <span className={cn('text-[11px] font-medium self-start', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
                 {typeof pnl === 'number' && (
                   <div className="flex-grow flex flex-col items-center justify-center -mt-2">
@@ -731,6 +771,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
               const pnl = c.pnl
               const isPositive = typeof pnl === 'number' && pnl > 0
               const isNegative = typeof pnl === 'number' && pnl < 0
+              const hasNote = notedDays.has(toYMD(c.date))
               return (
                 <button
                   key={idx}
@@ -751,6 +792,13 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
                     })
                   }}
                 >
+                  {hasNote && (
+                    <img
+                      src="/icons/calendar-note.svg"
+                      alt="Note"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-90 pointer-events-none"
+                    />
+                  )}
                   <span className={cn('text-sm font-medium self-start', c.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600')}>{c.date.getDate()}</span>
                   {typeof pnl === 'number' && (
                     <div className="flex-grow flex flex-col gap-0.5 mt-1">

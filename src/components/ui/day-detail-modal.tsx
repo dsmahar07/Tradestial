@@ -230,14 +230,25 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     if (!storageKey) return
     const content = editorRef.current?.innerHTML ?? noteContent
     localStorage.setItem(storageKey, sanitizeHtml(content || ''))
+    try {
+      const dateKey = storageKey.replace('day-note:', '')
+      window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
+    } catch {}
   }
 
   // Auto-save with debounce when content changes
   useEffect(() => {
-    if (!storageKey) return
+    if (!storageKey || !noteContent) return
     const timer = setTimeout(() => {
       const content = editorRef.current?.innerHTML ?? noteContent
-      localStorage.setItem(storageKey, sanitizeHtml(content || ''))
+      const sanitized = sanitizeHtml(content || '')
+      if (sanitized.trim()) {
+        localStorage.setItem(storageKey, sanitized)
+        try {
+          const dateKey = storageKey.replace('day-note:', '')
+          window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
+        } catch {}
+      }
     }, 1000)
     return () => clearTimeout(timer)
   }, [noteContent, storageKey, sanitizeHtml])
@@ -249,18 +260,32 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
     return () => {
       const content = editorRef.current?.innerHTML ?? noteContent
       localStorage.setItem(storageKey, sanitizeHtml(content || ''))
+      try {
+        const dateKey = storageKey.replace('day-note:', '')
+        window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
+      } catch {}
     }
   }, [open, storageKey, noteContent, sanitizeHtml])
 
   const onEditorInput = useCallback(() => {
     if (editorRef.current) {
-      const safe = sanitizeHtml(editorRef.current.innerHTML)
-      if (editorRef.current.innerHTML !== safe) {
+      const rawContent = editorRef.current.innerHTML
+      const safe = sanitizeHtml(rawContent)
+      if (rawContent !== safe) {
         editorRef.current.innerHTML = safe
       }
       setNoteContent(safe)
+      
+      // Immediate save for better UX
+      if (storageKey && safe.trim()) {
+        localStorage.setItem(storageKey, safe)
+        try {
+          const dateKey = storageKey.replace('day-note:', '')
+          window.dispatchEvent(new CustomEvent('day-note:updated', { detail: { dateKey } }))
+        } catch {}
+      }
     }
-  }, [sanitizeHtml])
+  }, [sanitizeHtml, storageKey])
 
   const exec = (command: string, value?: string) => {
     try {
@@ -543,6 +568,7 @@ export function DayDetailModal({ open, onClose, date, pnl, trades }: DayDetailMo
                   ref={editorRef}
                   contentEditable
                   onInput={onEditorInput}
+                  suppressContentEditableWarning={true}
                   className="min-h-[520px] max-h-[70vh] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 leading-relaxed transition-colors text-gray-900 dark:text-gray-100 smooth-scrollbar"
                   style={{ fontFamily }}
                 />
