@@ -260,8 +260,8 @@ export function AnalyticsCard({
           )}
 
           {showHorizontalBars && horizontalBarsData.length > 0 && (
-            <div className="absolute -top-2 right-0 scale-100 origin-top-right overflow-visible">
-              <div className="flex flex-col space-y-2 w-40">
+            <div className="md:absolute md:-top-2 md:right-0 md:scale-100 origin-top-right overflow-visible mt-2 scale-95 sm:scale-100">
+              <div className="flex flex-col space-y-2 w-[clamp(140px,60vw,180px)] md:w-40">
                 {/* Combined bar showing both win and loss */}
                 <div className="flex flex-col space-y-1">
                   <div className="relative h-4 bg-gray-100 dark:bg-gray-800 rounded-full">

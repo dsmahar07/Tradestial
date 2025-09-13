@@ -187,7 +187,7 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   const handleNextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1))
   const handleToday = () => setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1))
 
-  // Export the calendar card as a PNG on a gradient background
+  // Export the calendar card as a PNG on a gradient background with branding
   const exportCalendarAsImage = async () => {
     try {
       const node = calendarRef.current
@@ -215,18 +215,56 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       const ctx = canvas.getContext('2d')
       if (!ctx) throw new Error('Canvas context not available')
 
-      // Set canvas dimensions
+      // Set canvas dimensions with extra space for branding
       canvas.width = 1400 * 2 // 2x for high DPI
-      canvas.height = 900 * 2
+      canvas.height = 1000 * 2 // Increased height for branding area
       ctx.scale(2, 2) // Scale for high DPI
 
-      // Draw gradient background (same as header title text)
-      const gradient = ctx.createLinearGradient(0, 0, 1400, 900)
-      gradient.addColorStop(0, '#4F7DFF')
-      gradient.addColorStop(0.5, '#8B5CF6')
-      gradient.addColorStop(1, '#F6B51E')
+      // Draw gradient background with properly diversified colors
+      const gradient = ctx.createLinearGradient(0, 0, 1400, 1000)
+      gradient.addColorStop(0.0, '#4F7DFF')   // Blue at top-left
+      gradient.addColorStop(0.25, '#6366F1')  // Indigo
+      gradient.addColorStop(0.5, '#8B5CF6')   // Purple in middle
+      gradient.addColorStop(0.75, '#D946EF')  // Pink
+      gradient.addColorStop(1.0, '#F6B51E')   // Gold at bottom-right
       ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, 1400, 900)
+      ctx.fillRect(0, 0, 1400, 1000)
+
+      // Prepare to load the Tradestial SVG logo; we'll draw it after calendar loads
+      let cachedLogoImg: HTMLImageElement | null = null
+      const logoPromise = new Promise<void>(async (resolve, reject) => {
+        try {
+          // Fetch the SVG content
+          const response = await fetch('/Branding/Tradestial.svg')
+          const svgText = await response.text()
+          
+          // Create an image from the SVG
+          const logoImg = new Image()
+          logoImg.crossOrigin = 'anonymous'
+          
+          logoImg.onload = () => {
+            cachedLogoImg = logoImg
+            resolve()
+          }
+          
+          logoImg.onerror = () => {
+            console.warn('Failed to load Tradestial SVG logo, continuing without branding')
+            resolve()
+          }
+          
+          // Convert SVG to data URL
+          const svgBlob = new Blob([svgText], { type: 'image/svg+xml' })
+          const svgUrl = URL.createObjectURL(svgBlob)
+          logoImg.src = svgUrl
+          
+        } catch (error) {
+          console.warn('Failed to fetch SVG logo, continuing without branding', error)
+          resolve()
+        }
+      })
+
+      // Wait for logo to load (or fail)
+      await logoPromise
 
       // Capture the calendar as PNG
       const calendarDataUrl = await toPng(node, {
@@ -237,22 +275,80 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
       })
 
       // Load the calendar image
-      const img = new Image()
-      img.onload = () => {
-        // Calculate position to center the calendar
-        const calendarWidth = Math.min(img.width / 2, 1200) // Max width 1200px
-        const calendarHeight = (img.height / 2) * (calendarWidth / (img.width / 2))
-        const x = (1400 - calendarWidth) / 2
-        const y = (900 - calendarHeight) / 2
+      const calendarImg = new Image()
+      calendarImg.onload = () => {
+        // Determine calendar size
+        const calendarMaxWidth = 1200
+        const calendarWidth = Math.min(calendarImg.width / 2, calendarMaxWidth)
+        const calendarHeight = (calendarImg.height / 2) * (calendarWidth / (calendarImg.width / 2))
 
-        // Draw shadow
+        // Compute branding dimensions
+        const logoSize = 120
+        const gap = -10
+        const brandingText = 'TradeStial'
+        ctx.font = 'bold 52px Inter, system-ui, -apple-system, sans-serif'
+        const brandingTextMetrics = ctx.measureText(brandingText)
+        const brandingTextWidth = Math.max(1, brandingTextMetrics.width)
+        const totalBrandingWidth = logoSize + gap + brandingTextWidth
+        const brandingHeight = logoSize + 20 // logo height plus padding
+
+        // Compute top Y so that branding + calendar are vertically centered in 1000 canvas
+        const totalGroupHeight = brandingHeight + calendarHeight
+        const topStartY = Math.max(0, (1000 - totalGroupHeight) / 2)
+
+        // Branding positions
+        const brandingX = (1400 - totalBrandingWidth) / 2
+        const logoX = brandingX
+        const logoY = topStartY
+        const textX = logoX + logoSize + gap
+        const textY = logoY + logoSize / 2
+
+        // Draw logo if available
+        if (cachedLogoImg) {
+          // Logo subtle shadow
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+          ctx.shadowBlur = 15
+          ctx.shadowOffsetX = 0
+          ctx.shadowOffsetY = 8
+          ctx.drawImage(cachedLogoImg, logoX, logoY, logoSize, logoSize)
+        }
+
+        // Reset shadow for text
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+
+        // Text styles (no outline/shadow)
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'middle'
+
+        // Draw 'Trade' with gradient #EFEBFF -> #FFD268
+        const tradeText = 'Trade'
+        const tradeWidth = ctx.measureText(tradeText).width
+        const tradeGradient = ctx.createLinearGradient(textX, textY, textX + tradeWidth, textY)
+        tradeGradient.addColorStop(0.0, '#EFEBFF')
+        tradeGradient.addColorStop(1.0, '#FFD268')
+        ctx.fillStyle = tradeGradient
+        ctx.fillText(tradeText, textX, textY)
+
+        // Draw 'Stial' with solid #DCD5FF
+        const stialText = 'Stial'
+        const stialX = textX + tradeWidth
+        ctx.fillStyle = '#DCD5FF'
+        ctx.fillText(stialText, stialX, textY)
+
+        // Now draw the calendar below branding
+        const calendarX = (1400 - calendarWidth) / 2
+        const calendarY = logoY + brandingHeight
+
+        // Calendar shadow
         ctx.shadowColor = 'rgba(0, 0, 0, 0.25)'
         ctx.shadowBlur = 50
         ctx.shadowOffsetX = 0
         ctx.shadowOffsetY = 25
 
-        // Draw the calendar image on the gradient
-        ctx.drawImage(img, x, y, calendarWidth, calendarHeight)
+        ctx.drawImage(calendarImg, calendarX, calendarY, calendarWidth, calendarHeight)
 
         // Convert canvas to blob and download
         canvas.toBlob((blob) => {
@@ -268,11 +364,11 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
         }, 'image/png', 1)
       }
 
-      img.onerror = () => {
+      calendarImg.onerror = () => {
         throw new Error('Failed to load calendar image')
       }
 
-      img.src = calendarDataUrl
+      calendarImg.src = calendarDataUrl
 
       // Restore hidden elements
       hiddenElements.forEach(el => {
