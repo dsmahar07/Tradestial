@@ -2,13 +2,14 @@
 
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { useToast } from '@/components/ui/notification-toast'
-import { ArrowLeft, X, Play, Check, ChevronDown } from 'lucide-react'
+import { ArrowLeft, X, Play, Check, ChevronDown, ExternalLink } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { CSVImportService } from '@/services/csv-import.service'
 import { accountService } from '@/services/account.service'
 import { Trade } from '@/services/trade-data.service'
 import { TIMEZONE_REGIONS, getCurrentTimezone, getBrokerTimezoneDefault, formatTimezoneOffset, ALL_TIMEZONES } from '@/utils/timezones'
+import * as Dialog from '@radix-ui/react-dialog'
 
 export default function UploadPage() {
   usePageTitle('Add Trades')
@@ -19,6 +20,7 @@ export default function UploadPage() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [showUnsupportedDialog, setShowUnsupportedDialog] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedTimezone, setSelectedTimezone] = useState<number>(() => {
@@ -46,6 +48,14 @@ export default function UploadPage() {
       if (!isNaN(brokerTimezone)) {
         setSelectedTimezone(brokerTimezone)
       }
+    }
+  }, [selectedBroker])
+
+  // Check if broker is supported when page loads
+  useEffect(() => {
+    const supportedBrokers = ['tradovate', 'tradingview', 'ninjatrader']
+    if (selectedBroker?.id && !supportedBrokers.includes(selectedBroker.id)) {
+      setShowUnsupportedDialog(true)
     }
   }, [selectedBroker])
 
@@ -208,12 +218,20 @@ export default function UploadPage() {
         return
       }
 
+      // Check if broker is supported
+      const supportedBrokers = ['tradovate', 'tradingview', 'ninjatrader']
+      if (!supportedBrokers.includes(selectedBroker.id)) {
+        setShowUnsupportedDialog(true)
+        return
+      }
+
       // Detect broker type based on headers
       const isTradovate = await validateTradovatePerformanceHeaders(file)
       const isTradingView = await validateTradingViewHeaders(file)
+      const isNinjaTrader = await validateNinjaTraderHeaders(file)
       
-      if (!isTradovate && !isTradingView) {
-        toastError('Unsupported format', 'This CSV format is not supported. Please use TradingView or Tradovate exports.')
+      if (!isTradovate && !isTradingView && !isNinjaTrader) {
+        toastError('Unsupported format', 'This CSV format is not supported. Please use TradingView, Tradovate, or NinjaTrader exports.')
         return
       }
 
@@ -254,6 +272,41 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen bg-white">
       <ToastContainer />
+      
+      {/* Unsupported Broker Dialog */}
+      <Dialog.Root open={showUnsupportedDialog} onOpenChange={setShowUnsupportedDialog}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-md z-50">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Broker Not Yet Supported
+            </Dialog.Title>
+            <Dialog.Description className="text-gray-600 dark:text-gray-300 mb-6">
+              We don't currently support <strong>{selectedBroker.name}</strong> CSV imports, but we'd love to add support for your broker!
+              <br /><br />
+              Please reach out to us on Discord and we'll work on adding support for {selectedBroker.name} as soon as possible.
+            </Dialog.Description>
+            
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://discord.gg/your-discord-invite"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg font-medium transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Join Our Discord
+              </a>
+              
+              <Dialog.Close asChild>
+                <button className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Close
+                </button>
+              </Dialog.Close>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
       {/* Header */}
       <div className="max-w-5xl mx-auto px-5 py-5 mb-16 relative flex items-center justify-between">
         <button className="p-1" onClick={() => router.push('/import-data')}>

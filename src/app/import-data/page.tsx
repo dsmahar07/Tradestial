@@ -3,7 +3,7 @@
 import { useRef, useState, useMemo, useEffect } from 'react'
 import { userProfileService, UserProfile } from '@/services/user-profile.service'
 
-import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe, X } from 'lucide-react'
+import { Search, Plus, Upload, FileText, Clock, Filter, ChevronDown, Check, AlertCircle, ArrowLeft, Globe, X, ExternalLink } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +29,7 @@ import { useToast } from '@/components/ui/notification-toast'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { useRouter } from 'next/navigation'
+import * as Dialog from '@radix-ui/react-dialog'
 
 interface Broker {
   id: string
@@ -333,6 +334,8 @@ export default function ImportDataPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilters, setSelectedFilters] = useState<string[]>([])
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [showUnsupportedDialog, setShowUnsupportedDialog] = useState(false)
+  const [selectedUnsupportedBroker, setSelectedUnsupportedBroker] = useState<Broker | null>(null)
 
   // Load user profile
   useEffect(() => {
@@ -441,7 +444,19 @@ export default function ImportDataPage() {
   const popularBrokers = filteredBrokers.filter(broker => ['Futures', 'Options', 'Forex', 'Crypto'].includes(broker.category))
   const otherBrokers = filteredBrokers.filter(broker => !['Futures', 'Options', 'Forex', 'Crypto'].includes(broker.category))
 
+  const isBrokerSupported = (brokerId: string) => {
+    const supportedBrokers = ['tradovate', 'tradingview', 'ninjatrader']
+    return supportedBrokers.includes(brokerId)
+  }
+
   const handleBrokerSelect = (broker: Broker) => {
+    // Check if broker is supported
+    if (!isBrokerSupported(broker.id)) {
+      setSelectedUnsupportedBroker(broker)
+      setShowUnsupportedDialog(true)
+      return
+    }
+    
     // Redirect to the upload page with broker info as URL parameters
     const params = new URLSearchParams({
       brokerId: broker.id,
@@ -509,6 +524,13 @@ export default function ImportDataPage() {
                             onClick={() => handleBrokerSelect(broker)}
                             className="p-4 rounded-3xl bg-white cursor-pointer group relative shadow-sm"
                           >
+                            {/* Coming Soon label for unsupported brokers */}
+                            {!isBrokerSupported(broker.id) && (
+                              <div className="absolute top-3 right-3 bg-[#E6A819]/30 text-yellow-900 text-xs font-semibold w-6 h-6 rounded-full flex items-center justify-center">
+                                !
+                              </div>
+                            )}
+                            
                             {/* Link icon for Tradovate and NinjaTrader */}
                             {(broker.id === 'tradovate' || broker.id === 'ninjatrader') && (
                               <div className="absolute top-3 right-3 group/tooltip cursor-help" onClick={(e) => e.stopPropagation()}>
@@ -589,8 +611,14 @@ export default function ImportDataPage() {
                           <div
                             key={broker.id}
                             onClick={() => handleBrokerSelect(broker)}
-                            className="p-4 rounded-3xl bg-white cursor-pointer group"
+                            className="p-4 rounded-3xl bg-white cursor-pointer group relative"
                           >
+                            {/* Coming Soon label for unsupported brokers */}
+                            {!isBrokerSupported(broker.id) && (
+                              <div className="absolute top-3 right-3 bg-[#E6A819]/30 text-yellow-900 text-xs font-semibold w-6 h-6 rounded-full flex items-center justify-center">
+                                !
+                              </div>
+                            )}
                             <div className="flex items-start space-x-3 mb-3">
                               {broker.icon.startsWith('/') ? (
                                 <div className="w-12 h-12 flex items-center justify-center">
@@ -643,6 +671,41 @@ export default function ImportDataPage() {
             {/* Removed file upload, processing, and results steps - handled by upload page */}
         {/* Toast notifications handled by useToast hook */}
       </div>
+      
+      {/* Unsupported Broker Dialog */}
+      <Dialog.Root open={showUnsupportedDialog} onOpenChange={setShowUnsupportedDialog}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl p-6 w-full max-w-md z-50">
+            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">
+              Broker Not Yet Supported
+            </Dialog.Title>
+            <Dialog.Description className="text-gray-600 mb-6">
+              We don't currently support <strong>{selectedUnsupportedBroker?.name}</strong> CSV imports, but we'd love to add support for your broker!
+              <br /><br />
+              Please reach out to us on Discord and we'll work on adding support for {selectedUnsupportedBroker?.name} as soon as possible.
+            </Dialog.Description>
+            
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://discord.gg/7jsfc6RAmX"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg font-medium transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Join Our Discord
+              </a>
+              
+              <Dialog.Close asChild>
+                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                  Close
+                </button>
+              </Dialog.Close>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }
