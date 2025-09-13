@@ -49,26 +49,26 @@ function CustomVerifiedIconSVG(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function Sidebar() {
-  const getInitialCollapsed = () => {
-    try {
-      if (typeof document !== 'undefined') {
-        const match = document.cookie.match(/(?:^|; )sidebar_collapsed=(true|false)/)
-        if (match) return match[1] === 'true'
-      }
-    } catch {}
-    return true
-  }
-
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(getInitialCollapsed)
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true) // Always start collapsed on SSR
   const [isMounted, setIsMounted] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
-  // Mark mounted (used for animation timing)
+  // Mark mounted and load saved collapsed state
   useEffect(() => {
     setIsMounted(true)
+    
+    // Load saved collapsed state from cookie after mounting
+    try {
+      if (typeof document !== 'undefined') {
+        const match = document.cookie.match(/(?:^|; )sidebar_collapsed=(true|false)/)
+        if (match) {
+          setIsCollapsed(match[1] === 'true')
+        }
+      }
+    } catch {}
   }, [])
 
   // Load user profile
@@ -172,14 +172,14 @@ export function Sidebar() {
           )}
         >
       {/* Logo */}
-      <div className="py-4 flex items-center px-5 relative">
-        <div className="w-8 h-8 relative flex-shrink-0">
+      <div className="py-2 flex items-center px-2 relative">
+        <div className={cn("relative flex-shrink-0", isCollapsed ? "w-16 h-16" : "w-20 h-20")}>
           <Image
-            src="/Branding/Tradestial.png"
+            src="/Branding/Tradestial.svg"
             alt="Tradestial Logo"
-            width={32}
-            height={32}
-            className="object-contain"
+            width={isCollapsed ? 64 : 80}
+            height={isCollapsed ? 64 : 80}
+            className="object-contain w-full h-full"
           />
         </div>
 {!isCollapsed && (
@@ -188,9 +188,9 @@ export function Sidebar() {
             animate={isMounted ? { opacity: 1, width: "auto" } : { opacity: 1, width: "auto" }}
             exit={{ opacity: 0, width: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="ml-3 flex-1 overflow-hidden"
+            className="-ml-4 flex-1 overflow-hidden"
           >
-            <h1 className="text-xl font-bold font-codec-pro bg-gradient-to-r from-orange-500 via-pink-500 to-violet-600 bg-clip-text text-transparent whitespace-nowrap">
+            <h1 className="text-2xl font-bold font-codec-pro text-[#333333] dark:text-[#F5F5F5] whitespace-nowrap">
               Tradestial
             </h1>
           </motion.div>

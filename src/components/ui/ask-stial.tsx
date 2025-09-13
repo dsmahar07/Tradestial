@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import * as FancyButton from '@/components/ui/fancy-button'
 import { StialChat } from '@/components/ui/stial-chat'
+import { cn } from '@/lib/utils'
 
 interface AskStialProps {
   onClick?: () => void
@@ -30,11 +31,11 @@ export function AskStial({ onClick, className, disabled = false }: AskStialProps
   return (
     <>
       <FancyButton.Root
-        variant="neutral"
-        size="small"
+        variant="basic"
+        size="medium"
         onClick={handleClick}
         disabled={disabled}
-        className={className}
+        className={cn("rounded-[10px]", className)}
       >
         <FancyButton.Icon as={Sparkles} />
         <span className="bg-gradient-to-r from-[#4F7DFF] via-[#8B5CF6] to-[#F6B51E] bg-clip-text text-transparent">

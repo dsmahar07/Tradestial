@@ -238,20 +238,39 @@ function SortableTile({ id, title, children, customize }: { id: WidgetId; title:
 }
 
 export interface CustomizableWidgetsBoardProps {
-  activity?: {
+  activity: {
     todayScore: number
     todayCompleted: number
     todayTotal: number
     history: Record<string, { completed: number; total: number; score: number }>
     onOpenDailyChecklist: () => void
   }
+  onCustomizeChange?: (isCustomizing: boolean) => void
+  isEditMode?: boolean
 }
 
 export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const { order, setOrder, hidden, show, reset, activeLayout, savedLayouts, saveLayoutAs, loadLayout, deleteLayout } = usePersistentLayout()
-  const [customize, setCustomize] = useState(false)
   const [newLayoutName, setNewLayoutName] = useState("")
+  
+  // Use the prop isEditMode if provided, otherwise fall back to internal state
+  const customize = props.isEditMode ?? false
+
+  // Listen for save layout events from the main toolbar
+  useEffect(() => {
+    const handleSaveLayout = (event: CustomEvent) => {
+      const layoutName = event.detail
+      if (layoutName) {
+        saveLayoutAs(layoutName)
+      }
+    }
+
+    window.addEventListener('saveLayout', handleSaveLayout as EventListener)
+    return () => {
+      window.removeEventListener('saveLayout', handleSaveLayout as EventListener)
+    }
+  }, [saveLayoutAs])
 
   const widgetsById = useMemo(() => {
     const map = Object.fromEntries(ALL_WIDGETS.map(w => [w.id, w])) as Record<WidgetId, WidgetDef>
@@ -309,151 +328,15 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-end gap-3 flex-wrap">
-        {/* Layout Selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Layout:</label>
-          <Select.Root value={activeLayout} onValueChange={loadLayout}>
-            <Select.Trigger className="inline-flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-[#1a1a1a] min-w-[120px]">
-              <Select.Value />
-              <Select.Icon>
-                <ChevronDownIcon className="w-4 h-4" />
-              </Select.Icon>
-            </Select.Trigger>
-            <Select.Portal>
-              <Select.Content className="overflow-hidden bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg">
-                <Select.Viewport className="p-1">
-                  {Object.keys(savedLayouts).map(name => (
-                    <Select.Item key={name} value={name} className="relative flex items-center px-3 py-2 text-sm text-gray-900 dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none">
-                      <Select.ItemText>{name}</Select.ItemText>
-                    </Select.Item>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
-          
-          <FancyButton
-            variant="basic"
-            size="small"
-            onClick={() => deleteLayout(activeLayout)}
-            disabled={Object.keys(savedLayouts).length <= 1}
-            className="!text-red-600 dark:!text-red-400 hover:!bg-red-50 dark:hover:!bg-red-900/20"
-          >
-            <TrashIcon className="w-4 h-4" />
-          </FancyButton>
+      {/* Show edit mode indicator when in customize mode */}
+      {customize && (
+        <div className="flex justify-end mb-4">
+          <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+            <Cog6ToothIcon className="w-4 h-4 inline mr-2" />
+            Layout editing mode - Drag widgets to rearrange
+          </div>
         </div>
-
-        {/* Save Layout Dialog */}
-        <Dialog.Root>
-          <Dialog.Trigger asChild>
-            <FancyButton variant="basic" size="small">
-              Save Layout
-            </FancyButton>
-          </Dialog.Trigger>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-            <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#0f0f0f] rounded-xl border border-gray-200 dark:border-[#2a2a2a] shadow-xl p-6 w-full max-w-md z-50">
-              <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Save Current Layout
-              </Dialog.Title>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Layout Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter layout name..."
-                    value={newLayoutName}
-                    onChange={(e) => setNewLayoutName(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-[#2a2a2a] bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newLayoutName.trim()) {
-                        saveLayoutAs(newLayoutName)
-                        setNewLayoutName("")
-                        const dlg = e.currentTarget.closest('[role="dialog"]') as HTMLElement | null
-                        const closeBtn = dlg?.querySelector('[data-radix-dialog-close]') as HTMLButtonElement | null
-                        closeBtn?.click()
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Dialog.Close asChild>
-                    <FancyButton variant="basic" size="small">
-                      Cancel
-                    </FancyButton>
-                  </Dialog.Close>
-                  <Dialog.Close asChild>
-                    <FancyButton
-                      variant="primary"
-                      size="small"
-                      onClick={() => { saveLayoutAs(newLayoutName); setNewLayoutName("") }}
-                      disabled={!newLayoutName.trim()}
-                    >
-                      Save Layout
-                    </FancyButton>
-                  </Dialog.Close>
-                </div>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-
-        {/* Widgets Visibility Menu */}
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <FancyButton variant="basic" size="small">
-              <EyeIcon className="w-4 h-4 mr-2" />
-              Widgets
-              <ChevronDownIcon className="w-4 h-4 ml-2" />
-            </FancyButton>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content className="min-w-[240px] bg-white dark:bg-[#0f0f0f] rounded-lg border border-gray-200 dark:border-[#2a2a2a] shadow-lg p-2 z-50">
-              <div className="max-h-64 overflow-auto">
-                {order.map(id => (
-                  <DropdownMenu.Item
-                    key={id}
-                    className="flex items-center justify-between px-3 py-2 text-sm text-gray-900 dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none"
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    <span className="flex-1">{widgetsById[id]?.title ?? id}</span>
-                    <button
-                      onClick={() => toggleHidden(id)}
-                      className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-[#3a3a3a]"
-                    >
-                      {hidden[id] ? (
-                        <EyeSlashIcon className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <EyeIcon className="w-4 h-4 text-blue-500" />
-                      )}
-                    </button>
-                  </DropdownMenu.Item>
-                ))}
-              </div>
-              <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-[#2a2a2a] my-2" />
-              <DropdownMenu.Item
-                className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2a] cursor-pointer outline-none"
-                onClick={reset}
-              >
-                Reset Layout
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-
-        {/* Customize Toggle */}
-        <FancyButton
-          variant={customize ? "primary" : "basic"}
-          size="small"
-          onClick={() => setCustomize(v => !v)}
-        >
-          <Cog6ToothIcon className="w-4 h-4 mr-2" />
-          {customize ? "Done" : "Customize"}
-        </FancyButton>
-      </div>
+      )}
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <SortableContext items={visibleOrder}>
@@ -473,6 +356,7 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
           </div>
         </SortableContext>
       </DndContext>
+
     </div>
   )
 }

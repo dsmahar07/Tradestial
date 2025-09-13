@@ -89,9 +89,10 @@ export function RadixJournalDatePicker({
       <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
         <Popover.Trigger asChild>
           <FancyButtonRoot
-            variant="neutral"
-            size="small"
+            variant="basic"
+            size="medium"
             disabled={isNavigating}
+            className="!bg-[#335CFF] hover:!bg-[#2A4FE6] !text-white !border-[#335CFF] hover:!border-[#2A4FE6]"
             aria-haspopup="menu"
             aria-expanded={isOpen}
           >
