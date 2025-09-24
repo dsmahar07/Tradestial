@@ -144,7 +144,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="hidden lg:flex h-6 w-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-250 fixed top-8"
+        className="hidden lg:flex h-6 w-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-250 fixed top-8"
         style={{ 
           left: isCollapsed ? '80px' : '240px',
           zIndex: 9999999,

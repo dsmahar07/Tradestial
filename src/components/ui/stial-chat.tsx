@@ -4,12 +4,15 @@ import { logger } from '@/lib/logger'
 
 import * as React from 'react'
 import { useState, useRef, useEffect } from 'react'
-import { X, Send, Sparkles, ArrowUp, Download, Copy, ThumbsUp, ThumbsDown } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { X, Send, Sparkles, ArrowUp, Download, ClipboardCopy, ClipboardCheck, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import { Root as FancyButton, Icon as FancyButtonIcon } from '@/components/ui/fancy-button'
 import { DataStore } from '@/services/data-store.service'
 import { TradeDataService, type Trade } from '@/services/trade-data.service'
+import { modelStatsService } from '@/services/model-stats.service'
+import { getStrategies } from '@/services/strategy.service'
+import { useRouter } from 'next/navigation'
 
 interface ChatMessage {
   id: string
@@ -23,6 +26,42 @@ interface ChatConversation {
   title: string
   messages: ChatMessage[]
   lastMessage: Date
+  structuredAnalysis?: StructuredAnalysis
+}
+
+interface HighlightTrade {
+  id: string
+  symbol: string
+  side?: string
+  pnl?: number
+  netRoi?: number
+  date?: string
+  tags?: string[]
+  trackerUrl: string
+  strategyInfo?: {
+    id: string
+    name: string
+  }
+}
+
+interface StrategySnapshot {
+  id: string
+  name: string
+  netPnl: number
+  winRate: number
+  trades: number
+}
+
+interface StructuredAnalysis {
+  summary: string
+  highlightTrades: HighlightTrade[]
+  recommendations: string[]
+  strategiesSummary?: {
+    best?: StrategySnapshot
+    worst?: StrategySnapshot
+    all: StrategySnapshot[]
+    descriptions?: Array<{ id: string; name: string; description?: string }>
+  }
 }
 
 interface StialChatProps {
@@ -31,6 +70,8 @@ interface StialChatProps {
 }
 
 export function StialChat({ isOpen, onClose }: StialChatProps) {
+  const router = useRouter()
+  const dragControls = useDragControls()
   const [tradingContext, setTradingContext] = useState<any>(null)
   const [conversations, setConversations] = useState<ChatConversation[]>([])
 
@@ -187,7 +228,8 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
             r: t.rMultiple,
             model: t.model || '',
             entry: t.entryPrice,
-            exit: t.exitPrice
+            exit: t.exitPrice,
+            strategyInfo: t.strategyInfo
           }))
       }
       
@@ -263,7 +305,9 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
         },
         body: JSON.stringify({
           messages: messages.slice(-10), // Send last 10 messages for context
-          tradingContext: contextToSend
+          tradingContext: contextToSend,
+          strategyAssignments: modelStatsService.getAllAssignments(),
+          strategies: getStrategies()
         })
       })
 
@@ -273,9 +317,10 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
         logger.error('API Error:', errorText)
         throw new Error(`Failed to get AI response: ${response.status}`)
       }
-
+ 
       const data = await response.json()
       const aiContent = data.choices?.[0]?.message?.content || 'I apologize, but I encountered an error processing your request. Please try again.'
+      const structuredAnalysis: StructuredAnalysis | undefined = data.structuredAnalysis
 
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -286,7 +331,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
 
       setConversations(prev => prev.map(conv => 
         conv.id === activeConversationId 
-          ? { ...conv, messages: [...conv.messages, aiResponse], lastMessage: new Date() }
+          ? { ...conv, messages: [...conv.messages, aiResponse], lastMessage: new Date(), structuredAnalysis }
           : conv
       ))
     } catch (error) {
@@ -422,6 +467,8 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
         <>
           <motion.div
             drag
+            dragControls={dragControls}
+            dragListener={false}
             dragMomentum={false}
             dragElastic={0}
             dragTransition={{ power: 0 }}
@@ -435,13 +482,25 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
               top: 'calc(50% - 35vh)'
             }}
           >
-            <div className="bg-white dark:bg-[#171717] rounded-2xl shadow-2xl drop-shadow-2xl border border-gray-200 dark:border-gray-700 w-[720px] h-[65vh] flex overflow-hidden relative cursor-move">
-              {/* Drag Handle */}
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
-                <div className="w-10 h-1 bg-gray-400 dark:bg-gray-600 rounded-full" />
-              </div>
+            <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl shadow-2xl drop-shadow-2xl border border-gray-200 dark:border-[#2a2a2a] w-[720px] h-[65vh] flex overflow-hidden relative">
+               {/* Drag Handle */}
+               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
+                <button
+                  type="button"
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    dragControls.start(event)
+                  }}
+                  className="flex items-center justify-center gap-1 px-2 py-1 bg-gray-100 dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2a2a2a] rounded-full cursor-grab active:cursor-grabbing shadow-sm"
+                  aria-label="Drag chat window"
+                >
+                  <span className="w-1 h-1 rounded-full bg-gray-500 dark:bg-gray-300" />
+                  <span className="w-1 h-1 rounded-full bg-gray-500 dark:bg-gray-300" />
+                  <span className="w-1 h-1 rounded-full bg-gray-500 dark:bg-gray-300" />
+                </button>
+               </div>
         {/* Sidebar */}
-        <div className="w-56 bg-[#FAFAFA] dark:bg-[#1a1a1a] border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        <div className="w-48 bg-[#FAFAFA] dark:bg-[#111111] border-r border-gray-200 dark:border-[#2a2a2a] flex flex-col">
           {/* Header */}
           <div className="p-4">
             <div className="flex items-center gap-2 mb-4">
@@ -457,7 +516,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
             <div className="p-2">
               <button
                 onClick={createNewConversation}
-                className="w-full py-2 px-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors mb-2 border-2 border-dashed border-gray-300 dark:border-gray-600"
+                className="w-full py-2 px-3 text-left hover:bg-gray-100 dark:hover:bg-[#1f1f1f] rounded-lg transition-colors mb-2 border-2 border-dashed border-gray-300 dark:border-[#2a2a2a]"
               >
                 <span className="text-gray-500 dark:text-gray-400">+ New Chat</span>
               </button>
@@ -470,7 +529,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
                     <div key={conv.id} className="relative group">
                       <button
                         onClick={() => setActiveConversationId(conv.id)}
-                        className={`w-full py-2 px-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors mb-1 relative ${
+                        className={`w-full py-2 px-3 text-left hover:bg-gray-100 dark:hover:bg-[#1f1f1f] rounded-lg transition-colors mb-1 relative ${
                           activeConversationId === conv.id ? 'bg-blue-100 dark:bg-blue-800/30' : ''
                         }`}
                       >
@@ -483,7 +542,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
                           e.stopPropagation();
                           deleteConversation(conv.id);
                         }}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
                       >
                         <X className="w-3 h-3 text-gray-500 hover:text-red-500" />
                       </button>
@@ -501,19 +560,13 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
           <div className="p-4 flex items-center justify-between">
             <button
               onClick={handleCopyConversation}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 -ml-3 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] rounded-lg transition-colors"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-600 dark:text-gray-400">
-                <path d="M21.25 6.86111V13.2025C21.2502 13.4737 21.1967 13.7423 21.0927 13.9928C20.9886 14.2433 20.836 14.4707 20.6436 14.6619L14.6619 20.6436C14.4707 20.836 14.2433 20.9886 13.9928 21.0927C13.7423 21.1967 13.4737 21.2502 13.2025 21.25H6.86111C5.77078 21.25 4.7251 20.8169 3.95412 20.0459C3.18313 19.2749 2.75 18.2292 2.75 17.1389V6.86111C2.75 5.77078 3.18313 4.7251 3.95412 3.95412C4.7251 3.18313 5.77078 2.75 6.86111 2.75H17.1389C18.2292 2.75 19.2749 3.18313 20.0459 3.95412C20.8169 4.7251 21.25 5.77078 21.25 6.86111Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14.0556 21.0753L13.5417 16.9642C13.4832 16.4981 13.532 16.0248 13.6844 15.5804C13.8367 15.1361 14.0886 14.7324 14.4208 14.4002C14.753 14.0681 15.1566 13.8162 15.601 13.6638C16.0453 13.5115 16.5186 13.4626 16.9847 13.5211L21.0958 14.035" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.86108 7.88892H16.1111" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.86108 12H10.9722" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.86108 16.1111H9.94442" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <ClipboardCopy className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] rounded-lg transition-colors"
             >
               <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
@@ -521,6 +574,15 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {activeConversation?.structuredAnalysis && (
+              <StructuredAnalysisPanel
+                analysis={activeConversation.structuredAnalysis}
+                onClose={() => {
+                  setConversations(prev => prev.map(conv => conv.id === activeConversation.id ? { ...conv, structuredAnalysis: undefined } : conv))
+                }}
+                onNavigate={(url) => router.push(url)}
+              />
+            )}
             {activeConversation?.messages.map((message) => (
               <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-3xl text-gray-900 dark:text-gray-100 bg-transparent rounded-2xl p-4`}>
@@ -553,19 +615,19 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
                     <div className="flex items-center gap-2 mt-3 pt-3">
                       <button 
                         onClick={() => handleCopyMessage(message.content, message.id)}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-[#1f1f1f] rounded transition-colors"
                         title={copiedMessageId === message.id ? "Copied!" : "Copy message"}
                       >
                         {copiedMessageId === message.id ? (
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">Copied!</span>
+                          <ClipboardCheck className="w-4 h-4 text-green-500" />
                         ) : (
-                          <Copy className="w-4 h-4" />
+                          <ClipboardCopy className="w-4 h-4" />
                         )}
                       </button>
-                      <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+                      <button className="p-1 hover:bg-gray-200 dark:hover:bg-[#1f1f1f] rounded transition-colors">
                         <ThumbsUp className="w-4 h-4" />
                       </button>
-                      <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors">
+                      <button className="p-1 hover:bg-gray-200 dark:hover:bg-[#1f1f1f] rounded transition-colors">
                         <ThumbsDown className="w-4 h-4" />
                       </button>
                     </div>
@@ -576,7 +638,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
+                <div className="bg-gray-100 dark:bg-[#141414] rounded-2xl p-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -600,7 +662,7 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask anything..."
-                className="w-full py-2 px-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 dark:bg-gray-800 dark:text-white"
+                className="w-full py-2 px-4 pr-12 border border-gray-300 dark:border-[#2a2a2a] rounded-lg resize-none focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 dark:bg-[#151515] dark:text-white"
                 rows={1}
                 style={{ minHeight: '36px', maxHeight: '120px' }}
               />
@@ -621,5 +683,146 @@ export function StialChat({ isOpen, onClose }: StialChatProps) {
         </>
       )}
     </AnimatePresence>
+  )
+}
+
+interface StructuredAnalysisPanelProps {
+  analysis: StructuredAnalysis
+  onClose: () => void
+  onNavigate: (url: string) => void
+}
+
+function StructuredAnalysisPanel({ analysis, onClose, onNavigate }: StructuredAnalysisPanelProps) {
+  return (
+    <div className="bg-gray-50 dark:bg-[#111111] border border-gray-200 dark:border-[#2a2a2a] rounded-xl p-4 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Trade Highlights</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Summary and actionable links generated from your latest analysis.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-[#1f1f1f] transition-colors"
+          aria-label="Hide AI highlights"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+
+      {analysis.summary && (
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{analysis.summary}</p>
+      )}
+
+      {analysis.strategiesSummary?.all?.length ? (
+        <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+          {analysis.strategiesSummary.best ? (
+            <div>
+              <span className="font-semibold text-gray-700 dark:text-gray-200">Best Strategy:</span>
+              <span className="ml-1 text-green-500 dark:text-green-300">
+                {analysis.strategiesSummary.best.name} ({analysis.strategiesSummary.best.netPnl >= 0 ? '+' : ''}${Math.abs(analysis.strategiesSummary.best.netPnl).toFixed(2)}) • {analysis.strategiesSummary.best.winRate.toFixed(1)}% win rate
+              </span>
+              {analysis.strategiesSummary.descriptions?.find(desc => desc.id === analysis.strategiesSummary?.best?.id)?.description && (
+                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                  {analysis.strategiesSummary.descriptions.find(desc => desc.id === analysis.strategiesSummary?.best?.id)?.description}
+                </p>
+              )}
+            </div>
+          ) : null}
+          {analysis.strategiesSummary.worst && analysis.strategiesSummary.worst !== analysis.strategiesSummary.best ? (
+            <div>
+              <span className="font-semibold text-gray-700 dark:text-gray-200">Needs Work:</span>
+              <span className="ml-1 text-rose-500 dark:text-rose-300">
+                {analysis.strategiesSummary.worst.name} ({analysis.strategiesSummary.worst.netPnl >= 0 ? '+' : ''}${Math.abs(analysis.strategiesSummary.worst.netPnl).toFixed(2)}) • {analysis.strategiesSummary.worst.winRate.toFixed(1)}% win rate
+              </span>
+              {analysis.strategiesSummary.descriptions?.find(desc => desc.id === analysis.strategiesSummary?.worst?.id)?.description && (
+                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                  {analysis.strategiesSummary.descriptions.find(desc => desc.id === analysis.strategiesSummary?.worst?.id)?.description}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {analysis.highlightTrades?.length ? (
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Highlighted Trades
+            {analysis.highlightTrades.some(t => t.strategyInfo) && (
+              <span className="ml-1 text-[11px] font-normal text-purple-500 dark:text-purple-300">
+                ({analysis.highlightTrades
+                  .map(t => t.strategyInfo?.name)
+                  .filter(Boolean)
+                  .join(', ')})
+              </span>
+            )}
+          </h4>
+          <div className="grid gap-2">
+            {analysis.highlightTrades.map(trade => (
+              <a
+                key={trade.id}
+                href={trade.trackerUrl}
+                className="group flex items-center justify-between gap-3 rounded-lg border border-transparent bg-white dark:bg-[#151515] dark:border-[#1f1f1f] px-3 py-2 transition-colors hover:border-blue-200 hover:bg-blue-50 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span>{trade.symbol}</span>
+                    {trade.side && (
+                      <span className={`text-xs uppercase tracking-wide ${trade.side === 'LONG' ? 'text-emerald-500' : 'text-rose-500'}`}>{trade.side}</span>
+                    )}
+                    {typeof trade.pnl === 'number' && (
+                      <span className={`text-xs ${trade.pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {trade.pnl >= 0 ? '+' : '-'}${Math.abs(trade.pnl).toFixed(2)}
+                      </span>
+                    )}
+                    {typeof trade.netRoi === 'number' && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">ROI {(trade.netRoi * 100).toFixed(1)}%</span>
+                    )}
+                    {trade.strategyInfo && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          onNavigate(`/model/${trade.strategyInfo?.id}`)
+                        }}
+                        className="ml-1 inline-flex items-center gap-1 rounded-full bg-purple-100/80 dark:bg-purple-500/20 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:text-purple-200 hover:bg-purple-200/90 dark:hover:bg-purple-500/30 transition-colors"
+                      >
+                        {trade.strategyInfo.name}
+                      </button>
+                    )}
+                  </div>
+                  {trade.tags?.length ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {trade.tags?.map(tag => (
+                        <span key={tag} className="rounded-full bg-blue-100/80 dark:bg-blue-500/20 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-200">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Open in Tracker</span>
+                  <ArrowUp className="w-3 h-3 rotate-45" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {analysis.recommendations?.length ? (
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Recommendations</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+            {analysis.recommendations.map((rec, index) => (
+              <li key={index}>{rec}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   )
 }

@@ -99,7 +99,7 @@ export function AccountSelector({ onAccountChange, className }: AccountSelectorP
 
   return (
     <Select value={activeAccount?.id || ''} onValueChange={handleAccountSelect}>
-      <SelectTrigger className={cn("min-w-[240px] max-w-[320px] focus:outline-none focus:ring-0 focus-visible:ring-0", className)}>
+      <SelectTrigger className={cn("min-w-[240px] max-w-[320px] focus:outline-none focus:ring-0 focus-visible:ring-0 [&>svg]:hidden", className)}>
         <SelectValue>
           {activeAccount ? (
             <div className="flex items-center gap-3 min-w-0">
