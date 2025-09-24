@@ -55,7 +55,7 @@ export function ActivityJournalHeatmap({
   todayTotal = 0,
   history = {},
   onOpenDailyChecklist,
-  height = 432,
+  height,
 }: ActivityJournalHeatmapProps = {}) {
   const gridAreaRef = React.createRef<HTMLDivElement>()
   const firstRowCellsRef = React.createRef<HTMLDivElement>()
@@ -163,8 +163,9 @@ export function ActivityJournalHeatmap({
 
   // Compute heights based on provided height. Historically outer=432 and inner content area=340 (difference 92).
   const OUTER_INNER_OFFSET = 92
-  const outerHeight = Math.max(0, height)
-  const innerContentHeight = Math.max(0, height - OUTER_INNER_OFFSET)
+  const hasFixedHeight = typeof height === 'number' && height > 0
+  const outerHeight = hasFixedHeight ? Math.max(0, height) : undefined
+  const innerContentHeight = hasFixedHeight ? Math.max(0, height - OUTER_INNER_OFFSET) : undefined
 
   return (
     <motion.div
@@ -173,7 +174,10 @@ export function ActivityJournalHeatmap({
       transition={{ duration: 0.3, delay: 0 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: `${outerHeight}px` }}>
+      <div
+        className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none"
+        style={hasFixedHeight ? { height: `${outerHeight}px` } : undefined}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -215,7 +219,10 @@ export function ActivityJournalHeatmap({
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
         
         {/* Fixed Height Content Area */}
-        <div className="flex flex-col px-1 overflow-visible" style={{ height: `${innerContentHeight}px` }}>
+        <div
+          className="flex flex-col px-1 overflow-visible"
+          style={hasFixedHeight ? { height: `${innerContentHeight}px` } : undefined}
+        >
           {/* Month Headers - Dynamic Layout */}
           <div className="flex mb-3">
             <div className="w-10"></div> {/* Space for day labels */}

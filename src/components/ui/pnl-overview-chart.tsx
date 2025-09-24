@@ -97,7 +97,7 @@ export function PnlOverviewChart() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
           className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6"
-          style={{ height: '432px' }}
+          style={{ height: '480px' }}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -142,7 +142,7 @@ export function PnlOverviewChart() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '480px' }}>
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
@@ -190,7 +190,7 @@ export function PnlOverviewChart() {
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
         {/* Chart Container */}
-        <div className="h-[405px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
+          <div className="h-[453px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={currentData}

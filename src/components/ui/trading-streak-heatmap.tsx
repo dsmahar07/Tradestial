@@ -116,7 +116,7 @@ export function TradingStreakHeatmap() {
         transition={{ duration: 0.5, delay: 1.4 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '432px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '480px' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Heatmap</h3>
@@ -158,7 +158,7 @@ export function TradingStreakHeatmap() {
       transition={{ duration: 0.5, delay: 1.4 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '432px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none flex flex-col" style={{ height: '480px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

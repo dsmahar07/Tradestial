@@ -356,7 +356,7 @@ const AdvanceRadar: React.FC = () => {
       transition={{ duration: 0.5, delay: 0.8 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-2 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '432px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-2 text-gray-900 dark:text-white relative focus:outline-none w-full" style={{ height: '480px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

@@ -142,7 +142,7 @@ export function SymbolPerformanceChart() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-[432px] flex items-center justify-center">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl p-6 h-[480px] flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500 dark:text-gray-400">Loading symbol data...</p>
@@ -159,7 +159,7 @@ export function SymbolPerformanceChart() {
         transition={{ duration: 0.5, delay: 1.2 }}
         className="focus:outline-none"
       >
-        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '432px' }}>
+        <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none" style={{ height: '480px' }}>
           {/* Header (title visible, dropdowns hidden) */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -191,7 +191,7 @@ export function SymbolPerformanceChart() {
           {/* Header Divider */}
           <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
           {/* Empty state */}
-          <div className="h-[300px] flex items-center justify-center">
+          <div className="h-[348px] flex items-center justify-center">
             <div className="text-gray-500 dark:text-gray-400 text-center">
               <div>No symbol data available</div>
               <div className="text-sm mt-1">Import your CSV to see symbol performance</div>
@@ -261,7 +261,7 @@ export function SymbolPerformanceChart() {
       transition={{ duration: 0.5, delay: 1.2 }}
       className="focus:outline-none"
     >
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '480px' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -294,7 +294,7 @@ export function SymbolPerformanceChart() {
         <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
         {/* Bar Chart */}
-        <div className="h-[405px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
+        <div className="h-[453px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}

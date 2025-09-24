@@ -142,7 +142,7 @@ export function DailyCumulativePnlWidget() {
 
   return (
     <RadixTooltip.Provider delayDuration={400}>
-      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '432px' }}>
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-white relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626]" style={{ height: '480px' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Daily & Cumulative P&L</h3>
@@ -182,7 +182,7 @@ export function DailyCumulativePnlWidget() {
       {/* Header Divider */}
       <div className="-mx-6 h-px bg-gray-200 dark:bg-[#2a2a2a] mb-4"></div>
 
-      <div className="h-[405px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
+      <div className="h-[453px] -ml-6 overflow-visible" style={{ width: 'calc(100% + 24px)' }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 5, left: -10, bottom: 60 }}>
             <CartesianGrid stroke="none" vertical={false} horizontal={false} />

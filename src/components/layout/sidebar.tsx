@@ -140,14 +140,15 @@ export function Sidebar() {
         />
       )}
 
-      {/* Toggle Button - Completely outside sidebar */}
+      {/* Toggle Button - Fixed position outside sidebar */}
       <Button
         variant="ghost"
         size="icon"
-        className="hidden lg:flex h-6 w-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 fixed top-8 z-[99999]"
-        style={{
-          left: isCollapsed ? '68px' : '196px',
-          transition: 'left 500ms ease-in-out'
+        className="hidden lg:flex h-6 w-6 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-250 fixed top-8"
+        style={{ 
+          left: isCollapsed ? '80px' : '240px',
+          zIndex: 9999999,
+          transition: 'left 0ms ease-out'
         }}
         onClick={() => toggleSidebar(!isCollapsed)}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -160,16 +161,24 @@ export function Sidebar() {
       </Button>
 
       <Tooltip.Provider delayDuration={400} skipDelayDuration={100}>
-        <div 
+        <motion.div
           id="mobile-navigation"
           role="navigation"
           aria-label="Main navigation"
           className={cn(
-            "bg-[#f8f9f8] dark:bg-[#171717] text-gray-700 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto flex flex-col transition-[width] duration-300 ease-out relative border-r border-gray-200 dark:border-[#2a2a2a]",
+            "bg-[#f8f9f8] dark:bg-[#171717] text-gray-700 dark:text-white h-[100dvh] sticky top-0 overflow-y-auto flex flex-col relative border-r border-gray-200 dark:border-[#2a2a2a]",
             "fixed lg:sticky z-[9998] lg:z-auto",
             isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
             isCollapsed ? "w-20" : "w-52"
           )}
+          initial={false}
+          animate={{
+            width: isCollapsed ? '5rem' : '13rem'
+          }}
+          transition={{
+            duration: 0,
+            ease: 'easeOut'
+          }}
         >
       {/* Logo */}
       <div className="py-2 flex items-center px-2 relative">
@@ -460,7 +469,7 @@ export function Sidebar() {
         </DropdownMenu>
       </div>
 
-        </div>
+        </motion.div>
       </Tooltip.Provider>
     </>
   )

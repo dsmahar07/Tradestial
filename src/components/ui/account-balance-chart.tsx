@@ -64,7 +64,7 @@ export function AccountBalanceChart({
   data,
   title = "Account balance",
   timeRanges = defaultTimeRanges,
-  height = 432
+  height = 480
 }: AccountBalanceChartProps) {
   const [selectedTimeRange, setSelectedTimeRange] = useState('ALL')
   const [chartData, setChartData] = useState<AccountBalanceData[]>(data || [])
@@ -225,7 +225,7 @@ export function AccountBalanceChart({
 
   return (
     <motion.div 
-      className={`bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-gray-100 relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626] overflow-hidden ${className}`}
+      className={`bg-white dark:bg-[#0f0f0f] rounded-xl pt-4 px-6 pb-6 text-gray-900 dark:text-gray-100 relative focus:outline-none [--grid:#e5e7eb] dark:[--grid:#262626] overflow-hidden flex flex-col ${className}`}
       style={{ height: `${height}px` }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -265,7 +265,7 @@ export function AccountBalanceChart({
         </>
       )}
       {hasData ? (
-        <>
+        <div className="flex flex-col flex-1 min-h-0">
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mb-4">
             <div className="flex items-center gap-2">
@@ -277,13 +277,13 @@ export function AccountBalanceChart({
               <span className="text-sm text-gray-600 dark:text-gray-300">Starting Balance</span>
             </div>
           </div>
-        
-        {/* Chart Container */}
-          <div className="h-[320px] -ml-6 overflow-visible w-full" style={{ width: 'calc(100% + 24px)' }}>
+
+          {/* Chart Container */}
+          <div className="flex-1 -ml-6 overflow-visible w-full min-h-0" style={{ width: 'calc(100% + 24px)' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={actualData}
-                margin={{ top: 20, right: 5, left: 2, bottom: 10 }}
+                margin={{ top: 20, right: 5, left: 2, bottom: -4 }}
               >
                 <CartesianGrid stroke="none" vertical={false} horizontal={false} />
                 <XAxis 
@@ -355,10 +355,10 @@ export function AccountBalanceChart({
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </>
+        </div>
       ) : (
         // Empty state (styled like trading-streak-heatmap, no CTA)
-        <div className="h-[320px] flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-gray-500 dark:text-gray-400 text-center">
             <div>No account balance data available</div>
             <div className="text-sm mt-1">Your account balance over time will appear here when data is available</div>

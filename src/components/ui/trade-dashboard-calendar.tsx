@@ -582,7 +582,10 @@ export function TradeDashboardCalendar({ className, tradingDays }: TradeDashboar
   }
 
   return (
-    <div ref={calendarRef} className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 flex flex-col', className)}>
+    <div
+      ref={calendarRef}
+      className={cn('bg-white dark:bg-[#0f0f0f] rounded-xl p-4 sm:p-6 flex flex-col h-[986px]', className)}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

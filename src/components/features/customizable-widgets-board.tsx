@@ -384,6 +384,7 @@ export function CustomizableWidgetsBoard(props: CustomizableWidgetsBoardProps) {
             todayTotal={props.activity!.todayTotal}
             history={props.activity!.history}
             onOpenDailyChecklist={props.activity!.onOpenDailyChecklist}
+            height={480}
           />
         ),
       }

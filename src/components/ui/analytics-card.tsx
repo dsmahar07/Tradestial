@@ -140,19 +140,19 @@ export function AnalyticsCard({
           </div>
           
           {showSemicircularIndicator && gaugeData.length > 0 && (
-            <div className="absolute -top-8 right-1 scale-105 origin-top-right">
+            <div className="absolute -top-8 right-1 scale-[1.08] origin-top-right">
               <div className="relative">
                 <div className="relative group">
-                  <ResponsiveContainer width={140} height={120}>
+                  <ResponsiveContainer width={158} height={132}>
                     <PieChart>
                     <Pie
                       data={gaugeData}
-                      cx={70}
-                      cy={60}
+                      cx={79}
+                      cy={66}
                       startAngle={180}
                       endAngle={0}
-                      innerRadius={38}
-                      outerRadius={50}
+                      innerRadius={44}
+                      outerRadius={58}
                       fill="#8884d8"
                       paddingAngle={2}
                       dataKey="value"
@@ -180,7 +180,7 @@ export function AnalyticsCard({
                 </div>
                 </div>
                 {/* Trade count labels */}
-                <div className="absolute bottom-7 left-6 right-4 flex justify-between items-center">
+                <div className="absolute bottom-5 left-7 right-7 flex justify-between items-center">
                   <div className="text-center relative group">
                     <div 
                       className="font-medium rounded-full inline-flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity" 
@@ -220,16 +220,16 @@ export function AnalyticsCard({
           )}
           
           {showDonutIndicator && donutData.length > 0 && (
-            <div className="absolute -top-10 right-2 scale-90 origin-top-right">
+            <div className="absolute -top-11 right-2 scale-95 origin-top-right">
               <div className="relative group">
-                <ResponsiveContainer width={110} height={110}>
+                <ResponsiveContainer width={126} height={126}>
                   <PieChart>
                     <Pie
                       data={donutData}
-                      cx={55}
-                      cy={55}
-                      innerRadius={36}
-                      outerRadius={48}
+                      cx={63}
+                      cy={63}
+                      innerRadius={42}
+                      outerRadius={56}
                       fill="#8884d8"
                       paddingAngle={2}
                       dataKey="value"
@@ -247,7 +247,7 @@ export function AnalyticsCard({
                   </PieChart>
                 </ResponsiveContainer>
                 {/* Custom tooltip */}
-                <div className="absolute -top-100 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                <div className="absolute -top-14 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white text-xs rounded shadow-lg border border-gray-200 dark:border-gray-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
                   {donutData.map((entry, index) => (
                     <div key={index} className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
